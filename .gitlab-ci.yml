@@ -16,3 +16,7 @@ build-docker-image:
     - run-test-job   
   script:
     - docker build -t js--react-app
+before_script:
+  - npm install
+  - chmod +x node_modules/.bin/vite
+
