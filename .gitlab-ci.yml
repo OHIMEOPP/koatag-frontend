@@ -5,12 +5,14 @@ stages:
 
 
 run-test-job:      
+  image: node:20
   stage: test
   script:
     - npm run dev
 
 build-docker-image:   
   stage: builddocker
-  needs: run-test-job   
+  needs: 
+    - run-test-job   
   script:
-    docker build -t js--react-app
+    - docker build -t js--react-app
