@@ -12,7 +12,7 @@ run-test-job:
 
 build-docker-image:   
   stage: builddocker
-  tegs:
+  tags:
     - shell
   needs: 
     - run-test-job   
