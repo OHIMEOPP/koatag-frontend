@@ -13,7 +13,7 @@ run-test-job:
 build-docker-image:   
   stage: builddocker
   tags:
-    - shell
+    - do
   needs: 
     - run-test-job   
   script:
