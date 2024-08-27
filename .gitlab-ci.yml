@@ -4,15 +4,30 @@ stages:
   - builddocker
 
 
+<<<<<<< HEAD
 run-test-job:      
   image: node:20
   stage: test
   script:
     - npm test
 
+=======
+run-test-job:   
+  image: node:20   
+  stage: test
+  script:
+    echo "跑了react test"
+>>>>>>> bc75523491fe9f890af6d59af3e868e3e0b12156
 build-docker-image:   
   stage: builddocker
   needs: 
     - run-test-job   
   script:
     - docker build -t js--react-app
+<<<<<<< HEAD
+=======
+before_script:
+  - npm install
+  - chmod +x node_modules/.bin/vite
+
+>>>>>>> bc75523491fe9f890af6d59af3e868e3e0b12156
