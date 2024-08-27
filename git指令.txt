@@ -1,9 +1,0 @@
-git add . //將要修改的檔案加入快照占存
-git commit -m "修改提示" //將占存檔案拍照並說明原因
-git status //查看當前的檔案狀態
-git log --oneline
-git diff "要回到的紀錄編碼" -- 要執行的檔案
-git reset --hard "要回到的紀錄編碼" //捨棄要回到的紀錄以後的所有編碼
-git clone github資料夾網址 //將要下載的資料夾複製進來
-git push //把現在的檔案推到github上
-git pull //把跟新後的資料拉回自己的電腦
