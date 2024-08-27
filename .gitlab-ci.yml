@@ -10,7 +10,8 @@ run-test-job:
     - npm run build
 
 
-build-docker-image:   
+build-docker-image:  
+  image: node:20 
   stage: builddocker
   tags:
     - do
