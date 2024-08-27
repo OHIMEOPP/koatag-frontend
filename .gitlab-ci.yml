@@ -13,4 +13,4 @@ build-docker-image:
   stage: builddocker
   needs: run-test-job   
   script:
-    docker build -t js--react-app
+    - docker build -t js--react-app
