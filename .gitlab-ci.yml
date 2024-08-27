@@ -8,7 +8,7 @@ run-test-job:
   image: node:20
   stage: test
   script:
-    - npm run dev
+    - npm test
 
 build-docker-image:   
   stage: builddocker
