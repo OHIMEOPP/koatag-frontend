@@ -20,7 +20,7 @@ build-docker-image:
   script:
     - docker build -t js--react-app
 
-before_script:
-  - npm install
-  - chmod +x node_modules/.bin/vite
+# before_script:
+#   - npm install
+#   - chmod +x node_modules/.bin/vite
 

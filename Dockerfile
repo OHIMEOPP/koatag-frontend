@@ -8,13 +8,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖
-# RUN npm install
+RUN npm install
 
 # 将项目文件复制到工作目录
 COPY . .
 
 # 构建项目
-# RUN npm run build
+RUN npm run build
 
 # 使用 nginx 镜像来服务静态文件
 FROM nginx:alpine
