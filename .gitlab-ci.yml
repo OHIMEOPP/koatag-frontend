@@ -15,7 +15,6 @@ run-test-job:
 
 
 build-docker-image:  
-  image: docker:latest 
   stage: builddocker
   tags:
     - shell
