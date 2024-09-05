@@ -14,57 +14,80 @@ function plusState() {
 
 function responseMessage() {
   const [message, setMessage] = useState("");
-  const showeff = useEffect(() => {
+  const [state, setState] = useState(true);
+  useEffect(() => {
     fetch("http://localhost:6001")
       .then((response) => response.json())
       .then((data) => setMessage(data))
-  }, []);
-  return {
-    message,
-    showeff
-  }
+  }, [state]);
+  return { message, setState };
 }
-function responseImgDate(data) {
-  fetch('http://localhost:6001', {
-    method: 'POST', // 请求方法
-    headers: {
-      'Content-Type': 'application/json' // 请求头，表明请求体是 JSON
-    },
-    body: JSON.stringify(data) // 将数据对象转换为 JSON 字符串
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return response.json(); // 解析响应体为 JSON
-    })
-    .then(result => {
-      console.log('Success:', result); // 处理成功的响应
-    })
+
+function responseImgDate() {
+  const [searchValue, setSerchValue] = useState('*');
+  const inputRef = useRef(null);
+  const [vv, setVv] = useState('沒有');
+  // 处理点击事件，聚焦到输入框
+  const handleClick = async () => {
+    if (inputRef.current) {
+      fetch("http://localhost:6001/submit", {
+        method: 'POST', // 请求方法
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: searchValue }) // 将数据对象转换为 JSON 字符串
+      })
+        .then((response) => response.json())
+        .then(data => {
+          setVv(data);
+          // console.log('Success:', data.DB); // 处理成功的响应
+        })
+    }
+  };
+  return { inputRef, handleClick, searchValue, setSerchValue, vv }
 }
 
 function App() {
-  const [searchValue, setSerchValue] = useState('');
-  const { message, showeff } = responseMessage();
+
+  const { message, showeff, setState } = responseMessage();
   const [parms] = useSearchParams();
   const parm = useParams();
   const dataArray = Array.isArray(message.animeDB) ? message.animeDB : [];//要使用這方法來確認是否是陣列
   const marDBarray = Array.isArray(message.marDB) ? message.marDB : [];//要使用這方法來確認是否是陣列
   const marDBcolumnsArray = Array.isArray(message.marDBColumns) ? message.marDBColumns : [];//要使用這方法來確認是否是陣列
-  console.log(marDBcolumnsArray);
+  const { inputRef, handleClick, searchValue, setSerchValue, vv } = responseImgDate();
   const { asd, plus } = plusState();
+  console.log(marDBcolumnsArray);
 
+  const marChin = [
+    '停車序號', '折扣設備', '車牌號碼', '入車時間', '計時時間?', '出車時間', '從何時愈期?', '付款人?', '付款時間',
+    '實際停車', '本地編號', '存取控制列表編號?', '預約編號?', '交易編號', '輸入記錄編號', '狀態', '類別', '原始費用', '實際費用',
+    '折扣時數', '使用折扣時數', '發票號碼', '額外資訊', '創建時間', '更新時間', '票務uid'
+  ];
   return (
     <>
       <div>
+        輸入要查的字:
+        <input 
+        type="text" 
+        ref={inputRef} 
+        onChange={(e) => { setSerchValue(e.target.value) }} 
+        value={searchValue} />
+
+        <button onClick={() => { handleClick(); setState(prev => !prev); }}>查詢</button>
         <table>
-        <thead>
-          <tr>
-            {
-              marDBcolumnsArray.map((element, index) => (
-                <td key={index}>{element}:</td>
-              ))
-            }
+          <thead>
+            <tr>
+              {
+                marDBcolumnsArray.map((element, index) => (
+                  <td key={index}>{element}　　　　　　　　　　　　:</td>
+                ))
+              }
+            </tr>
+            <tr>
+              {
+                marChin.map((e, i) => (
+                  <td key={i}>{e}</td>
+                ))
+              }
             </tr>
           </thead>
           <tbody>
@@ -80,11 +103,10 @@ function App() {
           </tbody>
         </table>
         <p> message :{message.message}</p>
-        輸入要查的字:<input type="text" onChange={(e) => { setSerchValue(e.target.value) }} value={searchValue} />
-        <button onClick={() => { responseImgDate(searchValue) }}>查詢</button>
+
         <table>
           <thead>
-          <tr>
+            <tr>
               <td>id :</td>
               <td>團體 :</td>
               <td>人物 :</td>

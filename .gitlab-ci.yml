@@ -11,7 +11,7 @@ run-test-job:
 
 
 build-docker-image:  
-  image: node:20 
+  image: docker:latest 
   stage: builddocker
   tags:
     - do
