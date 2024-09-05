@@ -14,7 +14,7 @@ build-docker-image:
   image: docker:latest 
   stage: builddocker
   tags:
-    - do
+    - react
   needs: 
     - run-test-job   
   script:
