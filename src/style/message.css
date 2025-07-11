@@ -1,0 +1,58 @@
+    .custom-message-wrapper {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        pointer-events: none;
+    }
+
+    .custom-message {
+        white-space: pre-wrap;
+        text-align: center;
+        background: #fff4d4;
+        color: #333;
+        border-radius: 6px;
+        border: 1px solid #ffc107;
+        padding: 12px 20px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        margin-top: 10px;
+        /* 控制堆疊間距 */
+    }
+
+    /* 淡入效果 */
+    .custom-message.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* 不同訊息類型 */
+    .custom-message.info {
+        background: #d9edf7;
+        border-color: #bce8f1;
+        color: #31708f;
+    }
+
+    .custom-message.success {
+        background: #dff0d8;
+        border-color: #d6e9c6;
+        color: #3c763d;
+    }
+
+    .custom-message.warning {
+        background: rgb(238, 228, 175);
+        border-color: #faebcc;
+        color: rgb(163, 103, 0);
+    }
+
+    .custom-message.error {
+        background: rgb(255, 209, 209);
+        border-color: #ebccd1;
+        color: rgb(255, 17, 13);
+    }

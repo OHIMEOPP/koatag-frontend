@@ -1,0 +1,400 @@
+img {
+    position: unset;
+}
+
+.col-xs-12 {
+    position: unset;
+    background-color: unset;
+}
+
+h3 {
+    margin: 0;
+    padding: 0;
+    margin-bottom: 5px;
+}
+
+text {
+    color: rgb(1, 40, 131);
+}
+
+.thumbnail {
+    display: unset;
+}
+
+a {
+    color: #ffcccc;
+    /* font-size: 2rem; */
+    text-decoration: none;
+    font-weight: bold;
+
+    padding-right: 2px;
+    padding-left: 2px;
+    /* margin: 5px; */
+    /* padding:3px; */
+}
+
+a:hover {
+    text-decoration: none;
+    color: white;
+    /* background-color: rgb(99, 99, 99); */
+}
+
+::-webkit-scrollbar {
+    width: 15px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #9287d3;
+    /* 調整滑塊顏色 */
+    border-radius: 4px;
+    /* 圓角效果 */
+    border: 2px solid #f1f1f1;
+    /* 外邊框顏色 */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+    /* 滑塊在滑動時變深 */
+}
+
+::-webkit-scrollbar-track {
+    background: #bbd0ea;
+    /* 滑動條的背景顏色 */
+    border-radius: 6px;
+}
+
+.float_window {
+    background-color: rgba(96, 96, 96, 0.6);
+    position: fixed;
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    color: aliceblue;
+    top: 0;
+}
+
+input {
+    border-radius: 5px;
+    background-color: rgba(172, 204, 237, 0.7);
+    color: black;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: black;
+    opacity: 0.7;
+}
+
+.custom-cursor {
+    /* cursor: url('../imageUI/01_suisei_pointer_04.cur'), auto; 路徑和備用指標 */
+}
+
+label {
+    margin: 0;
+}
+
+textarea {
+    height: 100px;
+    width: 300px;
+    background-color: rgba(161, 182, 203, 0.7);
+    color: black;
+}
+
+#demo {
+    overflow: auto;
+    width: 900px;
+}
+
+@font-face {
+    font-family: 'BiaoKaiTi';
+    src: url('/imageUI/851ShouShu-2.ttf') format('truetype');
+}
+
+#c {
+    background-color: rgba(23, 23, 43, 0.3);
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background-color: rgba(0, 0, 0, 1);
+
+    font-family: 'BiaoKaiTi', sans-serif;
+    font-weight: 600;
+
+
+    background-image: url("/uploadimg/KV_smoke_2880.dd9c01d6.png");
+    /* 替換為你的圖片 URL */
+    background-size: cover;
+    /* 自動調整背景圖片大小以填滿整個屏幕 */
+    background-repeat: no-repeat;
+    /* 防止背景圖片重複 */
+    background-position: center;
+
+    background-attachment: fixed;
+
+    margin: 0;
+
+}
+
+
+input:focus {
+    background-color: #cbdbf1;
+}
+
+.menu {
+    display: flex;
+    top: 0;
+    position: fixed;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.75);
+    padding: 7px;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    /* border-radius: 1rem; */
+}
+
+@media (max-width: 750px) {
+    .menulist {
+        display: none
+    }
+}
+
+.main_container {
+    margin-top: 70px;
+}
+
+.menulist nav {
+
+    line-height: 1;
+}
+
+.menu nav {
+    margin: 5px;
+}
+
+.menu nav a {
+    color: #ffcccc;
+    font-size: 2rem;
+    text-decoration: none;
+    font-weight: bold;
+    font-family: "" Roboto"," Arial",sans-serif";
+    font-size: 30px;
+    padding: 10px;
+    padding-right: 30px;
+
+    /* padding-left: 5px; */
+    margin: 5px;
+    border-right: #6e6ea5 2px solid;
+    transition:
+        color 0.3s,
+        text 0.3s,
+        border 0.5s,
+        padding 0.1s;
+}
+
+.menu nav a:hover {
+    transition:
+        color 0.3s,
+        text 0.3s,
+        border 0.1s,
+        padding 0.05s;
+    color: #c3cd82;
+    text-shadow: 3px 3px 2px red, 0 0 1em rgb(69, 200, 200), 0 0 1em rgb(231, 240, 97);
+    box-shadow: 5px 0px 50px rgba(0, 0, 0, 0.5);
+    /* border: #f00 ridge 2px; */
+    border-radius: 100px;
+    /* padding:15px; */
+}
+
+.menu nav a:active {
+    transition:
+        color 0.05s;
+    background-color: #2e318e;
+}
+
+
+.menu a:hover {
+    transition:
+        color 0.3s;
+    color: #c3cd82;
+
+}
+
+.menu ul {
+    margin: 0%;
+    /* display: flex; */
+    /* top: 1px; */
+}
+
+.search_are {
+    display: flex;
+    /* position: fixed; */
+    align-items: center;
+    /* justify-content: end; */
+    /* top: 0; */
+    right: 150px;
+    width: auto;
+    margin: 5px;
+
+}
+
+.tag_search-input {
+    display: flex;
+    position: relative;
+    justify-content: end;
+}
+
+.tag_search-input input {
+    border-radius: 20px;
+    border: 1px rgba(204, 209, 245, 0.5) ridge;
+    background-color: rgba(177, 163, 215, 0.5);
+    width: 300px;
+    height: 35px;
+    color: rgb(0, 59, 59);
+    font-size: 20px;
+}
+
+.tag_search-button {
+    position: absolute;
+    /* width:300px; */
+
+}
+
+.tag_search-button button {
+    /* width:300px; */
+    background-color: unset;
+    border: 1px rgba(204, 209, 245, 1) ridge;
+    border-radius: 0px 20px 20px 0px;
+    border: 0px;
+    height: 35px;
+    font-size: 25px;
+}
+
+.iconbtlabel img {
+    position: fixed;
+    border-radius: 100%;
+    /* margin-left: 5px; */
+    /* margin: 5px; */
+    top: 8px;
+    /* right: 0px; */
+    width: 40px;
+    height: 40px;
+    transition:
+        width 0.3s,
+        height 0.3s;
+    /* padding: 2px; */
+}
+
+.iconbtlabel img:hover {
+    transition:
+        width 0.3s,
+        height 0.3s;
+    width: 50px;
+    height: 50px;
+}
+
+.floaticonwindow {
+    position: fixed;
+    top: 60px;
+    /* width: 300px; */
+    height: auto;
+    border: #a146c5 ridge 2px;
+    border-radius: 10px;
+    background-color: rgb(57, 57, 57);
+    color: #ffcccc;
+    margin: 5px;
+    max-width: 325px;
+    max-height: 749px;
+    z-index: 9999;
+}
+
+
+.floaticonwindow a,
+option {
+    text-decoration: none;
+    display: flex;
+    font-weight: bold;
+    font-size: 25px;
+    justify-content: start;
+    color: #ffffff;
+
+}
+
+
+.floaticonwindow button {
+    width: 300px;
+    height: auto;
+    background-color: inherit;
+    border: none;
+    border-radius: 10px;
+    margin: 5px;
+}
+
+.floaticonwindow button:hover {
+    background-color: rgb(92, 92, 92);
+}
+
+.topButton {
+    /* display: none; */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    /* z-index: 99; */
+    font-size: 16px;
+    border: none;
+    outline: none;
+    background-color: #4285F4;
+    color: white;
+    /* cursor: pointer; */
+    padding: 15px;
+    border-radius: 50%;
+}
+
+.topButton:hover {
+    background-color: #555;
+    border-style: dashed;
+    transition:
+        background-color 0.5s;
+}
+
+#suggestions {
+    position: absolute;
+    background-color: #3d568f;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    color: #f5f9ff;
+    top: 45px;
+    left: 0px;
+    padding: 7px;
+}
+
+#suggestions ul {
+    list-style-type: none;
+
+    padding: 0;
+    margin: 2px;
+}
+
+#suggestions a {
+    margin: 5px;
+    padding: 5px;
+    background-color: #2e318e;
+    border-radius: 10px;
+    border: #b9d3fd 1px ridge;
+    cursor: pointer;
+    font-size: 20px;
+    display: inline-flex;
+}
+
+#suggestions a:hover {
+    background-color: #5a7ec3;
+}
