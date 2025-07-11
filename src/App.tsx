@@ -1,8 +1,8 @@
 import "./App.css";
-import Index from "./componet/index.jsx";
-import Blank from "./componet/blankpage.jsx";
-import Te from "./componet/te.jsx";
-import MarkingTable from "./componet/markingDBtable.jsx";
+import Index from "./componet/index";
+import Blank from "./componet/blankpage";
+import Te from "./componet/te";
+import MarkingTable from "./componet/markingDBtable";
 import React, { Component, useRef, useState, useEffect } from "react";
 import { createBrowserRouter, Link, RouterProvider, useNavigate } from "react-router-dom";
 
@@ -17,7 +17,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/markingTable',
-    element: <MarkingTable></MarkingTable>
+    element: <MarkingTable marDBcolumnsArray='黑藝起來'></MarkingTable>
   },
   {
     path: 'te',

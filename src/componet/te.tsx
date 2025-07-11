@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 
 function FocusInput() {
   // 创建一个 useRef 对象，初始值为 null
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   // 处理点击事件，聚焦到输入框
   const handleClick = () => {

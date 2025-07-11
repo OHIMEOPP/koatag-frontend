@@ -30,7 +30,7 @@ README.md
 vite.config.js
 .dockerignore
 !public/
-!node_modules/
+node_modules/
 docker-compose.yml
 .json
 .md
