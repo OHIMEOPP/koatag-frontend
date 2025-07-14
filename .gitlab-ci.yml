@@ -29,5 +29,5 @@ build-docker-image:
     - run-test-job   
   script:
     # - docker build -t js--react-app .
-    echo 123
+    - echo 123
 
