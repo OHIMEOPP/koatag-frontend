@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  react-app:
+    build: .
+    ports:
+      - "80:80"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - mynetwork2
+networks:
+  mynetwork2:
+    external: true
