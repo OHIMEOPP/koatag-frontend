@@ -7,10 +7,12 @@ run-test-job:
   image: node:20
   stage: test
   script:
+    - echo 123 
     # - npm run build
   before_script:
   # - npm install
   # - chmod +x node_modules/.bin/vite
+    - echo 123 
 
 
 build-docker-image:  
