@@ -18,8 +18,9 @@ run-test-job:
 build-docker-image:  
   image: docker:latest 
   stage: builddocker
-  tags:
-    - shell
+
+  only:
+    - main
   services:
     - docker:20-dind
   variables:
