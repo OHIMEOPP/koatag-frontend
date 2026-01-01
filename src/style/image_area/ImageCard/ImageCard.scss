@@ -1,0 +1,149 @@
+.out {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #1e1e1e;
+    //   padding: 8px;
+    //   margin: 10px;
+    justify-content: space-between;
+
+    /* =======================
+        標籤數量區塊
+    ======================= */
+    .amoutView {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 6px;
+        padding: 7px 6px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+
+        .tagItem {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #fff;
+
+            i {
+                font-size: 13px;
+                color: #ffd369;
+            }
+
+            span {
+                font-weight: bold;
+                font-size: 12px;
+            }
+        }
+    }
+
+    /* =======================
+   單張圖片外框
+======================= */
+
+
+    .img_frame {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        // border-radius: 10px;
+        background: #2b2b2b;
+        //   padding: 6px;
+        width: 200px;
+        box-sizing: border-box;
+
+        img {
+            width: 100%;
+            height: auto;
+            max-height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .thumb.placeholder {
+            display: flex;
+            border-radius: 8px;
+            width: 200px;
+            height: 200px;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    }
+
+
+    .staView {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+        //   margin-bottom: 6px;
+        padding: 5px 6px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+
+        .tagItem {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 15px;
+            color: #fff;
+            cursor: pointer;
+
+            i {
+                font-size: 15px;
+                // color: #ff8f8f;
+                color: #ffffff;
+
+                &:hover {
+                    color: #f24646;
+                }
+            }
+
+            span {
+                font-weight: bold;
+                font-size: 15px;
+            }
+        }
+    }
+
+    /* =======================
+   Checkbox 樣式
+======================= */
+    .image-check {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #fff;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.4);
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+
+        &:checked {
+            background: #4caf50;
+            border-color: #4caf50;
+            transform: scale(1.1);
+        }
+    }
+}
+
+.out.pos {
+    position: relative;
+    transform: scale(1);
+}
+
+.out.pos.check {
+    transform: scale(0.9);
+}

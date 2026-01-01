@@ -1,0 +1,62 @@
+#distag {
+    overflow: hidden;
+    height: 225px;
+    transition: height 0.3s;
+    /* background-color: lightblue; */
+}
+.taghead{
+    border-bottom: rgb(238, 238, 238) solid 2px;
+}
+
+
+#taggroupline {
+    white-space: nowrap;
+    transition: transform 0.3s;
+}
+#taggroupline a{
+    text-decoration: none;
+    color: var(--offical-text-color);
+    padding-bottom: 5px;
+    position: relative;
+
+}
+#taggroupline a.active{
+    color: var(--offical-button-active2);
+}
+
+
+#distag #p,
+#distag #m {
+    /* width: 20px; */
+    padding-left: 10px;
+    padding-right: 10px;
+    /* height: auto; */
+}
+
+
+#distag.open {
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#tablecontent {
+    .tag-link {
+        opacity: 0;
+        transform: translateY(10px);
+        animation: fadeInUp 0.3s ease forwards;
+        animation-delay: calc(var(--i) * 0.01s); // 用變數算 delay
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

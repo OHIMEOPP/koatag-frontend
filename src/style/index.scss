@@ -1,0 +1,45 @@
+:root {
+  --main-color: #ff6600;
+  --offical-color: rgba(11, 13, 20, 0.9);
+  --offical-color-hover: rgb(59, 59, 59);
+  --offical-color2: rgba(159, 202, 242, 0.85);
+  --font-size: 16px;
+  --offical-text-color: #ffcccc;
+  --offical-text-color2: rgb(0, 0, 0);
+  --offical-tag-layout: #4a4aa5;
+  --offical-button-layout: #2e1313;
+  --offical-button-layout2: #3a5ed7;
+  --offical-button-active: #aa5d5d;
+  --offical-button-active2: #7695f0;
+  --offical-button-hover: #7695f0;
+  --offical-scroptop-color: rgba(129, 81, 81, 0.75);
+  --offical-window-background: rgba(59, 66, 73, 0.75);
+  --delete_bt: #931d1d;
+  --offical-account-text: rgb(52, 117, 167);
+  --offical-account-text-hover: rgb(23, 63, 93);
+}
+
+body {
+  color: var(--offical-text-color);
+}
+
+a {
+  cursor: pointer;
+}
+
+.float_window,
+#float_window {
+  margin: 0;
+  top: 0;
+  z-index: 9999;
+  position: fixed;
+
+  left: 0;
+  display: flex;
+
+  justify-items: center;
+  justify-content: center;
+  background-color: var(--offical-window-background);
+  height: 100%;
+  width: 100%;
+}

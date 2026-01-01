@@ -1,0 +1,45 @@
+.EditTagType {
+    button {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        // font-size: 0.9rem;
+        transition: all 0.2s ease-in-out;
+        background-color: var(--offical-button-layout2);
+        color: white;
+
+        &.active {
+            background-color: var(--offical-button-active2);
+            transform: scale(1.05);
+            font-weight: 600;
+        }
+
+        &:hover {
+            background-color: var(--offical-button-hover);
+        }
+    }
+
+    .tag_type_checktag_chose_tag {
+        max-height: 200px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+
+        /* 捲軸美化 */
+        scrollbar-width: thin;
+        scrollbar-color: var(--offical-button-active2) transparent;
+
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background-color: var(--offical-button-active2);
+            border-radius: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    }
+}

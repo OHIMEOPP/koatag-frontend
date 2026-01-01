@@ -1,0 +1,6 @@
+export * from './front_page'
+export * from './image_area'
+export * from './image_page'
+export * from './login'
+export * from './upload_area'
+export * from './history'

@@ -1,0 +1,16 @@
+img{
+    height: 500px;
+}
+#box{
+    /* display: flex; */
+    /* justify-content: center; */
+    align-items: center;
+}
+body {
+    display: flex;
+    justify-content: center;
+    /* align-items: center; */
+    /* height: 100vh; 讓內容高度滿版 */
+    margin: 0;
+    text-align: center; /* 讓文字也置中 */
+}

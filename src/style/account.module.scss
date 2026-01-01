@@ -1,0 +1,247 @@
+/* =======================
+   全局設定 + 動態背景
+======================= */
+body {
+    background-color: rgb(225, 234, 239);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    margin: 0;
+    // background-size: 400% 400%;
+    //  animation: gradientBG 3s ease infinite;
+}
+
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+
+    // 100% { background-position: 0% 50%; }
+}
+
+/* =======================
+   超連結效果
+======================= */
+a {
+    text-decoration: none;
+    transition: color 0.3s, transform 0.2s;
+}
+
+a:hover {
+    color: rgb(189, 100, 100);
+    // transform: scale(1.1);
+}
+
+/* =======================
+   頂部容器
+======================= */
+
+.login {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.topcontainer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    position: fixed;
+    width: 100%;
+    height: 50px;
+    padding: 0 20px;
+    background: linear-gradient(to right, var(--offical-account-text), #7bc7fe);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.topcontainer a {
+    margin-right: 15px;
+    font-weight: bold;
+    color: white;
+}
+
+input[type=text],
+input[type=password] {
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15);
+    border: 1px solid #9f9f9f;
+    background-color: rgb(210, 248, 247);
+    font-size: 1.15em;
+    border-radius: 10px;
+    height: 48px;
+    width: 300px;
+    padding-left: 12px;
+    padding-bottom: 2px;
+    color: black;
+    transition: all 0.3s ease-in-out;
+}
+
+/* =======================
+   登入框容器
+======================= */
+.container1 {
+    color: var(--offical-account-text);
+    padding: 25px;
+    width: auto;
+    max-width: 430px;
+    height: 450px;
+    max-height: 450px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    border-top: 10px solid #34c5df;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+
+    position: relative;
+    margin: auto;
+    top: 100px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    /* =======================
+        輸入框樣式
+    ======================= */
+
+    input[type=checkbox] {
+        box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15);
+        height: 20px;
+        width: 20px;
+        margin: 0;
+    }
+
+    input[type=checkbox] {
+        appearance: none;
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        border: 2px solid #999;
+        border-radius: 5px;
+        background-color: white;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease-in-out;
+        box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    input[type=checkbox]:checked {
+        background-color: var(--offical-button-active2);
+        /* 勾選顏色 */
+        border-color: #00a092;
+    }
+
+    input[type=checkbox]:checked::after {
+        content: "✔";
+        position: absolute;
+        color: white;
+        font-size: 14px;
+        top: 0;
+        left: 3px;
+    }
+
+
+
+    input:focus {
+        background-color: rgb(200, 240, 245);
+        border-color: var(--offical-account-text);
+        outline: none;
+        // transform: scale(1.03);
+        box-shadow: 0 0 10px rgba(52, 117, 167, 0.5);
+    }
+}
+
+.container1:hover {
+    // transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35);
+}
+
+/* =======================
+   登入標題 + 閃光效果
+======================= */
+.logintitle {
+    font-size: 34px;
+    margin-bottom: 25px;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(52, 117, 167, 0.6);
+    animation: glowText 2s infinite alternate;
+}
+
+@keyframes glowText {
+    0% {
+        text-shadow: 0 0 8px rgba(52, 117, 167, 0.4);
+    }
+
+    100% {
+        text-shadow: 0 0 18px rgba(52, 117, 167, 0.9);
+    }
+}
+
+/* =======================
+   密碼欄位區域
+======================= */
+.passwordzone {
+    position: relative;
+}
+
+.passwordzone a {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    width: 45px;
+    height: 100%;
+    top: 0px;
+    right: 40px;
+    text-decoration: none;
+    color: var(--offical-account-text-hover);
+    background: linear-gradient(135deg, rgba(164, 205, 238, 0.4), rgba(52, 117, 167, 0.3));
+    transition: all 0.3s ease;
+}
+
+.passwordzone a:hover {
+    // transform: scale(1.15);
+    background: linear-gradient(135deg, rgba(52, 117, 167, 0.5), rgba(164, 205, 238, 0.5));
+}
+
+/* =======================
+   提交按鈕
+======================= */
+.submit_bt {
+    cursor: pointer;
+    background: linear-gradient(135deg, rgb(164, 205, 238), rgb(52, 117, 167));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1.25em;
+    width: 300px;
+    padding: 12px 28px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.submit_bt:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* =======================
+   切換註冊連結
+======================= */
+.switchRegister {
+    color: black;
+}
+
+.switchRegister a {
+    cursor: pointer;
+    color: rgb(52, 117, 167);
+    font-weight: bold;
+    transition: color 0.3s, transform 0.2s;
+}
+
+.switchRegister a:hover {
+    color: rgb(34, 87, 124);
+    transform: scale(1.1);
+}

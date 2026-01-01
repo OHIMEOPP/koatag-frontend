@@ -1,0 +1,41 @@
+.loadBt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: #fff;
+    background-color: #2563eb;
+    border: none;
+    transition: background-color 0.2s;
+
+    .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+}
+
+.loadBt:hover:not(:disabled) {
+    background-color: #1d4ed8;
+}
+
+.loadBt-disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.loadBt-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

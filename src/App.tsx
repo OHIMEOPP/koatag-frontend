@@ -1,25 +1,60 @@
-import React from 'react';
-import logo from './logo.svg';
+import { ScrollTop, ScrollToTop } from 'components';
 import './App.css';
+import Main from './Main';
+import { Login } from 'pages';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Test from 'pages/test';
 
+const token = localStorage.getItem('token');
+const userRaw = localStorage.getItem('user');
+const user = userRaw ? JSON.parse(userRaw) : null;
+const user_id: number = user ? user.id : null;
+
+declare global {
+  interface Window {
+    user_id: number;
+  }
+}
+localStorage.setItem('user_id', `${user_id}`);
+window.user_id = user_id;
+
+if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+// console.log(token, user_id) //正常執行一次
 function App() {
+  // console.log(token, user_id) // 異常執行兩次
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <ScrollTop />
+      <Routes>
+        <Route
+          path="/login"
+          element={!token || !user_id ? <Login /> : <Navigate to="/main/front_page" replace />}
+        />
+        <Route
+          path="/main/*"
+          element={token && user_id ? <Main /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/"
+          element={<Navigate to={token && user_id ? "/main/front_page" : "/login"} replace />}
+        />
+        <Route
+          path="/test"
+          element={<Test
+            src="https://picsum.photos/800/600"
+            title="測試圖片"
+            description="這是一張隨機的測試圖片，示範圖片資訊頁面。"
+            uploader="Admin"
+            uploadDate="2025-08-31"
+            resolution="1920x1080"
+            size="1.2 MB"
+          />
+          }
+        />
+      </Routes>
+      <ScrollToTop />
+    </BrowserRouter>
   );
 }
 

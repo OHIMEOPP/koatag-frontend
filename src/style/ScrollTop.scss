@@ -1,0 +1,39 @@
+/* Scroll To Top Button */
+// @import './index.scss';
+.scroll-to-top {
+  bottom: 1rem !important;
+  right: 1rem !important;  
+  height: 6rem !important;
+  width: 6rem !important;
+  background-color: var(--offical-scroptop-color) !important;
+  -webkit-transition: all 0.2s;
+  -moz-transition: all 0.2s; 
+  -o-transition: all 0.2s; 
+  transition: all 0.2s; 
+  z-index: 900 !important; 
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex; 
+  text-align: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+          clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  -webkit-box-shadow: var(--box-shadow);
+          box-shadow: var(--box-shadow);
+}
+ 
+/* Scroll To Top Button, Hover Effect */
+.scroll-to-top:hover {
+  background-color: var(--offical-text-color) !important;
+  cursor: pointer;
+}
+
+/* Scroll To Top Button SVG Icon */
+.scroll-to-top svg {
+  fill: var(--white);
+}
