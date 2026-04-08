@@ -40,7 +40,6 @@ const Main = () => {
         fetchIcon('check_img_type', 'backGoundImage', String(user_id))
             .then(response => {
                 const BGImage = new Image();
-                console.log(getFilePath(user_id, response.result.img_path));
                 BGImage.src = getFilePath(user_id, response.result.img_path);
                 BGImage.onload = () => {
                     localStorage.setItem('backGoundImage', response.result.img_path)

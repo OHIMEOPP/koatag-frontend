@@ -27,7 +27,6 @@ const apiSetting = async ({ method, url, headers = undefined, data = null }: { m
     if (data != null) {
       config.data = data;
     }
-    console.log(config);
     const response = await api(config);
     return response;
   } catch (error) {

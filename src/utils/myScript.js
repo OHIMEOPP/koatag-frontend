@@ -41,7 +41,6 @@ export function sreach_drop(c_div, suggestions, searchInput, afterCommaStr, sugg
 
 export function _dynamictagtype( tags) {
     if (tags) {
-        // taggroupline.textContent = "";
         const groupedByType = tags.reduce((acc, tag) => {
             if (!acc[tag.type]) {
                 acc[tag.type] = [];
@@ -50,23 +49,6 @@ export function _dynamictagtype( tags) {
             return acc;
         }, {});
 
-        console.log(groupedByType);
         return groupedByType;
     }
-}
-
-export function asdd(searchInput) {
-    document.querySelectorAll('#demo a').forEach(a => {
-        a.addEventListener('click', function () {
-            searchInput.focus();
-            var currentValue = searchInput.value;
-            if (currentValue !== "") {
-                currentValue += ",";
-            }
-
-            // 将按钮的文本内容添加到输入框中
-            searchInput.value = currentValue + a.textContent;
-
-        });
-    })
 }

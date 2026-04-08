@@ -52,7 +52,6 @@ const TagEditor: React.FC<TagEditorProps> = ({ onClose, tagtype, UncategorizedTa
           alert("請輸入標籤名稱!");
           return;
         } else {
-          console.log(addNewTagFrom);
 
           const formData = new FormData();
 
@@ -79,7 +78,6 @@ const TagEditor: React.FC<TagEditorProps> = ({ onClose, tagtype, UncategorizedTa
           alert("請輸入標籤名稱!");
           return;
         } else {
-          console.log(editTag)
           const formData = new FormData();
 
           formData.append('tagName', editTag.tagName);
@@ -103,7 +101,6 @@ const TagEditor: React.FC<TagEditorProps> = ({ onClose, tagtype, UncategorizedTa
           alert("請輸入分類名稱!");
           return;
         } else {
-          console.log(editTagType)
           const formData = new FormData();
 
           formData.append('tagName', JSON.stringify(editTagType.tagName));

@@ -10,18 +10,14 @@ const BackgroundImgUploadButton = () => {
         $message('上傳中...');
 
         const file = files[0];
-        console.log(file)
-        console.log(ImageType)
         if (file) {
             // console.log('檔案大小:', file.size);
             const formData = new FormData();
             formData.append(ImageType, file)
-            console.log(formData)
             try {
                 // console.log('上傳至frontpage_controller 做圖片檔案移動 與 更新DB');
                 const response = await UploadInterfaceImage(formData)
 
-                console.log('回應狀態:', response.status, 'data:', response.data);
                 if (response.status === 200 || response.status === 201) {
                     URL.createObjectURL(file);
                     if (ImageType === 'backGoundImage') {
@@ -31,7 +27,6 @@ const BackgroundImgUploadButton = () => {
 
                     }
                     FlushLocalStrage()
-                    console.log('成功完成後動態更新顯示圖片', response.data.path);
                     $message('上傳成功');
 
                 }
@@ -41,7 +36,6 @@ const BackgroundImgUploadButton = () => {
                 $message(`上傳失敗\n${error} `, 'error')
             }
         } else {
-            console.log('沒有選擇檔案');
         }
     }
 

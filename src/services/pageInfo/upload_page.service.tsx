@@ -1,11 +1,9 @@
 import api from "api/axios";
 import { ResponseType } from "components"
 
-
-const user_id = localStorage.getItem('user_id')
-
 export const getUploadAreaInfo = async () => {
     try {
+        const user_id = localStorage.getItem('user_id');
         const response = await api.get<ResponseType>(`/pageInfo/getUploadAreaInfo/${user_id}`);
         return response.data;
     } catch (error) {

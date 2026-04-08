@@ -4,21 +4,18 @@ import Main from './Main';
 import { Login } from 'pages';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Test from 'pages/test';
+import { getUserId } from 'utils';
 
 const token = localStorage.getItem('token');
-const userRaw = localStorage.getItem('user');
-const user = userRaw ? JSON.parse(userRaw) : null;
-const user_id: number = user ? user.id : null;
+const user_id = getUserId();
 
 declare global {
   interface Window {
-    user_id: number;
+    user_id: string;
   }
 }
-localStorage.setItem('user_id', `${user_id}`);
+localStorage.setItem('user_id', user_id);
 window.user_id = user_id;
-
-if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
 // console.log(token, user_id) //正常執行一次
 function App() {

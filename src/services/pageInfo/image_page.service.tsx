@@ -1,10 +1,9 @@
 import api from "api/axios";
 import { ResponseType } from "components"
 
-const user_id = localStorage.getItem('user_id')
-
 export const getImagePageInfo = async (img_id: string) => {
     try {
+        const user_id = localStorage.getItem('user_id');
         const response = await api.get<ResponseType>(`/pageInfo/getImageForPage/${img_id}/${user_id}`);
         return response.data;
     } catch (error) {
@@ -14,6 +13,7 @@ export const getImagePageInfo = async (img_id: string) => {
 }
 export const update = async (formData: FormData, img_id: string) => {
     try {
+        const user_id = localStorage.getItem('user_id');
         const response = await api.post<ResponseType>(`/image/updateImageData/${img_id}/${user_id}`,
             formData,
             {

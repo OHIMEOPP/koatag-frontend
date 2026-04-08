@@ -52,7 +52,6 @@ const Upload_area: React.FC = () => {
     fileAmount.innerHTML = `圖片數量: 當前無圖片`;
     if (!files) return
     if (files.length > 0) {
-      console.log(files);
       if (files.length > maxFileUploads) { // 限制文件数为 100
         $message(`最多只能上傳 ${maxFileUploads} 個文件！`, 'warning');
         const img = document.getElementById('_img') as HTMLDivElement
@@ -273,7 +272,6 @@ const Upload_area: React.FC = () => {
       } else if (e.key === "Enter") {
         e.preventDefault();
         if (currentIndex >= 0 && suggestionLinks[currentIndex]) {
-          console.log("✅ 選中的:", suggestionLinks[currentIndex].textContent);
           suggestionLinks[currentIndex].click();
           currentIndex = -1;
           updateHighlight(suggestionLinks, currentIndex);

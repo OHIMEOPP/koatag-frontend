@@ -39,11 +39,10 @@ const PublicTagBlog = () => {
             }
         })
             .then(response => {
-                console.log(response.data);
                 publicTag = response.data;
             })
             .catch(error => {
-                console.log(`find images is fail -> ${error}`)
+                console.error(`find images is fail -> ${error}`)
             })
         return getRefrenceTag(publicTag);
     }

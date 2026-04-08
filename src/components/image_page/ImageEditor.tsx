@@ -161,7 +161,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
 
             if (isCrossOrigin) {
                 // 跨域圖片：傳 URL 給後端，讓後端抓圖（避免瀏覽器 CORS）
-                response = await fetch('http://koatag.com:5010/upload_by_url', {
+                response = await fetch(`${process.env.REACT_APP_AI_API_URL}/upload_by_url`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: imgSrc, translate_to_zh: true }),
@@ -171,14 +171,13 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
                 const blob = await fetch(imgSrc).then(res => res.blob());
                 const formData = new FormData();
                 formData.append('file', blob, 'image.jpg');
-                response = await fetch('http://koatag.com:5010/upload', {
+                response = await fetch(`${process.env.REACT_APP_AI_API_URL}/upload`, {
                     method: 'POST',
                     body: formData,
                 });
             }
 
             const result = await response.json();
-            console.log('AI 辨識結果:', result);
         } catch (err) {
             console.error('AI 辨識失敗:', err);
         } finally {

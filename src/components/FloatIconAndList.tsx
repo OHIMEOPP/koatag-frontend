@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { logout } from '../services/auth.service'
 import { fetchIcon } from '../services/image.service'
-import { getFilePath } from 'utils';
+import { getFilePath, getUserId } from 'utils';
 import { getAllTag } from 'services/tag.service';
 import { TagData } from './types/tags';
 import { TagInput } from './TagInput';
@@ -33,7 +33,7 @@ const FloatIconAndList: React.FC<FloatIconAndListProps> = ({ pages, setIsCollaps
             setVisible(true);
         }
     };
-    const user_id = localStorage.getItem('user_id');
+    const user_id = getUserId();
 
     useEffect(() => {
         if (visible) {
@@ -70,7 +70,6 @@ const FloatIconAndList: React.FC<FloatIconAndListProps> = ({ pages, setIsCollaps
         getAllTag()
             .then(res => {
                 if (!res) return;
-                console.log(res)
                 setTagData(res.result);
             })
     }, [user_id]);
@@ -107,7 +106,6 @@ const FloatIconAndList: React.FC<FloatIconAndListProps> = ({ pages, setIsCollaps
                                     const input = formRef.current?.elements.namedItem("tag") as HTMLInputElement | null;
                                     if (input) {
                                         input.value = val;
-                                        console.log(val)
                                     };
                                 }}
                                 placeholder={`請輸入 標籤1,標籤2...`}

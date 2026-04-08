@@ -35,8 +35,6 @@ const TagBlog = ({ tags, openEdit }: TagBlogProps) => {
     var contentDiv = document.getElementById("tablecontent") as HTMLDivElement;
 
     function tagchange(tags: TagData[]) {
-        console.log(tags)
-        // contentDiv.textContent = '';
         if (tags.length !== 0) {
 
             // 設定active
@@ -45,10 +43,8 @@ const TagBlog = ({ tags, openEdit }: TagBlogProps) => {
 
             setRequestType(tags?.[0].Tag_Group)
             const arr = [tags?.[0].Tag_Group];
-            console.log(arr)
             setTagLine([])
             setTagLine(tags)
-            console.log(tags);
         } else {
             // contentDiv.textContent = '沒有標籤喔';
              setTagLine([{

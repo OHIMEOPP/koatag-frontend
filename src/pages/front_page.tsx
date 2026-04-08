@@ -5,7 +5,7 @@ import "cropperjs/dist/cropper.css";
 import "../style/front_page/CropperEditer/CropperEditer.scss";
 
 import { PublicTagBlog, ProfileHeader, BackgroundImgUploadButton, TagEditor, Data, TagBlog } from "components";
-import { _dynamictagtype } from "utils";
+import { _dynamictagtype, getUserId } from "utils";
 import api from "api/axios";
 
 interface ImageResponse {
@@ -23,16 +23,10 @@ const Front_page = () => {
     current();
   }, []);
 
-  let user_id = localStorage.getItem('user_id');
-  if (!user_id) {
-    const userRaw = localStorage.getItem('user');
-    const user = userRaw ? JSON.parse(userRaw) : null;
-    user_id = user ? user.id : null;
-  }
+  const user_id = getUserId();
 
   async function current() {
     const response = await api.get<ImageResponse>(`${process.env.REACT_APP_NODERED_API_URL}/pageInfo/getImageForFront/${user_id}`);
-    console.log(response.data.result);
     setTags(response.data.result);
   }
 

@@ -149,10 +149,6 @@ const Image_area = () => {
     // window.confirm("確定送出嗎?");
     // eslint-disable-next-line no-restricted-globals
     if (confirm(`確定送出嗎? \n 輸入內容為：\n種類: ${inputValues[0]}\n增加標籤: ${inputValues[1]}\n選擇圖片數量: ${inputValues[2]}`) === true) {
-      console.log(
-        formData.get('tagGroup'),
-        formData.get('tagName'),
-        formData.get('imagesId'))
     } else {
       return;
     }
