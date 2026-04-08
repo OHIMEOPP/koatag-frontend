@@ -30,6 +30,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
     const whole_imgRef = useRef<HTMLImageElement>(null);
     const float_oContainer = useRef<HTMLDivElement>(null);
     const [anotherValue, setAnotherValue] = useState<string>('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
     // Memoize 其他 TagInput 的回調，防止不必要的重新渲染
@@ -139,6 +140,51 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
             setAnotherValue(imageData.OanotherTag);
         }
     }
+
+    const handleAiTag = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setIsAiLoading(true);
+        const isHttp = imageData?.check_img_type === "HTTP"
+            || imageData?.img_path?.startsWith('http://') 
+            || imageData?.img_path?.startsWith('https://');
+        const imgSrc = isHttp
+            ? imageData?.img_path
+            : `${getFilePath(user_id, imageData?.img_path ?? '')}`;
+
+        if (!imgSrc) return;
+
+        // 判斷最終 imgSrc 是否為跨域 URL（包含 getFilePath 回傳的外部位址）
+        const isCrossOrigin = imgSrc.startsWith('http://') || imgSrc.startsWith('https://');
+
+        try {
+            let response: Response;
+
+            if (isCrossOrigin) {
+                // 跨域圖片：傳 URL 給後端，讓後端抓圖（避免瀏覽器 CORS）
+                response = await fetch('http://koatag.com:5010/upload_by_url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: imgSrc, translate_to_zh: true }),
+                });
+            } else {
+                // 同源圖片：直接上傳 blob
+                const blob = await fetch(imgSrc).then(res => res.blob());
+                const formData = new FormData();
+                formData.append('file', blob, 'image.jpg');
+                response = await fetch('http://koatag.com:5010/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+            }
+
+            const result = await response.json();
+            console.log('AI 辨識結果:', result);
+        } catch (err) {
+            console.error('AI 辨識失敗:', err);
+        } finally {
+            setIsAiLoading(false);
+        }
+    }, [imageData, user_id]);
 
     // 放大鏡區------------------------------------------------
     useEffect(() => {
@@ -254,6 +300,13 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
                                 alt=""
                             />
                         </div>
+                        <button
+                            className="ai-btn"
+                            onClick={handleAiTag}
+                            disabled={isAiLoading}
+                        >
+                            {isAiLoading ? '辨識中...' : 'AI 辨識'}
+                        </button>
                     </div>
 
                     <form ref={formRef} onSubmit={handleSubmit} method="post" id="set_tag_m">
