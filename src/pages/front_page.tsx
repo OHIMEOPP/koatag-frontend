@@ -26,7 +26,7 @@ const Front_page = () => {
   const user_id = getUserId();
 
   async function current() {
-    const response = await api.get<ImageResponse>(`${process.env.REACT_APP_NODERED_API_URL}/pageInfo/getImageForFront/${user_id}`);
+    const response = await api.get<ImageResponse>(`/pageInfo/getImageForFront/${user_id}`);
     setTags(response.data.result);
   }
 

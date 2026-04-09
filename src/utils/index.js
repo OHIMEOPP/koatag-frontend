@@ -1,7 +1,7 @@
 export * from './message/message';
 export * from './myScript';
 export * from './FlushLocalStrage/FlushLocalStrage'
-export * from './deplay/delay'
+export * from './delay/delay'
 export * from './image_page/parser'
 export * from './TagLink/TagLink'
 

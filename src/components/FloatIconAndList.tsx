@@ -46,19 +46,29 @@ const FloatIconAndList: React.FC<FloatIconAndListProps> = ({ pages, setIsCollaps
             document.removeEventListener('click', handleClickOutside);
         };
     }, [visible]);
-    const [imgUrl, setImgUrl] = useState('');
+    const [imgUrl, setImgUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const localIcon = async () => {
             if (!user_id) return;
             const icon = localStorage.getItem('icon');
             if (!icon) {
-                const response = await fetchIcon('check_img_type', 'icon', user_id);
-                const icon = new Image();
-                icon.src = getFilePath(user_id, response.result.img_path);
-                icon.onload = () => {
-                    localStorage.setItem('icon', getFilePath(user_id, response.result.img_path));
-                    setImgUrl(getFilePath(user_id, response.result.img_path));
+                try {
+                    const response = await fetchIcon('check_img_type', 'icon', user_id);
+                    const icon = new Image();
+                    const iconPath = getFilePath(user_id, response.result.img_path);
+                    icon.src = iconPath;
+                    icon.onload = () => {
+                        localStorage.setItem('icon', iconPath);
+                        setImgUrl(iconPath);
+                    }
+                    icon.onerror = () => {
+                        console.error('Failed to load icon image');
+                        setImgUrl(null);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch icon:', error);
+                    setImgUrl(null);
                 }
             }
             else {
@@ -80,7 +90,7 @@ const FloatIconAndList: React.FC<FloatIconAndListProps> = ({ pages, setIsCollaps
             <div className="menu">
                 <div className='menuleft' style={{ display: 'flex' }}>
                     <div className='iconbtlabel' onClick={() => setIsCollapsed(prev => !prev)}>
-                        <img src={imgUrl} alt="icon" />
+                        {imgUrl ? <img src={imgUrl} alt="icon" /> : null}
                     </div>
                     <div className='menulist'>
                         <nav>

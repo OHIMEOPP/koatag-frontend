@@ -27,13 +27,20 @@ const ProfileHeader = () => {
             fetchIcon('check_img_type', 'Wimage', user_id)
                 .then(response => {
                     const wImage = new Image();
-                    wImage.src = getFilePath(user_id, response.result.img_path);
+                    const wImagePath = getFilePath(user_id, response.result.img_path);
+                    wImage.src = wImagePath;
                     wImage.onload = () => {
-                        localStorage.setItem('WImage', getFilePath(user_id, response.result.img_path));
-                        setWimage(getFilePath(user_id, response.result.img_path));
+                        localStorage.setItem('WImage', wImagePath);
+                        setWimage(wImagePath);
+                    }
+                    wImage.onerror = () => {
+                        console.error('Failed to load WImage');
+                        setWimage(null);
                     }
                 })
-                .catch(() => {
+                .catch((error) => {
+                    console.error('Failed to fetch WImage:', error);
+                    setWimage(null);
                 })
         }
         else {
@@ -45,13 +52,20 @@ const ProfileHeader = () => {
             fetchIcon('check_img_type', 'icon', user_id)
                 .then(response => {
                     const icon = new Image();
-                    icon.src = getFilePath(user_id, response.result.img_path ?? '');
+                    const iconPath = getFilePath(user_id, response.result.img_path ?? '');
+                    icon.src = iconPath;
                     icon.onload = () => {
-                        localStorage.setItem('icon', getFilePath(user_id, response.result.img_path))
-                        setIcon(getFilePath(user_id, response.result.img_path));
+                        localStorage.setItem('icon', iconPath);
+                        setIcon(iconPath);
+                    }
+                    icon.onerror = () => {
+                        console.error('Failed to load icon');
+                        setIcon(null);
                     }
                 })
-                .catch(() => {
+                .catch((error) => {
+                    console.error('Failed to fetch icon:', error);
+                    setIcon(null);
                 })
         }
         else {
@@ -60,8 +74,8 @@ const ProfileHeader = () => {
 
     }, [user_id]);
 
-    const [wimage, setWimage] = useState('');
-    const [icon, setIcon] = useState('');
+    const [wimage, setWimage] = useState<string | null>(null);
+    const [icon, setIcon] = useState<string | null>(null);
     const [cropperShape, setCropperShape] = useState('')
 
     const $id = (id: string) => document.getElementById(id) as HTMLInputElement;
@@ -291,8 +305,7 @@ const ProfileHeader = () => {
                                 }} accept="image/*" name="icon" style={{ display: 'none' }} />
                                 <label htmlFor="icon_input">
                                     {/* <!-- 上傳圖片按鈕的圖片 --> */}
-                                    <img id="ICON_Image"
-                                        src={icon} />
+                                    {icon ? <img id="ICON_Image" src={icon} /> : null}
                                 </label>
                             </form>
                         </div>

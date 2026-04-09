@@ -20,7 +20,22 @@ export const getUser = async () => {
         }
         const response = await api.get(`/getUser`);
 
-        localStorage.setItem('user', JSON.stringify(response.data))
+        // 處理可能的不同響應結構
+        let userData: any = response.data;
+        if (userData?.result) {
+            userData = userData.result;
+        } else if (userData?.data) {
+            userData = userData.data;
+        }
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // 提取 user_id
+        if (userData?.id) {
+            localStorage.setItem('user_id', String(userData.id));
+        } else if (userData?.user_id) {
+            localStorage.setItem('user_id', String(userData.user_id));
+        }
     } catch (e) {
         console.error(e);
         alert(`取得使用者資料失敗 -> ${e}`);
