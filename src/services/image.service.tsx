@@ -35,7 +35,7 @@ export const getImageForImageReposity = async (formData: FormData) => {
     //     console.log(key, value);
     // });
     const response = await api.post<ImageResponseType>(
-        `/getImage`,
+        `${process.env.REACT_APP_NODERED_API_URL}/getImage`,
         formData,
         {
             headers: {
@@ -49,7 +49,7 @@ export const getImageForImageReposity = async (formData: FormData) => {
 export const UploadImages = async (formData: FormData) => {
     const user_id = localStorage.getItem('user_id');
     const response = await api.post<ResponseType>(
-        `/image/uploadBatchImages/${user_id}`,
+        `${process.env.REACT_APP_NODERED_API_URL}/image/uploadBatchImages/${user_id}`,
         formData,
         {
             headers: {

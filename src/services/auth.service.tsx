@@ -1,4 +1,5 @@
 import api from "api/axios";
+import axios from "axios";
 import { $message, delay } from "utils";
 
 interface AuthResponse {
@@ -60,14 +61,16 @@ export const login = async (account: string, password: string) => {
 
 export const logout = async () => {
     try {
-        await api.post<AuthResponse>(`/logout`);
+        const response = await axios.post<AuthResponse>(`${process.env.REACT_APP_API_URL}/logout`);
+
+        const message = response.data.message;
 
         $message("即將登出請稍後...");
         await delay(2);
     } catch (e) {
         alert(`登出失敗 -> ${e}`);
     } finally {
-        localStorage.clear();
+        localStorage.clear(); // 無論成功或失敗都清除 token
         window.location.href = '/login';
     }
 };
