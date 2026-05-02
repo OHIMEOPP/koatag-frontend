@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { getImageForImageReposity } from 'services/image.service';
 import { getUploadAreaInfo } from 'services/pageInfo/upload_page.service';
 import { Btn, Icon, ImageCard, ImageResponseType, FilterPanel, TagInput, Data } from 'components';
@@ -230,27 +230,51 @@ const Image_area = () => {
                         )}
                     </div>
 
-                    {totalPageAmount > 1 && (
-                        <div className="pager">
-                            {page > 1 && (
-                                <a href={`/main/image_area?page=${page - 1}${strTag}`} className="page-btn">‹</a>
-                            )}
-                            {Array.from({ length: totalPageAmount }, (_, i) => i + 1)
-                                .filter((p) => Math.abs(p - page) < 5 || p === 1 || p === totalPageAmount)
-                                .map((p) => (
-                                    <a
-                                        key={p}
-                                        href={p === page ? '#' : `/main/image_area?page=${p}${strTag}`}
-                                        className={`page-btn ${p === page ? 'active' : ''}`}
-                                    >
-                                        {p}
-                                    </a>
-                                ))}
-                            {page < totalPageAmount && (
-                                <a href={`/main/image_area?page=${page + 1}${strTag}`} className="page-btn">›</a>
-                            )}
-                        </div>
-                    )}
+                    {totalPageAmount > 1 && (() => {
+                        // Compute visible page numbers: 1 / current ±2 / last,
+                        // insert ... markers where gaps appear.
+                        const visible = Array.from({ length: totalPageAmount }, (_, i) => i + 1)
+                            .filter((p) => Math.abs(p - page) < 3 || p === 1 || p === totalPageAmount);
+                        const items: Array<number | 'gap-l' | 'gap-r'> = [];
+                        visible.forEach((p, i) => {
+                            if (i > 0) {
+                                const prev = visible[i - 1];
+                                if (p - prev > 1) items.push(p > page ? 'gap-r' : 'gap-l');
+                            }
+                            items.push(p);
+                        });
+                        const hrefFor = (p: number) => `/main/image_area?page=${p}${strTag}`;
+                        return (
+                            <div className="pager">
+                                {page > 1 && (
+                                    <Link to={hrefFor(page - 1)} className="page-btn" aria-label="上一頁">
+                                        <Icon.chevronLeft size={13} />
+                                    </Link>
+                                )}
+                                {items.map((it, idx) =>
+                                    it === 'gap-l' || it === 'gap-r' ? (
+                                        <span key={`${it}-${idx}`} className="page-btn" style={{ color: 'var(--color-text-quaternary)', cursor: 'default' }}>
+                                            …
+                                        </span>
+                                    ) : (
+                                        <Link
+                                            key={it}
+                                            to={hrefFor(it)}
+                                            className={`page-btn ${it === page ? 'active' : ''}`}
+                                            aria-current={it === page ? 'page' : undefined}
+                                        >
+                                            {it}
+                                        </Link>
+                                    ),
+                                )}
+                                {page < totalPageAmount && (
+                                    <Link to={hrefFor(page + 1)} className="page-btn" aria-label="下一頁">
+                                        <Icon.chevronRight size={13} />
+                                    </Link>
+                                )}
+                            </div>
+                        );
+                    })()}
                 </div>
             </form>
         </div>
