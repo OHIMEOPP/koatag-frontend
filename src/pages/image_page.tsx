@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Btn, Icon, Data } from 'components';
+import { Btn, Icon, Data, Magnifier } from 'components';
 import { getImagePageInfo } from 'services/pageInfo/image_page.service';
 import { parser, getFilePath } from 'utils';
 
@@ -17,10 +17,12 @@ const Image_page = () => {
     const [imageData, setImageData] = useState<Data | undefined>();
     const [zoom, setZoom] = useState(100);
     const [naturalDims, setNaturalDims] = useState<{ w: number; h: number } | null>(null);
+    const [mirrorSize, setMirrorSize] = useState(200);
 
     const ZOOM_STEP = 25;
     const MIN_ZOOM = 25;
     const MAX_ZOOM = 400;
+    const MIRROR_SIZES = [150, 200, 300, 400, 600] as const;
 
     useEffect(() => {
         if (!img_id) return;
@@ -78,10 +80,11 @@ const Image_page = () => {
                 <div className="detail-stage">
                     {imageData ? (
                         <>
-                            <img
+                            <Magnifier
                                 src={imgSrc}
                                 alt={imageData.img_path}
-                                style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center', transition: 'transform var(--transition-fast)' }}
+                                mirrorSize={mirrorSize}
+                                imgStyle={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center', transition: 'transform var(--transition-fast)', maxWidth: '100%', maxHeight: '80vh' }}
                                 onLoad={(e) => {
                                     const img = e.currentTarget;
                                     setNaturalDims({ w: img.naturalWidth, h: img.naturalHeight });
@@ -117,6 +120,20 @@ const Image_page = () => {
                                 >
                                     <Icon.expand size={14} />
                                 </button>
+                                <span style={{ width: 1, height: 20, background: 'var(--color-border)', alignSelf: 'center' }} aria-hidden />
+                                <button
+                                    type="button"
+                                    className="icon-btn"
+                                    onClick={() => {
+                                        const idx = MIRROR_SIZES.indexOf(mirrorSize as typeof MIRROR_SIZES[number]);
+                                        const next = MIRROR_SIZES[(idx + 1) % MIRROR_SIZES.length];
+                                        setMirrorSize(next);
+                                    }}
+                                    aria-label={`放大鏡大小 ${mirrorSize}px`}
+                                    title={`放大鏡 ${mirrorSize}px (點擊切換)`}
+                                >
+                                    <Icon.search size={14} />
+                                </button>
                             </div>
                             <div className="detail-zoom">
                                 {naturalDims && (
@@ -130,6 +147,10 @@ const Image_page = () => {
                                 </span>
                                 <span style={{ color: 'var(--color-border)' }}>|</span>
                                 <span style={{ color: 'var(--color-primary-light)' }}>{zoom}%</span>
+                                <span style={{ color: 'var(--color-border)' }}>|</span>
+                                <span style={{ color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <Icon.search size={11} />{mirrorSize}px
+                                </span>
                             </div>
                         </>
                     ) : (

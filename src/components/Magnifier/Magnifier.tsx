@@ -1,131 +1,125 @@
-import { useEffect, useRef } from "react";
-import "../../style/Magnifier.scss";
+import React, { useEffect, useRef } from 'react';
 
 interface MagnifierProps {
     src: string;
-    zoom?: number;
+    alt?: string;
+    initialZoom?: number;
     minZoom?: number;
     maxZoom?: number;
+    mirrorSize?: number;
+    onLoad?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
+    imgStyle?: React.CSSProperties;
+    className?: string;
 }
 
-function Magnifier({
+// 放大鏡 hover loupe — 滑鼠移到主圖上會出現一個圓形 mirror box，顯示游標位置
+// 周邊區域的放大圖。滑鼠滾輪在 mirror 內可調整放大倍率 (initialZoom 預設 3，min/max 2/10)。
+// 全部 DOM 透過 useRef 取，event listener 在 useEffect 內 add + cleanup return 時 remove。
+const Magnifier: React.FC<MagnifierProps> = ({
     src,
-    zoom = 3,
+    alt = '',
+    initialZoom = 3,
     minZoom = 2,
     maxZoom = 10,
-}: MagnifierProps) {
+    mirrorSize = 200,
+    onLoad,
+    imgStyle,
+    className = '',
+}) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const mainImgRef = useRef<HTMLImageElement>(null);
     const mirrorRef = useRef<HTMLDivElement>(null);
-    const bigImgRef = useRef<HTMLImageElement>(null);
-
-    const scaleRef = useRef(zoom);
+    const zoomImgRef = useRef<HTMLImageElement>(null);
+    const scaleRef = useRef(initialZoom);
     const lastMouse = useRef({ x: 0, y: 0 });
-
-    const updateBigImg = (mouseX: number, mouseY: number) => {
-        const container = containerRef.current;
-        const mirror = mirrorRef.current;
-        const bigImg = bigImgRef.current;
-        if (!container || !mirror || !bigImg) return;
-
-        const imgWidth = bigImg.naturalWidth;
-        const imgHeight = bigImg.naturalHeight;
-        const containerWidth = container.offsetWidth;
-        const containerHeight = container.offsetHeight;
-        const scale = scaleRef.current;
-
-        // 鏡子中央對齊滑鼠
-        mirror.style.display = "block";
-        mirror.style.left = `${mouseX - mirror.offsetWidth / 2}px`;
-        mirror.style.top = `${mouseY - mirror.offsetHeight / 2}px`;
-
-        // 計算滑鼠在原圖上的比例
-        const percentX = mouseX / containerWidth / 2;
-        const percentY = mouseY / containerHeight / 2;
-
-        // 大圖偏移，使鏡子中心對應滑鼠
-        const left = -percentX * imgWidth * scale + mirror.offsetWidth / 2;
-        const top = -percentY * imgHeight * scale + mirror.offsetHeight / 2;
-
-        bigImg.style.transform = `scale(${scale})`;
-        bigImg.style.transformOrigin = "top left";
-        bigImg.style.left = `${left}px`;
-        bigImg.style.top = `${top}px`;
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-        const container = containerRef.current;
-        if (!container) return;
-        const rect = container.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        lastMouse.current = { x: mouseX, y: mouseY };
-        updateBigImg(mouseX, mouseY);
-    };
-
-    const handleMouseLeave = () => {
-        const mirror = mirrorRef.current;
-        if (mirror) mirror.style.display = "none";
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.5 : 0.5;
-        scaleRef.current = Math.min(Math.max(scaleRef.current + delta, minZoom), maxZoom);
-
-        const { x, y } = lastMouse.current;
-        updateBigImg(x, y);
-    };
 
     useEffect(() => {
         const container = containerRef.current;
-        if (!container) return;
+        const mainImg = mainImgRef.current;
+        const mirror = mirrorRef.current;
+        const zoomImg = zoomImgRef.current;
+        if (!container || !mainImg || !mirror || !zoomImg) return;
 
-        container.addEventListener("mousemove", handleMouseMove);
-        container.addEventListener("mouseleave", handleMouseLeave);
-        container.addEventListener("wheel", handleWheel, { passive: false });
+        const updateMirror = (mouseX: number, mouseY: number) => {
+            // mouseX / mouseY are RELATIVE to mainImg's display rect
+            const displayW = mainImg.offsetWidth;
+            const displayH = mainImg.offsetHeight;
+            const scale = scaleRef.current;
+            const mirrorW = mirror.offsetWidth;
+            const mirrorH = mirror.offsetHeight;
+
+            // Position mirror centered on cursor (relative to container)
+            const containerRect = container.getBoundingClientRect();
+            const imgRect = mainImg.getBoundingClientRect();
+            const cursorInContainer = {
+                x: mouseX + (imgRect.left - containerRect.left),
+                y: mouseY + (imgRect.top - containerRect.top),
+            };
+            mirror.style.left = `${cursorInContainer.x - mirrorW / 2}px`;
+            mirror.style.top = `${cursorInContainer.y - mirrorH / 2}px`;
+
+            // Scale zoom img to match displayed size (so mouse coord maps 1:1 before scale)
+            zoomImg.style.width = `${displayW}px`;
+            zoomImg.style.height = `${displayH}px`;
+            zoomImg.style.transform = `scale(${scale})`;
+            zoomImg.style.transformOrigin = 'top left';
+
+            // Offset zoom img so cursor position appears at center of mirror
+            zoomImg.style.left = `${mirrorW / 2 - mouseX * scale}px`;
+            zoomImg.style.top = `${mirrorH / 2 - mouseY * scale}px`;
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const rect = mainImg.getBoundingClientRect();
+            const inside =
+                e.clientX >= rect.left && e.clientX <= rect.right &&
+                e.clientY >= rect.top && e.clientY <= rect.bottom;
+            if (!inside) {
+                mirror.style.display = 'none';
+                return;
+            }
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            lastMouse.current = { x: mouseX, y: mouseY };
+            mirror.style.display = 'block';
+            updateMirror(mouseX, mouseY);
+        };
+
+        const handleMouseLeave = () => {
+            mirror.style.display = 'none';
+        };
+
+        const handleWheel = (e: WheelEvent) => {
+            const rect = mainImg.getBoundingClientRect();
+            const inside =
+                e.clientX >= rect.left && e.clientX <= rect.right &&
+                e.clientY >= rect.top && e.clientY <= rect.bottom;
+            if (!inside) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.5 : 0.5;
+            scaleRef.current = Math.max(minZoom, Math.min(maxZoom, scaleRef.current + delta));
+            updateMirror(lastMouse.current.x, lastMouse.current.y);
+        };
+
+        container.addEventListener('mousemove', handleMouseMove);
+        container.addEventListener('mouseleave', handleMouseLeave);
+        container.addEventListener('wheel', handleWheel, { passive: false });
 
         return () => {
-            container.removeEventListener("mousemove", handleMouseMove);
-            container.removeEventListener("mouseleave", handleMouseLeave);
-            container.removeEventListener("wheel", handleWheel);
+            container.removeEventListener('mousemove', handleMouseMove);
+            container.removeEventListener('mouseleave', handleMouseLeave);
+            container.removeEventListener('wheel', handleWheel);
         };
-    }, []);
+    }, [minZoom, maxZoom]);
 
     return (
-        <div className="magnifier-container" ref={containerRef}>
-            <img  id="whole_img" src={src} alt="main" className="" />
-            <div className="mirror" id="mirror" ref={mirrorRef}>
-                <img id="zoomImg" src={src} ref={bigImgRef} alt="zoomed" />
+        <div ref={containerRef} className={`magnifier-container ${className}`}>
+            <img ref={mainImgRef} src={src} alt={alt} className="magnifier-main" style={imgStyle} onLoad={onLoad} />
+            <div ref={mirrorRef} className="magnifier-mirror" aria-hidden style={{ width: mirrorSize, height: mirrorSize }}>
+                <img ref={zoomImgRef} src={src} alt="" className="magnifier-zoom" />
             </div>
         </div>
-
-                // <div className="display_img">
-                //     <div className="whole_img" id="container" ref={oContainer}>
-                //         <img
-                //             id="whole_img"
-                //             ref={whole_imgRef}
-                //             src={
-                //                 imageData?.check_img_type === "HTTP"
-                //                     ? imageData?.img_path
-                //                     : `${getFilePath(user_id, imageData?.img_path)}`
-                //             }
-                //             className="col-xs-12 col-sm-4 thumbnail"
-                //             alt="..."
-                //         />
-                //         <div id="mirror">
-                //             <img
-                //                 id="zoomImg"
-                //                 src={
-                //                     imageData?.check_img_type === "HTTP"
-                //                         ? imageData?.img_path
-                //                         : `${getFilePath(user_id, imageData?.img_path)}`
-                //                 }
-                //                 alt=""
-                //             />
-                //         </div>
-                //     </div>
-                // </div>
     );
-}
+};
 
 export { Magnifier };
