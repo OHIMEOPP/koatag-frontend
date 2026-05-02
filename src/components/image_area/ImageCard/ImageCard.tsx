@@ -25,8 +25,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
         (image.ArtistTag?.length ?? 0) +
         (image.anotherTag?.length ?? 0);
 
+    // NodeRED `getImage` 回傳 is_public 是字串 'public' / 'private' (verified 2026-05-02
+    // via debug log). 兼容也接受 truthy 數字/布林避免後端 contract 微改時炸。
     const publicRaw = image.is_public as unknown;
-    const isPublic = publicRaw === '1' || publicRaw === 1 || publicRaw === true || publicRaw === 'true';
+    const isPublic = publicRaw === 'public' || publicRaw === '1' || publicRaw === 1 || publicRaw === true;
 
     const imgSrc = image.check_img_type === 'HTTP' ? image.img_path : getFilePath(user_id, image.img_path);
     const filename = (image.img_path?.split('/').pop() ?? '').replace(/\.[^/.]+$/, '') || `image-${image.id}`;
