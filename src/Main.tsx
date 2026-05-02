@@ -14,7 +14,7 @@ import { TagData, FloatIconAndList, MetaHead } from 'components';
 import { Classifier, getFilePath } from 'utils';
 import { fetchIcon } from 'services/image.service';
 import { logout } from 'services/auth.service';
-import { MenuList } from 'constans';
+import { MenuList } from './constants';
 
 const pages = [
     { name: '首頁', path: 'front_page', pageName: Front_page },
