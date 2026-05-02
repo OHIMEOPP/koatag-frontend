@@ -145,13 +145,16 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
         e.preventDefault();
         setIsAiLoading(true);
         const isHttp = imageData?.check_img_type === "HTTP"
-            || imageData?.img_path?.startsWith('http://') 
+            || imageData?.img_path?.startsWith('http://')
             || imageData?.img_path?.startsWith('https://');
         const imgSrc = isHttp
             ? imageData?.img_path
             : `${getFilePath(user_id, imageData?.img_path ?? '')}`;
 
-        if (!imgSrc) return;
+        if (!imgSrc) {
+            setIsAiLoading(false);
+            return;
+        }
 
         // 判斷最終 imgSrc 是否為跨域 URL（包含 getFilePath 回傳的外部位址）
         const isCrossOrigin = imgSrc.startsWith('http://') || imgSrc.startsWith('https://');
@@ -178,12 +181,60 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
             }
 
             const result = await response.json();
+
+            // Merge AI tags into existing input values (dedupe, preserve user input)
+            const mergeTags = (existing: string, incoming: string[]): string => {
+                const set = new Set(
+                    (existing ?? '').split(',').map(t => t.trim()).filter(Boolean)
+                );
+                for (const t of incoming) {
+                    const trimmed = (t ?? '').trim();
+                    if (trimmed) set.add(trimmed);
+                }
+                return Array.from(set).join(',');
+            };
+
+            // 人物 (mainTag) ← character_res_zh 的 keys
+            const mainNames = Object.keys(result?.character_res_zh ?? {});
+            const mainInput = formRef.current?.elements.namedItem('mainTag') as HTMLInputElement | null;
+            if (mainInput && mainNames.length) {
+                const merged = mergeTags(mainInput.value, mainNames);
+                mainInput.value = merged;
+                handleMainTagChange(merged);
+            }
+
+            // 團體 (secondaryTag) ← character_res key 中括號內的作品名（英文）
+            const copyrights = Object.keys(result?.character_res ?? {})
+                .map((k: string) => {
+                    const m = k.match(/\(([^)]+)\)/);
+                    return m ? m[1] : '';
+                })
+                .filter(Boolean);
+            const secInput = formRef.current?.elements.namedItem('secondaryTag') as HTMLInputElement | null;
+            if (secInput && copyrights.length) {
+                const merged = mergeTags(secInput.value, copyrights);
+                secInput.value = merged;
+                handleSecondaryTagChange(merged);
+            }
+
+            // 其他 (anotherTag) ← sorted_general_strings_zh
+            const generalsZh = String(result?.sorted_general_strings_zh ?? '')
+                .split(',').map((t: string) => t.trim()).filter(Boolean);
+            const anotherInput = formRef.current?.elements.namedItem('anotherTag') as HTMLInputElement | null;
+            if (anotherInput && generalsZh.length) {
+                const merged = mergeTags(anotherInput.value, generalsZh);
+                anotherInput.value = merged;
+                updateAnotherTagValue(merged);
+            }
+
+            $message('AI 辨識完成');
         } catch (err) {
             console.error('AI 辨識失敗:', err);
+            $message('AI 辨識失敗', 'error');
         } finally {
             setIsAiLoading(false);
         }
-    }, [imageData, user_id]);
+    }, [imageData, user_id, handleMainTagChange, handleSecondaryTagChange, updateAnotherTagValue]);
 
     // 放大鏡區------------------------------------------------
     useEffect(() => {
@@ -413,10 +464,18 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageData, onClose, isPublic,
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 const tagName = type.tag_name;
-                                                
-                                                // 如果已經在 selectedTags 中，就移除；否則就添加
-                                                const newTags = new Set(selectedTags);
-                                                if (selectedTags.has(tagName)) {
+
+                                                // Read live textarea value instead of trusting selectedTags,
+                                                // so user's manual edits in the textarea are honored.
+                                                const anotherInput = formRef.current?.elements.namedItem('anotherTag') as HTMLInputElement | null;
+                                                const currentValue = anotherInput?.value ?? anotherValue;
+                                                const newTags = new Set(
+                                                    currentValue
+                                                        .split(/[,，\s]+/)
+                                                        .map(t => t.trim())
+                                                        .filter(Boolean)
+                                                );
+                                                if (newTags.has(tagName)) {
                                                     newTags.delete(tagName);
                                                 } else {
                                                     newTags.add(tagName);

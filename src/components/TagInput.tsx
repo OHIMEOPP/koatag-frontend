@@ -102,8 +102,10 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
         defaultValue: inputValue,
         autoComplete: "off",
         onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-            setInputValue(e.target.value);
-            inputListaner?.(e.target.value); // 傳入最新文字
+            const next = e.target.value;
+            setInputValue(next);
+            inputListaner?.(next); // 傳入最新文字
+            onChange(next); // 同步父層狀態，讓 selectedTags 等 derived state 即時更新
         },
         onKeyDown: handleKeyDown,
         onFocus: () => onToggleOpen?.(),
