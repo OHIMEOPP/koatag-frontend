@@ -1,26 +1,25 @@
 .checktag input,
 .revise_tag input,
 .tag_type input {
-    /* flex: none; */
     margin: 0;
 }
 
-/* 整體框架 */
+/* TagEditor modal — v3 風格 (使用 v3 token，不再撞舊 --offical-*) */
 .pl_tag_w {
-    top: 50px;
-    overflow-y: auto;
     position: relative;
-    padding: 15px;
-    width: 30%;
-    background-color: var(--offical-color);
-    box-shadow: 0px 0px 10px rgb(90, 90, 168);
-    border: rgb(51, 87, 111) solid 5px;
-    border-radius: 10px;
-    color: var(--offical-text-color);
-    font-size: 25px;
-    min-width: 410px;
+    align-self: center;
+    margin: auto;
+    padding: 24px;
+    width: 480px;
+    max-width: 92vw;
+    background: linear-gradient(180deg, var(--color-bg-secondary), var(--color-bg-primary));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    color: var(--color-text-primary);
+    font-size: 14px;
     min-height: 410px;
-    max-height: 800px;
+    max-height: 80vh;
     display: flex;
     flex-direction: column;
 }
@@ -29,59 +28,140 @@
 .f_w_head {
     display: flex;
     align-items: center;
-    border-bottom: 2px solid #fff;
-    margin-bottom: 10px;
-    justify-self: center;
+    gap: 4px;
+    border-bottom: 1px solid var(--color-border-light);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .f_w_head a {
-    font-size: 23px;
-    padding: 0 10px;
-    color: rgb(109, 117, 124);
-}
+    font-size: 13px;
+    padding: 7px 12px;
+    color: var(--color-text-tertiary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
 
-.f_w_head a:hover {
-    color: rgb(0, 136, 255);
+    &:hover {
+        color: var(--color-text-primary);
+        background: var(--color-bg-tertiary);
+    }
 }
 
 .f_w_head span {
     margin-left: auto;
     cursor: pointer;
-}
+    color: var(--color-text-tertiary);
+    font-size: 18px;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
 
-.f_w_head span:hover {
-    color: rgb(199, 209, 228);
+    &:hover {
+        color: var(--color-text-primary);
+        background: var(--color-bg-tertiary);
+    }
 }
 
 .pl_tag_w input {
-    /* display: flex; */
-    /* flex:1; */
-    width: auto;
-    font-size: 15px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+
+    &:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px var(--color-primary-glow);
+    }
+}
+
+.pl_tag_w h4 {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+    margin: 12px 0 6px;
+
+    p { margin: 0; }
 }
 
 /* Body */
 .tagArea {
     flex: 1;
-    /* 占據中間可用空間 */
     overflow-y: auto;
+    padding-right: 4px;
 }
 
 /* Footer */
 .select_col {
     display: flex;
     justify-content: flex-end;
-    margin-top: 10px;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border-light);
 }
 
 .select_col a {
     display: inline-flex;
     align-items: center;
-    line-height: 20px;
-    font-size: 15px;
-    border-radius: 5px;
-    padding: 10px 20px;
-    margin-left: 8px;
-    background-color: rgb(214, 214, 214);
-    color: black;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+
+    &:first-child {
+        background: var(--color-primary);
+        color: var(--color-text-inverse);
+
+        &:hover { background: var(--color-primary-light); }
+    }
+    &:last-child {
+        background: transparent;
+        color: var(--color-text-secondary);
+        border: 1px solid var(--color-border);
+
+        &:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+    }
+}
+
+/* checktag 區塊（type radio buttons as pill-shaped btns） */
+.checktag {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0;
+
+    .tag-btn {
+        background: var(--color-bg-tertiary);
+        border: 1px solid var(--color-border);
+        color: var(--color-text-secondary);
+        padding: 5px 12px;
+        border-radius: var(--radius-full);
+        font-size: 12px;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: var(--color-bg-hover);
+            color: var(--color-text-primary);
+        }
+
+        &.active {
+            background: rgba(232, 185, 106, 0.12);
+            color: var(--color-primary-light);
+            border-color: rgba(232, 185, 106, 0.4);
+        }
+    }
 }

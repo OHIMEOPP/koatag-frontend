@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Data, ProfileHero, TagsCard, StatsAside } from 'components';
+import { Data, ProfileHero, TagsCard, StatsAside, RecentActivity, TagEditor } from 'components';
 import { getImageForFront } from 'services/pageInfo/front_page.service';
+import { _dynamictagtype } from 'utils';
 
 import "cropperjs/dist/cropper.css";
 
-// Step 6.4 — Profile + 我的標籤 card real. Aside stats / Recent activity / 參考標籤
-// still placeholder (6.5 / 6.6 / 6.8).
+// Step 6.7 — TagEditor modal wired to TagsCard 「新增 / 編輯標籤」btn.
+// 編輯資料 btn 仍 alert 待實作（profile 編輯獨立功能，redesign 沒設計）。
 const Front_page = () => {
     const navigate = useNavigate();
     const [tags, setTags] = useState<Data>();
+    const [showTagEditor, setShowTagEditor] = useState(false);
 
     useEffect(() => {
         getImageForFront()
@@ -17,20 +19,33 @@ const Front_page = () => {
             .catch((e) => console.error('getImageForFront failed', e));
     }, []);
 
-    const handleEditProfile = () => alert('編輯資料 — 等 Step 6.7 接入 TagEditor');
-    const handleOpenEditor = () => alert('新增 / 編輯標籤 — 等 Step 6.7 接入 TagEditor');
+    const handleEditProfile = () => alert('編輯個人資料功能尚未開放');
+    const handleOpenEditor = () => {
+        setShowTagEditor(true);
+        document.body.classList.add('no-scroll');
+    };
+    const handleCloseEditor = () => {
+        setShowTagEditor(false);
+        document.body.classList.remove('no-scroll');
+    };
     const handleUpload = () => navigate('/main/upload_area');
 
     return (
         <div className="page">
+            {showTagEditor && (
+                <TagEditor
+                    onClose={handleCloseEditor}
+                    tagtype={tags?.tagsType}
+                    UncategorizedTags={tags?.UncategorizedTags}
+                    tagTypeClassification={_dynamictagtype(tags?.tagsGroup) ?? {}}
+                />
+            )}
             <ProfileHero onEditProfile={handleEditProfile} onUpload={handleUpload} />
 
             <div className="front-grid">
                 <div className="front-main">
                     <TagsCard tags={tags} onOpenEditor={handleOpenEditor} />
-                    <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [6.6] 最近活動 — Recent activity，依原始 design 補回
-                    </div>
+                    <RecentActivity />
                     <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
                         [6.8] 參考標籤 — PublicTagBlog 既有功能搬 v3 殼
                     </div>
