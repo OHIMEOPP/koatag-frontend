@@ -96,4 +96,24 @@ export const Icon = {
       <path d="m9 6 6 6-6 6" />
     </svg>
   ),
+  bell: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0" />
+    </svg>
+  ),
+  tag: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M20 12l-8 8-9-9V3h8z" /><circle cx="7" cy="7" r="1.5" />
+    </svg>
+  ),
+  shield: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4z" />
+    </svg>
+  ),
+  menu: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 6h18" /><path d="M3 12h18" /><path d="M3 18h18" />
+    </svg>
+  ),
 };

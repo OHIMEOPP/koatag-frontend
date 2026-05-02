@@ -9,28 +9,33 @@ html, body {
 body {
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);
-  background: var(--color-bg-primary);
+  // background-color (fallback) + background-image (set by JS in Main.tsx for user-uploaded bg);
+  // keep color shorthand minimal so JS-set backgroundImage isn't wiped.
+  background-color: var(--color-bg-primary);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.005em;
   min-height: 100vh;
 
-  // Cinematic dual-radial vignette
+  // Cinematic dual-radial vignette — alpha lowered so user-uploaded bg image shows through.
   &::before {
     content: "";
     position: fixed; inset: 0;
     pointer-events: none; z-index: 0;
     background:
-      radial-gradient(ellipse 80% 60% at 50% 0%,    rgba(232,185,106,0.04), transparent 60%),
-      radial-gradient(ellipse 90% 70% at 100% 100%, rgba(91,155,255,0.04),  transparent 60%);
+      radial-gradient(ellipse 80% 60% at 50% 0%,    rgba(232,185,106,0.02), transparent 60%),
+      radial-gradient(ellipse 90% 70% at 100% 100%, rgba(91,155,255,0.02),  transparent 60%);
   }
 
-  // Subtle grain layer
+  // Subtle grain layer — opacity lowered for same reason.
   &::after {
     content: "";
     position: fixed; inset: 0;
     pointer-events: none; z-index: 1;
-    opacity: 0.4;
+    opacity: 0.15;
     background-image:
       repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
     mix-blend-mode: overlay;
