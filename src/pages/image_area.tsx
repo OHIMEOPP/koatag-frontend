@@ -1,20 +1,58 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Btn, Icon } from 'components';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { getImageForImageReposity } from 'services/image.service';
+import { Btn, Icon, ImageCard, ImageResponseType } from 'components';
 
-// Step 7.2 — v3 layout shell only (per user 路線 C: 純 UI now, real list/filter/
-// delete/batch endpoints rebuilt in Laravel as Step 12 later).
-// Filter panel / image grid / pager are placeholder cards waiting for substeps
-// 7.3 (ImageCard visual) → 7.4 (fetch + render) → 7.5+ progressive wire-up.
+// Step 7.3 + 7.4 — ImageCard v3 visual + fetch wired.
+// Sort/filter/批次 still placeholder (7.5/7.7), pager partial (7.8 dedicated polish).
 const Image_area = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const formRef = useRef<HTMLFormElement>(null);
+    const [images, setImages] = useState<ImageResponseType>();
+
+    const urlParams = new URLSearchParams(location.search);
+    const page = parseInt(urlParams.get('page') ?? '1', 10);
+    const tagParam = urlParams.get('tag');
+    const groupParam = urlParams.get('group');
+    const strTag = tagParam ? `&tag=${tagParam}` : '';
+    const totalPageAmount = Math.ceil(Number(images?.count ?? 0) / 30);
+
+    useEffect(() => {
+        const fetchImages = async () => {
+            try {
+                const form = formRef.current;
+                if (!form) return;
+
+                const tags = urlParams.getAll('tag');
+                let tag: any = null;
+                if (tags.length > 0) {
+                    tag = groupParam ? { [groupParam]: tags } : tags;
+                }
+
+                const formData = new FormData(form);
+                formData.set('order', 'desc');
+                formData.set('selectSort', '上傳日期');
+                formData.append('amount', '30');
+                formData.append('page', `${page - 1}`);
+                formData.append('userId', `${localStorage.getItem('user_id')}`);
+                formData.append('tag', JSON.stringify(tag));
+
+                const res = await getImageForImageReposity(formData);
+                setImages(res);
+            } catch (e) {
+                console.error('getImageForImageReposity failed', e);
+            }
+        };
+        fetchImages();
+    }, [location.search]);
 
     return (
         <div className="page">
             <div className="page-head">
                 <div>
                     <h1 className="t-h1 page-title">圖庫</h1>
-                    <p className="page-sub">圖片瀏覽 · 篩選 · 批次編輯</p>
+                    <p className="page-sub">共 {images?.count ?? 0} 張圖片</p>
                 </div>
                 <div className="v-row v-gap-2">
                     <Btn variant="ghost" size="sm" icon={<Icon.edit size={12} />} onClick={() => alert('批次編輯 — 等 Step 7.7 接入')}>
@@ -26,7 +64,7 @@ const Image_area = () => {
                 </div>
             </div>
 
-            <div className="gallery-shell">
+            <form ref={formRef} className="gallery-shell">
                 <aside className="card filter-panel">
                     <div style={{ color: 'var(--color-text-tertiary)', fontSize: 13 }}>
                         [7.5] Filter panel — 排序 / 標籤分類 / 公開狀態 / Active tags
@@ -35,18 +73,51 @@ const Image_area = () => {
 
                 <div>
                     <div className="gallery-toolbar">
-                        <span className="toolbar-meta">[7.6] toolbar 待接 — meta / 排序 / view-toggle</span>
+                        <span className="toolbar-meta">
+                            顯示 <b>{images?.data?.length ? `${(page - 1) * 30 + 1}–${(page - 1) * 30 + images.data.length}` : '0'}</b>
+                            {' '}共 <b>{images?.count ?? 0}</b> 張
+                        </span>
+                        <div className="spacer" />
+                        <span style={{ color: 'var(--color-text-tertiary)', fontSize: 12 }}>
+                            [7.6] 排序 / view-toggle
+                        </span>
                     </div>
 
-                    <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [7.4] image grid — 接 getImageForImageReposity，渲染 v3 ImageCard
+                    <div className="image-grid">
+                        {images?.data?.length ? (
+                            images.data.map((image) => (
+                                <ImageCard key={image.id} image={image} editMode={false} />
+                            ))
+                        ) : (
+                            <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center' }}>
+                                {images === undefined ? '載入中…' : '沒有圖片'}
+                            </div>
+                        )}
                     </div>
 
-                    <div className="card" style={{ padding: 16, marginTop: 20, color: 'var(--color-text-tertiary)', fontSize: 13, textAlign: 'center' }}>
-                        [7.8] pager — v3 page-btn
-                    </div>
+                    {totalPageAmount > 1 && (
+                        <div className="pager">
+                            {page > 1 && (
+                                <a href={`/main/image_area?page=${page - 1}${strTag}`} className="page-btn">‹</a>
+                            )}
+                            {Array.from({ length: totalPageAmount }, (_, i) => i + 1)
+                                .filter((p) => Math.abs(p - page) < 5 || p === 1 || p === totalPageAmount)
+                                .map((p) => (
+                                    <a
+                                        key={p}
+                                        href={p === page ? '#' : `/main/image_area?page=${p}${strTag}`}
+                                        className={`page-btn ${p === page ? 'active' : ''}`}
+                                    >
+                                        {p}
+                                    </a>
+                                ))}
+                            {page < totalPageAmount && (
+                                <a href={`/main/image_area?page=${page + 1}${strTag}`} className="page-btn">›</a>
+                            )}
+                        </div>
+                    )}
                 </div>
-            </div>
+            </form>
         </div>
     );
 };
