@@ -1,16 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProfileHero } from 'components';
+import { Data, ProfileHero, TagsCard } from 'components';
+import { getImageForFront } from 'services/pageInfo/front_page.service';
 
 import "cropperjs/dist/cropper.css";
 
-// Step 6.3 — Profile section now real (ProfileHero handles wallpaper + avatar +
-// Cropper upload). Tag library / aside stats / etc. still placeholder cards waiting
-// for substeps 6.4-6.9.
+// Step 6.4 — Profile + 我的標籤 card real. Aside stats / Recent activity / 參考標籤
+// still placeholder (6.5 / 6.6 / 6.8).
 const Front_page = () => {
     const navigate = useNavigate();
+    const [tags, setTags] = useState<Data>();
+
+    useEffect(() => {
+        getImageForFront()
+            .then((res) => setTags(res?.result))
+            .catch((e) => console.error('getImageForFront failed', e));
+    }, []);
 
     const handleEditProfile = () => alert('編輯資料 — 等 Step 6.7 接入 TagEditor');
+    const handleOpenEditor = () => alert('新增 / 編輯標籤 — 等 Step 6.7 接入 TagEditor');
     const handleUpload = () => navigate('/main/upload_area');
 
     return (
@@ -19,9 +27,7 @@ const Front_page = () => {
 
             <div className="front-grid">
                 <div className="front-main">
-                    <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [6.4] 我的標籤 — Tags library 將取代既有 TagBlog
-                    </div>
+                    <TagsCard tags={tags} onOpenEditor={handleOpenEditor} />
                     <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
                         [6.6] 最近活動 — Recent activity，依原始 design 補回
                     </div>
