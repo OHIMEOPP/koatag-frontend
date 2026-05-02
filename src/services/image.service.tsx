@@ -46,16 +46,3 @@ export const getImageForImageReposity = async (formData: FormData) => {
     return response.data
 }
 
-export const UploadImages = async (formData: FormData) => {
-    const user_id = localStorage.getItem('user_id');
-    const response = await api.post<ResponseType>(
-        `${process.env.REACT_APP_NODERED_API_URL}/image/uploadBatchImages/${user_id}`,
-        formData,
-        {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        }
-    );
-    return response.data
-}
