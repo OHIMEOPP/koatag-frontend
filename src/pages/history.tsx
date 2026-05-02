@@ -1,88 +1,94 @@
-import { useEffect, useState } from "react";
+import React, { useState } from 'react';
+import { Icon } from 'components';
 
-import '../style/front_page/front_page.scss'
-import "cropperjs/dist/cropper.css";
-import "../style/front_page/CropperEditer/CropperEditer.scss";
+// Mock data — placeholder until backend ships an operation_logs endpoint.
+// Mirrors the original design's HISTORY shape (claude_design_整合前ui/koatag-data.jsx).
+type BadgeKind = 'create' | 'update' | 'delete' | 'tag';
+type DotColor = '' | 'g' | 'b' | 'r';
 
-import { PublicTagBlog, ProfileHeader, BackgroundImgUploadButton, TagEditor, Data, TagBlog } from "components";
-import { _dynamictagtype, getUserId } from "utils";
-import api from "api/axios";
-
-interface ImageResponse {
-  status: number;
-  message: string;
-  result: Data;
-  data: Data
-  path: string;
+interface HistoryEvent {
+  time: string;
+  color: DotColor;
+  badge: [BadgeKind, string];
+  text: string;
+  target: string;
+  thumb?: string;
 }
 
-const History = () => {
-  const [tags, setTags] = useState<Data>()
-  const [isTagEditor, setIsTagEditor] = useState(false);
-  useEffect(() => {
-    current();
-  }, []);
+const HISTORY: HistoryEvent[] = [
+  { time: '今天 · 14:32',     color: '',  badge: ['update', '已更新標籤'],  text: '為 ',          target: 'hatsune_miku_winter.jpg', thumb: 'https://picsum.photos/seed/h0/80' },
+  { time: '今天 · 11:08',     color: 'g', badge: ['create', '已上傳'],     text: '上傳 12 張圖到圖庫', target: '', thumb: 'https://picsum.photos/seed/h1/80' },
+  { time: '今天 · 09:14',     color: 'b', badge: ['tag',    '新建標籤'],   text: '建立角色標籤 ',  target: 'Frieren' },
+  { time: '昨天 · 22:41',     color: '',  badge: ['update', '已編輯'],     text: '變更可見度 ',    target: 'momoco_archive_07.jpg', thumb: 'https://picsum.photos/seed/h2/80' },
+  { time: '昨天 · 19:55',     color: 'r', badge: ['delete', '已移除'],     text: '刪除標籤 ',      target: '#temp-batch' },
+  { time: '昨天 · 16:20',     color: 'b', badge: ['update', '已重新命名'], text: '重新命名系列 ',  target: 'hololive → hololive JP' },
+  { time: '4/30 · 08:12',     color: 'g', badge: ['create', '已上傳'],     text: '批次上傳 ',      target: '38 張圖片', thumb: 'https://picsum.photos/seed/h3/80' },
+  { time: '4/29 · 21:03',     color: '',  badge: ['update', '已更新標籤'],  text: '更新標籤於 ',    target: 'komi_san_lap.jpg', thumb: 'https://picsum.photos/seed/h4/80' },
+  { time: '4/29 · 14:48',     color: '',  badge: ['tag',    '已合併標籤'], text: '合併 ',         target: 'miku → Hatsune Miku' },
+];
 
-  const user_id = getUserId();
+const FILTER_TABS = ['全部', '上傳', '標籤編輯', '刪除', '重新命名'] as const;
 
-  async function current() {
-    const response = await api.get<ImageResponse>(`/pageInfo/getImageForFront/${user_id}`);
-    setTags(response.data.result);
-  }
-
-  function openEdit() {
-    setIsTagEditor(true);
-    document.body.classList.toggle('no-scroll', !isTagEditor);
-    window.scrollBy(0, 0);
-  }
+const History: React.FC = () => {
+  const [activeFilter, setActiveFilter] = useState(0);
 
   return (
-    <>
-      {
-        isTagEditor &&
-        <TagEditor
-          onClose={() => { setIsTagEditor(false); document.body.classList.toggle('no-scroll', !isTagEditor); }}
-          tagtype={tags?.tagsType}
-          UncategorizedTags={tags?.UncategorizedTags}
-          tagTypeClassification={_dynamictagtype(tags?.tagsGroup)} />
-      }
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <h1 className="t-h1 page-title">瀏覽紀錄</h1>
+          <p className="page-sub">記錄每次圖庫變更 — 過去 90 天</p>
+        </div>
+        <div className="v-row v-gap-2">
+          <button className="btn btn-ghost"><Icon.filter size={13} /> 篩選</button>
+          <button className="btn btn-ghost"><Icon.download size={13} /> 匯出</button>
+        </div>
+      </div>
 
-      <div className="mainframe">
-        {/* <!--div為容器 class名稱為waring--> */}
-        <ProfileHeader />
-        <div className="warning_out">
-          <div className="front-index">
-            <div className="front">
-              <div className="front_right">
-                <TagBlog 
-                tags={tags}
-                openEdit={openEdit}/>
-                <PublicTagBlog />
-                <div className="co1-1">
-                  <span className="">label asd</span>
+      <div className="card" style={{ padding: 24 }}>
+        <div className="v-row v-gap-2" style={{ marginBottom: 18 }}>
+          {FILTER_TABS.map((t, i) => (
+            <button
+              key={t}
+              className={`btn btn-sm ${i === activeFilter ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setActiveFilter(i)}
+            >
+              {t}
+            </button>
+          ))}
+          <div className="spacer" />
+          <span className="t-sm txt-mute">顯示 9 筆，共 142 筆事件</span>
+        </div>
+
+        <div className="timeline">
+          {HISTORY.map((h, i) => (
+            <div key={i} className="tl-item">
+              <div className={`tl-dot ${h.color}`} />
+              <div className="tl-card">
+                <span className="tl-time">{h.time}</span>
+                <div className="tl-action">
+                  <span className={`badge ${h.badge[0]}`}>{h.badge[1]}</span>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>{h.text}</span>
+                  {h.target && <b style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{h.target}</b>}
                 </div>
-              </div>
-              <div className="front_left">
-                <div className="co1-2">
-                  <h3 className="">內容</h3>
-                  <p className="">擁有的圖片數量: {tags?.images_Amount ?? 0} </p>
-                  <p className="">擁有的標籤數量: {tags?.tags_Amount ?? 0} </p>
-                  <p className="">人物標籤數量: {tags?.mainTag_Amount ?? 0} </p>
-                  <p className="">團體標籤數量: {tags?.secondaryTag_Amount ?? 0} </p>
-                  <p className="">作者標籤數量: {tags?.artist_Amount ?? 0} </p>
-                  <p className="">其他標籤數量: {tags?.anotherTag_Amount ?? 0} </p>
-                  <p className="">重複標籤數量: {tags?.duplicateTag.length ?? 0} </p>
+                {h.thumb && (
+                  <div className="tl-thumb" style={{ backgroundImage: `url(${h.thumb})` }} />
+                )}
+                <div className="tl-actions">
+                  <button className="icon-btn" style={{ width: 30, height: 30 }} aria-label="view">
+                    <Icon.eye size={13} />
+                  </button>
+                  <button className="icon-btn" style={{ width: 30, height: 30 }} aria-label="restore">
+                    <Icon.refresh size={13} />
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
-        <BackgroundImgUploadButton />
       </div>
-
-    </>
+    </div>
   );
 };
 
-
-export { History }
+export { History };

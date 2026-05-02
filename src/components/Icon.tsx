@@ -116,4 +116,14 @@ export const Icon = {
       <path d="M3 6h18" /><path d="M3 12h18" /><path d="M3 18h18" />
     </svg>
   ),
+  filter: ({ size = 14, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z" />
+    </svg>
+  ),
+  refresh: ({ size = 14, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" />
+    </svg>
+  ),
 };
