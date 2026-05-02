@@ -21,6 +21,13 @@
         background: var(--color-bg-primary);
         pointer-events: none;
         z-index: 5;
+        transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+        // Locked 狀態 — 暖琥珀換綠色標示「凍結中」, click 圖片再切回 follow
+        &.is-locked {
+            border-color: var(--color-success);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(62, 207, 142, 0.4);
+        }
 
         .magnifier-zoom {
             position: absolute;

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface MagnifierProps {
     src: string;
@@ -32,6 +32,8 @@ const Magnifier: React.FC<MagnifierProps> = ({
     const zoomImgRef = useRef<HTMLImageElement>(null);
     const scaleRef = useRef(initialZoom);
     const lastMouse = useRef({ x: 0, y: 0 });
+    const isLockedRef = useRef(false);
+    const [isLocked, setIsLocked] = useState(false);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -70,6 +72,8 @@ const Magnifier: React.FC<MagnifierProps> = ({
         };
 
         const handleMouseMove = (e: MouseEvent) => {
+            // Locked 時 mirror 凍結在最後位置, 不再 follow cursor
+            if (isLockedRef.current) return;
             const rect = mainImg.getBoundingClientRect();
             const inside =
                 e.clientX >= rect.left && e.clientX <= rect.right &&
@@ -86,6 +90,8 @@ const Magnifier: React.FC<MagnifierProps> = ({
         };
 
         const handleMouseLeave = () => {
+            // Locked 時即使滑鼠離開圖片區也保持 mirror 顯示
+            if (isLockedRef.current) return;
             mirror.style.display = 'none';
         };
 
@@ -98,24 +104,49 @@ const Magnifier: React.FC<MagnifierProps> = ({
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.5 : 0.5;
             scaleRef.current = Math.max(minZoom, Math.min(maxZoom, scaleRef.current + delta));
+            // Locked 時 wheel 仍可調縮放, 用 lastMouse 為錨點 (鎖定位置不變, 只改放大倍率)
             updateMirror(lastMouse.current.x, lastMouse.current.y);
+        };
+
+        // 點圖片 toggle 鎖定 (lock = mirror 凍結, unlock = follow cursor 恢復)
+        const handleClick = (e: MouseEvent) => {
+            const rect = mainImg.getBoundingClientRect();
+            const inside =
+                e.clientX >= rect.left && e.clientX <= rect.right &&
+                e.clientY >= rect.top && e.clientY <= rect.bottom;
+            if (!inside) return;
+            const next = !isLockedRef.current;
+            isLockedRef.current = next;
+            setIsLocked(next);
+            // 鎖定時 mirror 強制顯示在最後位置, 即使原本因 mouseleave 已隱藏
+            if (next) {
+                mirror.style.display = 'block';
+                updateMirror(lastMouse.current.x, lastMouse.current.y);
+            }
         };
 
         container.addEventListener('mousemove', handleMouseMove);
         container.addEventListener('mouseleave', handleMouseLeave);
         container.addEventListener('wheel', handleWheel, { passive: false });
+        container.addEventListener('click', handleClick);
 
         return () => {
             container.removeEventListener('mousemove', handleMouseMove);
             container.removeEventListener('mouseleave', handleMouseLeave);
             container.removeEventListener('wheel', handleWheel);
+            container.removeEventListener('click', handleClick);
         };
     }, [minZoom, maxZoom]);
 
     return (
         <div ref={containerRef} className={`magnifier-container ${className}`}>
             <img ref={mainImgRef} src={src} alt={alt} className="magnifier-main" style={imgStyle} onLoad={onLoad} />
-            <div ref={mirrorRef} className="magnifier-mirror" aria-hidden style={{ width: mirrorSize, height: mirrorSize }}>
+            <div
+                ref={mirrorRef}
+                className={`magnifier-mirror ${isLocked ? 'is-locked' : ''}`}
+                aria-hidden
+                style={{ width: mirrorSize, height: mirrorSize }}
+            >
                 <img ref={zoomImgRef} src={src} alt="" className="magnifier-zoom" />
             </div>
         </div>
