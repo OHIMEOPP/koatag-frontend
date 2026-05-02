@@ -1,0 +1,11 @@
+// KOATAG redesign v3 — global entry
+// Aggregates the 6 design-system partials so they can be imported once
+// from src/Main.tsx ahead of style.scss / main.scss.
+// Order matters: tokens must come first (everything else references them).
+
+@use './tokens';
+@use './base';
+@use './typography';
+@use './buttons';
+@use './chips';
+@use './forms';
