@@ -1,46 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Btn, Icon } from 'components';
+import { ProfileHero } from 'components';
 
-// Step 6.2 — v3 layout shell only.
-// Profile section is real (data from localStorage), but tag library / aside stats / etc.
-// are placeholder cards waiting for substeps 6.3-6.9 to fill in.
+import "cropperjs/dist/cropper.css";
+
+// Step 6.3 — Profile section now real (ProfileHero handles wallpaper + avatar +
+// Cropper upload). Tag library / aside stats / etc. still placeholder cards waiting
+// for substeps 6.4-6.9.
 const Front_page = () => {
     const navigate = useNavigate();
-    const userRaw = localStorage.getItem('user');
-    const user = userRaw ? JSON.parse(userRaw) : null;
-    const account: string = user?.account ?? 'guest';
-    const initial = account.slice(0, 2).toUpperCase();
 
-    const handleHeroEdit = () => alert('編輯封面 — 等 Step 6.9 接入');
-    const handleEditProfile = () => alert('編輯資料 — 等 Step 6.7 接入');
+    const handleEditProfile = () => alert('編輯資料 — 等 Step 6.7 接入 TagEditor');
     const handleUpload = () => navigate('/main/upload_area');
 
     return (
         <div className="page">
-            <div className="profile-hero">
-                <Btn variant="ghost" size="sm" className="hero-edit" icon={<Icon.edit size={12} />} onClick={handleHeroEdit}>
-                    編輯封面
-                </Btn>
-            </div>
-            <div className="profile-info">
-                <div className="big-avatar">{initial}</div>
-                <div className="profile-meta">
-                    <h1 className="profile-name">
-                        {account}
-                        <span className="verified"><Icon.check size={11} /></span>
-                    </h1>
-                    <p className="profile-handle">@{account} · Pro 會員</p>
-                </div>
-                <div className="profile-actions">
-                    <Btn variant="secondary" size="sm" icon={<Icon.edit size={12} />} onClick={handleEditProfile}>
-                        編輯資料
-                    </Btn>
-                    <Btn variant="primary" size="sm" icon={<Icon.upload size={12} />} onClick={handleUpload}>
-                        上傳圖片
-                    </Btn>
-                </div>
-            </div>
+            <ProfileHero onEditProfile={handleEditProfile} onUpload={handleUpload} />
 
             <div className="front-grid">
                 <div className="front-main">
