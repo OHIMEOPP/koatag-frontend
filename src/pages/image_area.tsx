@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getImageForImageReposity } from 'services/image.service';
-import { Btn, Icon, ImageCard, ImageResponseType, FilterPanel } from 'components';
+import { getUploadAreaInfo } from 'services/pageInfo/upload_page.service';
+import { Btn, Icon, ImageCard, ImageResponseType, FilterPanel, TagInput, Data } from 'components';
 
 // Step 7.5 — FilterPanel 接動態 (sort works via NodeRED, 其餘 filter UI placeholder)
 const Image_area = () => {
@@ -11,6 +12,10 @@ const Image_area = () => {
     const [images, setImages] = useState<ImageResponseType>();
     const [sortValue, setSortValue] = useState<string>(localStorage.getItem('sortValue') ?? '上傳日期');
     const [sortMethod, setSortMethod] = useState<'asc' | 'desc'>((localStorage.getItem('sortMethod') as 'asc' | 'desc') ?? 'desc');
+    const [editMode, setEditMode] = useState(false);
+    const [imageData, setImageData] = useState<Data>();
+    const [tagInputHandler, setTagInputHandler] = useState(0);
+    const [batchTagValue, setBatchTagValue] = useState('');
 
     const urlParams = new URLSearchParams(location.search);
     const page = parseInt(urlParams.get('page') ?? '1', 10);
@@ -49,6 +54,49 @@ const Image_area = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.search, sortValue, sortMethod]);
 
+    useEffect(() => {
+        getUploadAreaInfo()
+            .then((res) => setImageData(res?.data))
+            .catch((e) => console.error('getUploadAreaInfo failed', e));
+    }, []);
+
+    const tagTypes = [
+        { group: '人物', name: 'mainTag',      tags: imageData?.mainTags?.map((t) => t.tag_name) ?? [] },
+        { group: '團體', name: 'secondaryTag', tags: imageData?.secondaryTags?.map((t) => t.tag_name) ?? [] },
+        { group: '作者', name: 'ArtistTag',    tags: imageData?.artistTags?.map((t) => t.tag_name) ?? [] },
+        { group: '其他', name: 'anotherTag',   tags: imageData?.tagsGroup?.map((t) => t.tag_name) ?? [] },
+    ];
+
+    const handleBatchSubmit = () => {
+        const checkedIds = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="imagesId"]:checked')).map((c) => +c.id);
+        if (checkedIds.length === 0) {
+            alert('請先選擇圖片');
+            return;
+        }
+        if (tagInputHandler === 0) {
+            alert('請選擇種類');
+            return;
+        }
+        if (!batchTagValue.trim()) {
+            alert('請輸入標籤');
+            return;
+        }
+        const selectedType = tagTypes[tagInputHandler - 1];
+        alert(
+            `批次編輯送出 — 後端 endpoint 尚未實作 (Step 12 補)\n\n` +
+            `種類: ${selectedType.group} (${selectedType.name})\n` +
+            `標籤: ${batchTagValue}\n` +
+            `選中圖片數: ${checkedIds.length}\n` +
+            `IDs: ${checkedIds.slice(0, 5).join(', ')}${checkedIds.length > 5 ? '...' : ''}`,
+        );
+    };
+
+    const cancelBatchEdit = () => {
+        setEditMode(false);
+        setTagInputHandler(0);
+        setBatchTagValue('');
+    };
+
     const handleSortValueChange = (v: string) => {
         setSortValue(v);
         localStorage.setItem('sortValue', v);
@@ -79,8 +127,13 @@ const Image_area = () => {
                     <p className="page-sub">共 {images?.count ?? 0} 張圖片</p>
                 </div>
                 <div className="v-row v-gap-2">
-                    <Btn variant="ghost" size="sm" icon={<Icon.edit size={12} />} onClick={() => alert('批次編輯 — 等 Step 7.7 接入')}>
-                        批次編輯
+                    <Btn
+                        variant={editMode ? 'primary' : 'ghost'}
+                        size="sm"
+                        icon={<Icon.edit size={12} />}
+                        onClick={() => editMode ? cancelBatchEdit() : setEditMode(true)}
+                    >
+                        {editMode ? '取消批次' : '批次編輯'}
                     </Btn>
                     <Btn variant="primary" size="sm" icon={<Icon.upload size={12} />} onClick={() => navigate('/main/upload_area')}>
                         上傳
@@ -127,10 +180,48 @@ const Image_area = () => {
                         </div>
                     </div>
 
+                    {editMode && (
+                        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                            <div className="v-row v-gap-2" style={{ marginBottom: 12 }}>
+                                <strong style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>批次編輯：</strong>
+                                {tagTypes.map((tag, idx) => (
+                                    <label key={tag.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, cursor: 'pointer' }}>
+                                        <input
+                                            type="radio"
+                                            name="tagGroup"
+                                            value={tag.group}
+                                            checked={tagInputHandler === idx + 1}
+                                            onChange={() => { setTagInputHandler(idx + 1); setBatchTagValue(''); }}
+                                        />
+                                        <span>{tag.group}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            {tagInputHandler > 0 && (
+                                <div style={{ marginBottom: 12 }}>
+                                    <TagInput
+                                        allTags={{ [tagTypes[tagInputHandler - 1].group]: tagTypes[tagInputHandler - 1].tags }}
+                                        value={batchTagValue}
+                                        name="tagName"
+                                        onChange={setBatchTagValue}
+                                        placeholder={`輸入 ${tagTypes[tagInputHandler - 1].group} 標籤（多個用逗號分隔）`}
+                                    />
+                                </div>
+                            )}
+                            <div className="v-row v-gap-2">
+                                <Btn variant="primary" size="sm" onClick={handleBatchSubmit}>送出</Btn>
+                                <Btn variant="ghost" size="sm" onClick={cancelBatchEdit}>取消</Btn>
+                                <span style={{ fontSize: 11, color: 'var(--color-text-quaternary)', marginLeft: 'auto' }}>
+                                    後端 endpoint 待 Step 12 接入
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="image-grid">
                         {images?.data?.length ? (
                             images.data.map((image) => (
-                                <ImageCard key={image.id} image={image} editMode={false} />
+                                <ImageCard key={image.id} image={image} editMode={editMode} />
                             ))
                         ) : (
                             <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center' }}>
