@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import style from '../style/account.module.scss';
 import { login } from '../services/auth.service';
 import { deleteCookie, getCookie, setCookie } from 'utils';
-import { Button } from 'components';
+import { Button, Icon } from 'components';
 
 
 
@@ -83,9 +83,7 @@ const Login = () => {
                                     required
                                 />
                                 <a href="#" onClick={handleTogglePassword}>
-                                    <i className="material-icons">
-                                        {showPassword ? 'visibility' : 'visibility_off'}
-                                    </i>
+                                    <Icon.eye />
                                 </a>
                             </div>
 

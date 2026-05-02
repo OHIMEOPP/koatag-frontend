@@ -4,6 +4,7 @@ import { useState } from 'react';
 import '../../../style/image_area/ImageCard/ImageCard.scss';
 
 import { getFilePath } from 'utils';
+import { Icon } from 'components';
 
 interface ImageCardPorps {
     image: ImageData;
@@ -23,19 +24,19 @@ const ImageCard: React.FC<ImageCardPorps> = ({ image, editMode }) => {
 
                 <div className='amoutView'>
                     <div data-tooltip-content={"人物"} data-tooltip-id='tooltip' className="tagItem">
-                        <i className="fa fa-user"></i>
+                        <Icon.user />
                         <span>{image.mainTag?.length ?? 0}</span>
                     </div>
                     <div data-tooltip-content={"團體"} data-tooltip-id='tooltip' className="tagItem">
-                        <i className="fa fa-users"></i>
+                        <Icon.user />
                         <span>{image.secondaryTag?.length ?? 0}</span>
                     </div>
                     <div data-tooltip-content={"作者"} data-tooltip-id='tooltip' className="tagItem">
-                        <i className="fa fa-paint-brush"></i>
+                        <Icon.edit />
                         <span>{image.ArtistTag?.length ?? 0}</span>
                     </div>
                     <div data-tooltip-content={"其他"} data-tooltip-id='tooltip' className="tagItem">
-                        <i className="fa fa-tags"></i>
+                        <Icon.star />
                         <span>{image.anotherTag?.length ?? 0}</span>
                     </div>
                 </div>
@@ -60,7 +61,7 @@ const ImageCard: React.FC<ImageCardPorps> = ({ image, editMode }) => {
                 </div>
                 <div className='staView'>
                     <div className="tagItem">
-                        <i className="fa fa-heart"></i>
+                        <Icon.heart />
                         <span>{image.secondaryTag?.length ?? 0}</span>
                     </div>
                 </div>

@@ -3,7 +3,7 @@ import { getImageForImageReposity, UploadImages } from 'services/image.service';
 import { useEffect, useRef, useState } from 'react';
 
 import '../style/image_area/image_area.scss';
-import { Data, ImageCard, ImageResponseType, TagInput } from 'components';
+import { Data, ImageCard, ImageResponseType, TagInput, Icon } from 'components';
 import { getUploadAreaInfo } from 'services/pageInfo/upload_page.service';
 import { $message, delay } from 'utils';
 import { useNavigate } from 'react-router-dom';
@@ -226,9 +226,9 @@ const Image_area = () => {
               title="切換排序 (升/降)"
               onClick={() => showsortimg(null, true)}
             >
-              <i className="material-icons" aria-hidden>
-                {sortMethod === "desc" ? "arrow_downward" : "arrow_upward"}
-              </i>
+              <span style={{ display: 'inline-flex', transform: sortMethod === "desc" ? "rotate(90deg)" : "rotate(-90deg)", transition: "transform 0.2s" }} aria-hidden>
+                <Icon.chevronRight />
+              </span>
             </button>
           </div>
 

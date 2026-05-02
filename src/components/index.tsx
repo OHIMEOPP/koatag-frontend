@@ -1,6 +1,7 @@
 export * from './FloatIconAndList'
 export * from './Button'
 export * from './TagInput'
+export * from './Icon'
 
 export * from './main/ScrollToTop/ScrollToTop'
 export * from './main/ScrollTop/ScrollTop'

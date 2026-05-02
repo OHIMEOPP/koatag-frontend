@@ -6,7 +6,7 @@ import '../style/upload_area.scss'
 import { UploadImage } from 'services/image.service';
 import { getUploadAreaInfo } from 'services/pageInfo/upload_page.service';
 
-import { Data, TagData } from 'components'
+import { Data, TagData, Icon } from 'components'
 import { cleanFormData } from 'utils/formData/filterFormData';
 
 interface Tag {
@@ -305,7 +305,7 @@ const Upload_area: React.FC = () => {
               <div className="up_tag">
                 <div>
                   <div className="img_are_input">
-                    <label onClick={() => setUploadImageType(!uploadImageType)}><i className="material-icons" style={{ cursor: 'pointer' }}>change_circle</i></label>
+                    <label onClick={() => setUploadImageType(!uploadImageType)} style={{ cursor: 'pointer' }}><Icon.link /></label>
 
                     {/* 切換上傳 HTTP 與 圖片檔案 */}
                     {
@@ -313,7 +313,7 @@ const Upload_area: React.FC = () => {
                         <label className="btn btn-info" id="img_are_input">
                           <input type="file" id="_img_are_input" ref={_img_are_inputRef} accept="image/*" onChange={uploads} name="uploadimg[]"
                             style={{ display: 'none' }} multiple />
-                          <i className="fa fa-photo"></i> 上傳圖片
+                          <Icon.upload /> 上傳圖片
                         </label>
                         :
                         <input type="text" ref={httpUrlRef} id="img_are_input_text" name="uploadimgHTTP" placeholder="輸入圖片位址(非網址)" onChange={httpImageInputHandler} />
@@ -378,8 +378,8 @@ const Upload_area: React.FC = () => {
                               data-toggle="collapse" data-target="#demo">其他</button>
                           </div>
                           <label className="btn btn-info" id="img_are_input">
-                            <button type="submit" id="upload_bt" style={{ display: 'none' }}></button><i
-                              className="fa fa-photo"></i> 上傳
+                            <button type="submit" id="upload_bt" style={{ display: 'none' }}></button>
+                            <Icon.upload /> 上傳
                           </label>
                         </div>
                       </div>
