@@ -130,6 +130,30 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ onEditProfile, onUpload }) =>
         }
     };
 
+    // body 全頁背景上傳 — 不走 Cropper (沿用舊 BackgroundImgUploadButton 行為，
+    // 直接上傳整張圖、靠 background-size cover 自適應)。
+    const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files?.length) return;
+        const file = files[0];
+        $message('上傳中...');
+        const formData = new FormData();
+        formData.append('backGoundImage', file);
+        try {
+            const response = await UploadInterfaceImage(formData);
+            if (response.status === 200 || response.status === 201) {
+                const newPath = `${process.env.REACT_APP_IMAGE_URL}/${response.data.path.replace(/^\/?/, '')}`;
+                document.body.style.backgroundImage = `url(${newPath})`;
+                localStorage.setItem('backGoundImage', response.data.path);
+                FlushLocalStrage();
+                $message('上傳成功');
+            }
+            e.target.value = '';
+        } catch (err) {
+            $message(`上傳失敗\n${err}`, 'error');
+        }
+    };
+
     const crop = () => {
         const _cropper = cropperRef.current?.cropper;
         if (!_cropper) return;
@@ -235,15 +259,24 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ onEditProfile, onUpload }) =>
                 className="profile-hero"
                 style={wImage ? { backgroundImage: `url(${wImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
             >
-                <Btn
-                    variant="ghost"
-                    size="sm"
-                    className="hero-edit"
-                    icon={<Icon.edit size={12} />}
-                    onClick={() => $id('wimg')?.click()}
-                >
-                    編輯封面
-                </Btn>
+                <div style={{ position: 'absolute', top: 14, right: 14, display: 'flex', gap: 8, zIndex: 2 }}>
+                    <Btn
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon.image size={12} />}
+                        onClick={() => $id('bg_input')?.click()}
+                    >
+                        更換背景
+                    </Btn>
+                    <Btn
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon.edit size={12} />}
+                        onClick={() => $id('wimg')?.click()}
+                    >
+                        編輯封面
+                    </Btn>
+                </div>
                 <input
                     type="file"
                     id="wimg"
@@ -253,6 +286,13 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ onEditProfile, onUpload }) =>
                         if (!e.target.files?.length) return;
                         openEditor(e.target.files, 'wimg', 'WImage', 'W_Image');
                     }}
+                />
+                <input
+                    type="file"
+                    id="bg_input"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleBgUpload}
                 />
             </div>
             <div className="profile-info">
