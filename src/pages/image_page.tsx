@@ -15,6 +15,12 @@ const Image_page = () => {
     const img_id = urlParams.get('img_id');
 
     const [imageData, setImageData] = useState<Data | undefined>();
+    const [zoom, setZoom] = useState(100);
+    const [naturalDims, setNaturalDims] = useState<{ w: number; h: number } | null>(null);
+
+    const ZOOM_STEP = 25;
+    const MIN_ZOOM = 25;
+    const MAX_ZOOM = 400;
 
     useEffect(() => {
         if (!img_id) return;
@@ -71,7 +77,61 @@ const Image_page = () => {
             <div className="detail-grid">
                 <div className="detail-stage">
                     {imageData ? (
-                        <img src={imgSrc} alt={imageData.img_path} />
+                        <>
+                            <img
+                                src={imgSrc}
+                                alt={imageData.img_path}
+                                style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center', transition: 'transform var(--transition-fast)' }}
+                                onLoad={(e) => {
+                                    const img = e.currentTarget;
+                                    setNaturalDims({ w: img.naturalWidth, h: img.naturalHeight });
+                                }}
+                            />
+                            <div className="detail-toolbar">
+                                <button
+                                    type="button"
+                                    className="icon-btn"
+                                    onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP))}
+                                    disabled={zoom <= MIN_ZOOM}
+                                    aria-label="縮小"
+                                    title="縮小"
+                                >
+                                    <Icon.zoomOut size={14} />
+                                </button>
+                                <button
+                                    type="button"
+                                    className="icon-btn"
+                                    onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP))}
+                                    disabled={zoom >= MAX_ZOOM}
+                                    aria-label="放大"
+                                    title="放大"
+                                >
+                                    <Icon.zoomIn size={14} />
+                                </button>
+                                <button
+                                    type="button"
+                                    className="icon-btn"
+                                    onClick={() => setZoom(100)}
+                                    aria-label="重設"
+                                    title="重設 100%"
+                                >
+                                    <Icon.expand size={14} />
+                                </button>
+                            </div>
+                            <div className="detail-zoom">
+                                {naturalDims && (
+                                    <>
+                                        <span>{naturalDims.w} × {naturalDims.h}</span>
+                                        <span style={{ color: 'var(--color-border)' }}>|</span>
+                                    </>
+                                )}
+                                <span style={{ color: zoom === 100 ? 'var(--color-text-secondary)' : 'var(--color-text-quaternary)' }}>
+                                    {zoom === 100 ? 'fit' : '–'}
+                                </span>
+                                <span style={{ color: 'var(--color-border)' }}>|</span>
+                                <span style={{ color: 'var(--color-primary-light)' }}>{zoom}%</span>
+                            </div>
+                        </>
                     ) : (
                         <div style={{ color: 'var(--color-text-tertiary)', fontSize: 14 }}>
                             載入中…
