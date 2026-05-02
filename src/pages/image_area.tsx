@@ -106,9 +106,25 @@ const Image_area = () => {
                             {' '}共 <b>{images?.count ?? 0}</b> 張
                         </span>
                         <div className="spacer" />
-                        <span style={{ color: 'var(--color-text-tertiary)', fontSize: 12 }}>
-                            [7.6] view-toggle
+                        <span className="sort-select" title="目前排序">
+                            <Icon.sort size={13} />
+                            <span>{sortValue}</span>
+                            <span style={{ display: 'inline-flex', transform: sortMethod === 'desc' ? 'rotate(90deg)' : 'rotate(-90deg)' }}>
+                                <Icon.chevronRight size={11} />
+                            </span>
                         </span>
+                        <div className="view-toggle">
+                            <button type="button" className="on" title="網格檢視">
+                                <Icon.gallery size={13} />
+                            </button>
+                            <button
+                                type="button"
+                                title="列表檢視 — 尚未實作"
+                                onClick={() => alert('列表檢視尚未實作')}
+                            >
+                                <Icon.list size={13} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="image-grid">
