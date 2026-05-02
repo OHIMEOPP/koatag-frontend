@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Data, ProfileHero, TagsCard } from 'components';
+import { Data, ProfileHero, TagsCard, StatsAside } from 'components';
 import { getImageForFront } from 'services/pageInfo/front_page.service';
 
 import "cropperjs/dist/cropper.css";
@@ -36,15 +36,7 @@ const Front_page = () => {
                     </div>
                 </div>
                 <aside style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 64 }}>
-                    <div className="card" style={{ padding: 18, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [6.5] 內容統計 — 接 tags?.images_Amount 等真實欄位
-                    </div>
-                    <div className="card" style={{ padding: 18, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [6.5] 標籤分佈 — bar-viz
-                    </div>
-                    <div className="card" style={{ padding: 18, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [6.5] AI 建議 — placeholder
-                    </div>
+                    <StatsAside tags={tags} />
                 </aside>
             </div>
         </div>
