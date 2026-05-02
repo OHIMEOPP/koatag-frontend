@@ -1,0 +1,85 @@
+// Upload area
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+}
+.dropzone {
+  position: relative;
+  height: 520px;
+  border-radius: var(--radius-xl);
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.012) 0 12px, transparent 12px 24px),
+    var(--color-bg-secondary);
+  border: 1.5px dashed var(--color-border-strong);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+  transition: var(--transition-base);
+  cursor: pointer;
+  text-align: center;
+  padding: 32px;
+
+  &:hover, &.is-active {
+    border-color: var(--color-primary);
+    background: rgba(232,185,106,0.04);
+    box-shadow: var(--shadow-glow-primary);
+  }
+}
+.dz-icon {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--color-bg-hover), var(--color-bg-tertiary));
+  display: grid; place-items: center;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+.dz-title { font-size: 18px; font-weight: var(--font-weight-semibold); letter-spacing: -0.01em; }
+.dz-sub   { color: var(--color-text-tertiary); font-size: 13px; max-width: 340px; }
+.dz-or {
+  display: flex; align-items: center; gap: 14px;
+  color: var(--color-text-quaternary);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.2em;
+  &::before, &::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+}
+.dz-input { display: flex; width: 100%; max-width: 380px; gap: 8px; }
+.dz-meta {
+  display: flex; gap: 18px;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  margin-top: 6px;
+  b { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); font-family: var(--font-family-mono); }
+}
+
+.upload-form {
+  padding: 24px;
+  display: flex; flex-direction: column;
+  gap: 18px;
+
+  h3 { margin: 0; font-size: 15px; font-weight: var(--font-weight-semibold); }
+}
+
+.tag-suggest {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.tag-suggest-head {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-quaternary);
+  margin-bottom: 10px;
+  display: flex; justify-content: space-between;
+}
+
+@media (max-width: 1100px) {
+  .upload-grid { grid-template-columns: 1fr; }
+}
