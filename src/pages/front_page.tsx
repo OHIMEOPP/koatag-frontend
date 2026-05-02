@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Data, ProfileHero, TagsCard, StatsAside, RecentActivity, TagEditor } from 'components';
+import { Data, ProfileHero, TagsCard, StatsAside, RecentActivity, PublicTagsCard, TagEditor } from 'components';
 import { getImageForFront } from 'services/pageInfo/front_page.service';
 import { _dynamictagtype } from 'utils';
 
@@ -46,9 +46,7 @@ const Front_page = () => {
                 <div className="front-main">
                     <TagsCard tags={tags} onOpenEditor={handleOpenEditor} />
                     <RecentActivity />
-                    <div className="card" style={{ padding: 24, color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [6.8] 參考標籤 — PublicTagBlog 既有功能搬 v3 殼
-                    </div>
+                    <PublicTagsCard />
                 </div>
                 <aside style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 64 }}>
                     <StatsAside tags={tags} />
