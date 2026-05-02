@@ -10,17 +10,17 @@ interface TopbarProps {
 }
 
 const PATH_LABELS: Record<string, string> = {
-  '/main/front_page':  'Front page',
-  '/main/upload_area': 'Upload',
-  '/main/image_area':  'Gallery',
-  '/main/image_page':  'Image detail',
-  '/main/history':     'History',
+  '/main/front_page':  '首頁',
+  '/main/upload_area': '上傳',
+  '/main/image_area':  '圖庫',
+  '/main/image_page':  '圖片詳情',
+  '/main/history':     '瀏覽紀錄',
 };
 
 export const Topbar: React.FC<TopbarProps> = ({ onCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const label = PATH_LABELS[location.pathname] ?? 'Library';
+  const label = PATH_LABELS[location.pathname] ?? '媒體';
 
   const [tagData, setTagData] = useState<TagData[]>([]);
   const [query, setQuery] = useState('');
@@ -107,7 +107,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onCollapse }) => {
           onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(-1); }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search by tag, character, artist…"
+          placeholder="搜尋標籤、人物或作者…"
           autoComplete="off"
         />
         <span className="search-kbd">⌘K</span>

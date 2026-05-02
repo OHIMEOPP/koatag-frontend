@@ -5,10 +5,11 @@ import { Tooltip } from 'react-tooltip';
 import LayOut from './LayOut';
 import { Image_area, Image_page, Upload_area, Front_page, History } from 'pages'
 
-import './style/v3/index.scss';
 import './style/style.scss'
 import './style/message/message.scss'
 import './style/main.scss';
+import './style/v3/index.scss';
+
 
 import { AppShell, MetaHead } from 'components';
 import { getFilePath } from 'utils';

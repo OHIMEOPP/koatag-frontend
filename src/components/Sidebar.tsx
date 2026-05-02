@@ -21,27 +21,27 @@ interface NavItem {
 
 const NAV: Array<{ section: string; items: NavItem[] }> = [
   {
-    section: 'Library',
+    section: '媒體',
     items: [
-      { to: '/main/front_page',  label: 'Front page', icon: 'home' },
-      { to: '/main/image_area',  label: 'Gallery',    icon: 'gallery', badge: '1,716' },
-      { to: '/main/upload_area', label: 'Upload',     icon: 'upload' },
-      { to: '/main/front_page',  label: 'Favorites',  icon: 'heart',   badge: '184', placeholder: true },
+      { to: '/main/front_page',  label: '首頁',     icon: 'home' },
+      { to: '/main/image_area',  label: '圖庫',     icon: 'gallery', badge: '1,716' },
+      { to: '/main/upload_area', label: '上傳',     icon: 'upload' },
+      { to: '/main/front_page',  label: '我的最愛', icon: 'heart',   badge: '184', placeholder: true },
     ],
   },
   {
-    section: 'Manage',
+    section: '管理',
     items: [
-      { to: '/main/front_page', label: 'Tags',    icon: 'tag',     placeholder: true },
-      { to: '/main/history',    label: 'History', icon: 'history' },
-      { to: '/main/front_page', label: 'Privacy', icon: 'shield',  placeholder: true },
+      { to: '/main/front_page', label: '標籤',     icon: 'tag',     placeholder: true },
+      { to: '/main/history',    label: '瀏覽紀錄', icon: 'history' },
+      { to: '/main/front_page', label: '隱私',     icon: 'shield',  placeholder: true },
     ],
   },
   {
-    section: 'Account',
+    section: '帳號',
     items: [
-      { to: '/main/front_page', label: 'Profile',  icon: 'user',     placeholder: true },
-      { to: '/main/front_page', label: 'Settings', icon: 'settings', placeholder: true },
+      { to: '/main/front_page', label: '個人資料', icon: 'user',     placeholder: true },
+      { to: '/main/front_page', label: '設定',     icon: 'settings', placeholder: true },
     ],
   },
 ];
@@ -86,10 +86,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
                 </Link>
               );
             })}
-            {sec.section === 'Account' && (
+            {sec.section === '帳號' && (
               <a href="#" onClick={handleLogout} className="nav-item">
                 <Icon.logout className="nav-icon" />
-                <span className="nav-label">Sign out</span>
+                <span className="nav-label">登出</span>
               </a>
             )}
           </div>
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
           <div className="user-avatar">{initial}</div>
           <div className="side-foot-text">
             <div className="user-name">{account}</div>
-            <div className="user-meta">Pro · 1,716 imgs</div>
+            <div className="user-meta">Pro · 1,716 張</div>
           </div>
         </div>
       </div>

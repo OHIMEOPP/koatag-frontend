@@ -62,3 +62,11 @@
   background: var(--color-bg-tertiary);
   box-shadow: var(--shadow-md);
 }
+
+// Layout utility classes (namespaced .v-* to avoid Bootstrap collision —
+// Bootstrap defines its own .row / .gap-N with !important and weird gutter margins,
+// which fights us even when v3 loads later. .v-row keeps redesign behaviour intact.)
+.v-row { display: flex; align-items: center; gap: 8px; }
+.v-gap-1 { gap: 4px; }
+.v-gap-2 { gap: 8px; }
+.v-gap-4 { gap: 16px; }
