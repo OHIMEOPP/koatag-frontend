@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, ReactNode } from "react";
-import '../style/TagInput.scss';
+// .tag-suggestions styles 已搬進 src/style/v3/_tag_input.scss, 全域載入
 
 interface TagInputProps {
     allTags: Record<string, string[]>; // { groupName: [tag1, tag2] }
@@ -18,6 +18,7 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
     const [inputValue, setInputValue] = useState(value);
     const [suggestions, setSuggestions] = useState<{ group: string; tag: string }[]>([]);
     const [highlightIndex, setHighlightIndex] = useState(-1);
+    const [isFocused, setIsFocused] = useState(false);
     const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
     const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -49,9 +50,13 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
-                setSuggestions([]);
-            }
+            const target = e.target as Node;
+            // Keep open if click is on the input OR within the .tag-suggestions dropdown
+            if (ref.current?.contains(target)) return;
+            const dropdown = ref.current?.parentElement?.querySelector('.tag-suggestions');
+            if (dropdown?.contains(target)) return;
+            setSuggestions([]);
+            setIsFocused(false);
         };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
@@ -101,6 +106,7 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
         ref,
         defaultValue: inputValue,
         autoComplete: "off",
+        className: "input",
         onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
             const next = e.target.value;
             setInputValue(next);
@@ -108,7 +114,7 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
             onChange(next); // 同步父層狀態，讓 selectedTags 等 derived state 即時更新
         },
         onKeyDown: handleKeyDown,
-        onFocus: () => onToggleOpen?.(),
+        onFocus: () => { setIsFocused(true); onToggleOpen?.(); },
         name,
         placeholder,
         type: "text"
@@ -150,7 +156,7 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
             ) : (
                 <input {...commonProps as React.InputHTMLAttributes<HTMLInputElement>} />
             )}
-            {(isOpen || suggestions.length > 0) && groupedElements.length > 0 && inputValue !== "" && (
+            {(isOpen || isFocused) && groupedElements.length > 0 && (
                 <div className="tag-suggestions">{groupedElements}</div>
             )}
         </div>

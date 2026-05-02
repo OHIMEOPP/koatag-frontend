@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Btn, Icon, Data } from 'components';
+import { Btn, Field, Icon, Data, TagInput } from 'components';
 import { getUploadAreaInfo } from 'services/pageInfo/upload_page.service';
-import { $message } from 'utils';
+import { UploadImage } from 'services/image.service';
+import { $message, _dynamictagtype } from 'utils';
 
 // Step 8.3 + 8.4 — dropzone drag/drop + file picker + preview + URL mode
 // (file 跟 URL 並存可選, submit 時 8.6 決定送哪邊)
@@ -47,6 +48,82 @@ const Upload_area: React.FC = () => {
 
     const visibleStripStart = (stripPage - 1) * STRIP_PER_PAGE;
     const visibleStripFiles = files.slice(visibleStripStart, visibleStripStart + STRIP_PER_PAGE);
+
+    // Tag input + isPublic + source state
+    const [mainTag, setMainTag] = useState('');
+    const [secondaryTag, setSecondaryTag] = useState('');
+    const [ArtistTag, setArtistTag] = useState('');
+    const [anotherTag, setAnotherTag] = useState('');
+    const [source, setSource] = useState('');
+    const [isPublic, setIsPublic] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+
+    const resetForm = () => {
+        clearAll();
+        setHttpUrl('');
+        setMainTag('');
+        setSecondaryTag('');
+        setArtistTag('');
+        setAnotherTag('');
+        setSource('');
+        setIsPublic(true);
+    };
+
+    const handleSubmit = async () => {
+        // 至少要一個來源
+        if (files.length === 0 && !httpUrl.trim()) {
+            $message('請先選擇檔案或輸入圖片網址', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+
+        // 檔案 OR URL（兩個都送也可以；後端 Controller 自己挑，file 優先）
+        if (files.length > 0) {
+            files.forEach((f) => formData.append('uploadimg[]', f));
+            formData.append('check_img_type', 'normal');
+        } else if (httpUrl.trim()) {
+            formData.append('uploadimgHTTP', httpUrl.trim());
+            // check_img_type 後端 hardcode 'HTTP' 不用送
+        }
+
+        // Tag 欄位 (字串逗號分隔, 後端 TagTrait 會 split + JSON encode)
+        if (mainTag.trim())      formData.append('mainTag', mainTag.trim());
+        if (secondaryTag.trim()) formData.append('secondaryTag', secondaryTag.trim());
+        if (ArtistTag.trim())    formData.append('ArtistTag', ArtistTag.trim());
+        if (anotherTag.trim())   formData.append('anotherTag', anotherTag.trim());
+
+        if (source.trim()) formData.append('source', source.trim());
+
+        // isPublic: truthy 才送, falsy 完全省略 (PHP `?` 才會走 'private' 分支)
+        if (isPublic) formData.append('isPublic', '1');
+
+        setSubmitting(true);
+        $message('上傳中，請稍後...');
+        try {
+            const response = await UploadImage(formData);
+            // status 對照 (per koatag 2026-05-02 確認):
+            //   1 = 成功
+            //   2 = 重複圖片 (同 user 同 path 已存在) — 不是成功!
+            //   0 = 未上傳
+            //  -1 = 伺服器錯誤
+            if (response.status === 1) {
+                $message(response.message ?? '上傳成功');
+                resetForm();
+            } else if (response.status === 2) {
+                $message(response.message ?? '這張圖片已上傳過', 'warning');
+                // 不清表單, 讓使用者改 tag 或選別張再試
+            } else if (response.status === 0) {
+                $message(response.message ?? '未收到上傳檔案', 'warning');
+            } else {
+                $message(response.message ?? '上傳失敗', 'error');
+            }
+        } catch (err) {
+            $message(`上傳失敗\n${err}`, 'error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const removeCurrent = () => {
         if (files.length === 0) return;
@@ -139,11 +216,11 @@ const Upload_area: React.FC = () => {
                     </p>
                 </div>
                 <div className="v-row v-gap-2">
-                    <Btn variant="ghost" size="sm" onClick={() => { clearAll(); setHttpUrl(''); navigate('/main/image_area'); }}>
+                    <Btn variant="ghost" size="sm" onClick={() => { resetForm(); navigate('/main/image_area'); }} disabled={submitting}>
                         取消
                     </Btn>
-                    <Btn variant="primary" size="sm" icon={<Icon.upload size={12} />} onClick={() => alert('送出 — 等 Step 8.6 接入')}>
-                        送出
+                    <Btn variant="primary" size="sm" icon={<Icon.upload size={12} />} onClick={handleSubmit} disabled={submitting}>
+                        {submitting ? '上傳中…' : '送出'}
                     </Btn>
                 </div>
             </div>
@@ -345,8 +422,78 @@ const Upload_area: React.FC = () => {
                 )}
 
                 <div className="card upload-form">
-                    <div style={{ color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [8.5] 4 個 tag input + isPublic + source — 用 v3 TagInput 取代手刻 #demo
+                    <h3>圖片資訊</h3>
+
+                    <Field label="人物 (main tag)" hint="多個用半形逗號分隔">
+                        <TagInput
+                            allTags={{ '人物': uploadAreaInfo?.mainTags?.map((t) => t.tag_name) ?? [] }}
+                            value={mainTag}
+                            name="mainTag"
+                            onChange={setMainTag}
+                            placeholder="輸入人物標籤"
+                        />
+                    </Field>
+
+                    <Field label="團體 (second tag)" hint="多個用半形逗號分隔">
+                        <TagInput
+                            allTags={{ '團體': uploadAreaInfo?.secondaryTags?.map((t) => t.tag_name) ?? [] }}
+                            value={secondaryTag}
+                            name="secondaryTag"
+                            onChange={setSecondaryTag}
+                            placeholder="輸入團體標籤"
+                        />
+                    </Field>
+
+                    <Field label="作者 (artist tag)" hint="多個用半形逗號分隔">
+                        <TagInput
+                            allTags={{ '作者': uploadAreaInfo?.artistTags?.map((t) => t.tag_name) ?? [] }}
+                            value={ArtistTag}
+                            name="ArtistTag"
+                            onChange={setArtistTag}
+                            placeholder="輸入作者"
+                        />
+                    </Field>
+
+                    <Field label="其他標籤 (another tag)" hint="自定 type 自動分組顯示">
+                        <TagInput
+                            allTags={(() => {
+                                const grouped = _dynamictagtype(uploadAreaInfo?.tagsGroup ?? []) as Record<string, Array<{ tag_name: string }>> | undefined;
+                                if (!grouped) return { '其他': [] };
+                                return Object.fromEntries(
+                                    Object.entries(grouped).map(([k, arr]) => [k || '未分類', arr.map((t) => t.tag_name)])
+                                );
+                            })()}
+                            value={anotherTag}
+                            name="anotherTag"
+                            isTextarea
+                            onChange={setAnotherTag}
+                            placeholder="金髮, 黑絲, 藍瞳, ..."
+                        />
+                    </Field>
+
+                    <Field label="圖源 (source URL)" hint="可貼來源網址">
+                        <input
+                            className="input"
+                            placeholder="https://..."
+                            value={source}
+                            onChange={(e) => setSource(e.target.value)}
+                        />
+                    </Field>
+
+                    <div className="toggle-row">
+                        <div className="text">
+                            <span className="lbl">
+                                {isPublic ? <Icon.globe size={13} /> : <Icon.lock size={13} />}
+                                {' '}{isPublic ? '公開' : '私人'}
+                            </span>
+                            <span className="sub">{isPublic ? '所有人可見' : '只有你看得到'}</span>
+                        </div>
+                        <div
+                            className={`toggle ${isPublic ? 'on' : ''}`}
+                            onClick={() => setIsPublic((p) => !p)}
+                            role="switch"
+                            aria-checked={isPublic}
+                        />
                     </div>
                 </div>
             </div>
