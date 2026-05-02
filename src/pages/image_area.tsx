@@ -1,21 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getImageForImageReposity } from 'services/image.service';
-import { Btn, Icon, ImageCard, ImageResponseType } from 'components';
+import { Btn, Icon, ImageCard, ImageResponseType, FilterPanel } from 'components';
 
-// Step 7.3 + 7.4 — ImageCard v3 visual + fetch wired.
-// Sort/filter/批次 still placeholder (7.5/7.7), pager partial (7.8 dedicated polish).
+// Step 7.5 — FilterPanel 接動態 (sort works via NodeRED, 其餘 filter UI placeholder)
 const Image_area = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const formRef = useRef<HTMLFormElement>(null);
     const [images, setImages] = useState<ImageResponseType>();
+    const [sortValue, setSortValue] = useState<string>(localStorage.getItem('sortValue') ?? '上傳日期');
+    const [sortMethod, setSortMethod] = useState<'asc' | 'desc'>((localStorage.getItem('sortMethod') as 'asc' | 'desc') ?? 'desc');
 
     const urlParams = new URLSearchParams(location.search);
     const page = parseInt(urlParams.get('page') ?? '1', 10);
     const tagParam = urlParams.get('tag');
     const groupParam = urlParams.get('group');
-    const strTag = tagParam ? `&tag=${tagParam}` : '';
+    const strTag = tagParam ? `&tag=${tagParam}${groupParam ? `&group=${groupParam}` : ''}` : '';
     const totalPageAmount = Math.ceil(Number(images?.count ?? 0) / 30);
 
     useEffect(() => {
@@ -31,8 +32,8 @@ const Image_area = () => {
                 }
 
                 const formData = new FormData(form);
-                formData.set('order', 'desc');
-                formData.set('selectSort', '上傳日期');
+                formData.set('order', sortMethod);
+                formData.set('selectSort', sortValue);
                 formData.append('amount', '30');
                 formData.append('page', `${page - 1}`);
                 formData.append('userId', `${localStorage.getItem('user_id')}`);
@@ -45,7 +46,30 @@ const Image_area = () => {
             }
         };
         fetchImages();
-    }, [location.search]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.search, sortValue, sortMethod]);
+
+    const handleSortValueChange = (v: string) => {
+        setSortValue(v);
+        localStorage.setItem('sortValue', v);
+    };
+    const handleSortMethodToggle = () => {
+        setSortMethod((prev) => {
+            const next = prev === 'desc' ? 'asc' : 'desc';
+            localStorage.setItem('sortMethod', next);
+            return next;
+        });
+    };
+    const handleClearTag = () => {
+        navigate('/main/image_area?page=1');
+    };
+    const handleReset = () => {
+        setSortValue('上傳日期');
+        setSortMethod('desc');
+        localStorage.setItem('sortValue', '上傳日期');
+        localStorage.setItem('sortMethod', 'desc');
+        navigate('/main/image_area?page=1');
+    };
 
     return (
         <div className="page">
@@ -65,11 +89,15 @@ const Image_area = () => {
             </div>
 
             <form ref={formRef} className="gallery-shell">
-                <aside className="card filter-panel">
-                    <div style={{ color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                        [7.5] Filter panel — 排序 / 標籤分類 / 公開狀態 / Active tags
-                    </div>
-                </aside>
+                <FilterPanel
+                    sortValue={sortValue}
+                    sortMethod={sortMethod}
+                    activeTag={tagParam}
+                    onSortValueChange={handleSortValueChange}
+                    onSortMethodToggle={handleSortMethodToggle}
+                    onClearTag={handleClearTag}
+                    onReset={handleReset}
+                />
 
                 <div>
                     <div className="gallery-toolbar">
@@ -79,7 +107,7 @@ const Image_area = () => {
                         </span>
                         <div className="spacer" />
                         <span style={{ color: 'var(--color-text-tertiary)', fontSize: 12 }}>
-                            [7.6] 排序 / view-toggle
+                            [7.6] view-toggle
                         </span>
                     </div>
 

@@ -27,6 +27,7 @@ export * from './image_page/ImageEditor'
 export * from './upload_area/ImagePreview/ImagePreview'
 
 export * from './image_area/ImageCard/ImageCard'
+export * from './image_area/FilterPanel/FilterPanel'
 
 export * from './types/images'
 export * from './types/tags'
