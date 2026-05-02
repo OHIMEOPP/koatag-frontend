@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Btn, Icon, Data, Magnifier } from 'components';
+import { Btn, Field, Icon, Data, Magnifier, TagInput } from 'components';
 import { getImagePageInfo } from 'services/pageInfo/image_page.service';
-import { parser, getFilePath } from 'utils';
+import { parser, getFilePath, _dynamictagtype } from 'utils';
 
 // Step 9.2 — v3 layout shell only.
 // Stage 顯示原圖 (無 Magnifier yet, 等 9.3 + 9.3.5)
@@ -19,10 +19,38 @@ const Image_page = () => {
     const [naturalDims, setNaturalDims] = useState<{ w: number; h: number } | null>(null);
     const [mirrorSize, setMirrorSize] = useState(200);
 
+    // Tag editor state — 從 imageData.O*Tag (原始字串值) 初始化
+    const [mainTag, setMainTag] = useState('');
+    const [secondaryTag, setSecondaryTag] = useState('');
+    const [ArtistTag, setArtistTag] = useState('');
+    const [anotherTag, setAnotherTag] = useState('');
+    const [isPublic, setIsPublic] = useState(true);
+
+    useEffect(() => {
+        if (!imageData) return;
+        setMainTag(imageData.OmainTag ?? '');
+        setSecondaryTag(imageData.OsecondaryTag ?? '');
+        setArtistTag(imageData.OArtistTag ?? '');
+        setAnotherTag(imageData.OanotherTag ?? '');
+        setIsPublic(imageData.is_public === 'public');
+    }, [imageData]);
+
     const ZOOM_STEP = 25;
     const MIN_ZOOM = 25;
     const MAX_ZOOM = 400;
     const MIRROR_SIZES = [150, 200, 300, 400, 600] as const;
+
+    // TagInput allTags 來源 (memo 不必要因為 imageData 不常變)
+    const mainAllTags = { '人物': imageData?.mainTags?.map((t) => t.tag_name) ?? [] };
+    const secondaryAllTags = { '團體': imageData?.secondaryTags?.map((t) => t.tag_name) ?? [] };
+    const artistAllTags = { '作者': imageData?.artistTags?.map((t) => t.tag_name) ?? [] };
+    const anotherAllTags = (() => {
+        const grouped = _dynamictagtype(imageData?.tagsGroup ?? []) as Record<string, Array<{ tag_name: string }>> | undefined;
+        if (!grouped) return { '其他': [] };
+        return Object.fromEntries(
+            Object.entries(grouped).map(([k, arr]) => [k || '未分類', arr.map((t) => t.tag_name)])
+        );
+    })();
 
     useEffect(() => {
         if (!img_id) return;
@@ -162,8 +190,77 @@ const Image_page = () => {
 
                 <div className="detail-side">
                     <div className="card tag-edit-card">
-                        <div style={{ color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                            [9.4] tag editor inline — 4 區段 + isPublic toggle
+                        <div className="toggle-row" style={{ marginBottom: 4 }}>
+                            <div className="text">
+                                <span className="lbl">
+                                    {isPublic ? <Icon.globe size={13} /> : <Icon.lock size={13} />}
+                                    {' '}{isPublic ? '公開' : '私人'}
+                                </span>
+                                <span className="sub">{isPublic ? '所有人可見' : '只有你看得到'}</span>
+                            </div>
+                            <div
+                                className={`toggle ${isPublic ? 'on' : ''}`}
+                                onClick={() => setIsPublic((p) => !p)}
+                                role="switch"
+                                aria-checked={isPublic}
+                            />
+                        </div>
+
+                        <div className="tag-edit-section">
+                            <div className="head">
+                                <span className="lbl">人物 mainTag</span>
+                                <span className="ct">{mainTag.split(',').filter(Boolean).length}</span>
+                            </div>
+                            <TagInput
+                                allTags={mainAllTags}
+                                value={mainTag}
+                                name="mainTag"
+                                onChange={setMainTag}
+                                placeholder="人物標籤,逗號分隔"
+                            />
+                        </div>
+
+                        <div className="tag-edit-section">
+                            <div className="head">
+                                <span className="lbl">團體 secondaryTag</span>
+                                <span className="ct">{secondaryTag.split(',').filter(Boolean).length}</span>
+                            </div>
+                            <TagInput
+                                allTags={secondaryAllTags}
+                                value={secondaryTag}
+                                name="secondaryTag"
+                                onChange={setSecondaryTag}
+                                placeholder="團體標籤,逗號分隔"
+                            />
+                        </div>
+
+                        <div className="tag-edit-section">
+                            <div className="head">
+                                <span className="lbl">作者 ArtistTag</span>
+                                <span className="ct">{ArtistTag.split(',').filter(Boolean).length}</span>
+                            </div>
+                            <TagInput
+                                allTags={artistAllTags}
+                                value={ArtistTag}
+                                name="ArtistTag"
+                                onChange={setArtistTag}
+                                placeholder="作者,逗號分隔"
+                            />
+                        </div>
+
+                        <div className="tag-edit-section">
+                            <div className="head">
+                                <span className="lbl">其他 anotherTag</span>
+                                <span className="ct">{anotherTag.split(',').filter(Boolean).length}</span>
+                            </div>
+                            <TagInput
+                                allTags={anotherAllTags}
+                                value={anotherTag}
+                                name="anotherTag"
+                                isTextarea
+                                onChange={setAnotherTag}
+                                placeholder="金髮, 黑絲, 藍瞳, ..."
+                            />
                         </div>
                     </div>
                     <div className="card info-card">

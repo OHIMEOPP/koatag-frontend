@@ -16,6 +16,13 @@ interface TagInputProps {
 
 const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isTextarea, isOpen, onToggleOpen, inputListaner, placeholder, setAnotherValue }) => {
     const [inputValue, setInputValue] = useState(value);
+
+    // Sync external value prop → internal state (例如父層 useEffect 從 API 抓 imageData
+    // 後才能填回 TagInput; 內部 typing 走 onChange path 不會觸發 loop 因為 value 已同步)
+    useEffect(() => {
+        if (value !== inputValue) setInputValue(value);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value]);
     const [suggestions, setSuggestions] = useState<{ group: string; tag: string }[]>([]);
     const [highlightIndex, setHighlightIndex] = useState(-1);
     const [isFocused, setIsFocused] = useState(false);
@@ -129,7 +136,7 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
 
     const commonProps = {
         ref,
-        defaultValue: inputValue,
+        value: inputValue,
         autoComplete: "off",
         className: "input",
         onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
