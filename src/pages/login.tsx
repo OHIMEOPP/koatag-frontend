@@ -1,148 +1,173 @@
-import { useState, useEffect, useRef } from 'react';
-import style from '../style/account.module.scss';
-import { login } from '../services/auth.service';
+import React, { useEffect, useState } from 'react';
+import { login, LoginError } from '../services/auth.service';
 import { deleteCookie, getCookie, setCookie } from 'utils';
-import { Button, Icon } from 'components';
-
-
+import { Btn, Field, Icon } from 'components';
 
 const Login = () => {
-    const passwordRef = useRef<HTMLInputElement>(null);
-
-    // 狀態管理
-    const [account, setAccount] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
-    const [showPassword, setShowPassword] = useState<boolean>(false);
-    const [showRegister, setShowRegister] = useState<boolean>(false);
-    const [remember, setRemember] = useState<boolean>(false);
+    const [account, setAccount] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showRegister, setShowRegister] = useState(false);
+    const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    // 載入時檢查 cookie 有無記住帳號
     useEffect(() => {
-        const savedAccount = getCookie('rememberAccount');
-        if (savedAccount) {
-            setAccount(savedAccount);
+        const saved = getCookie('rememberAccount');
+        if (saved) {
+            setAccount(saved);
             setRemember(true);
         }
     }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         setLoading(true);
 
-        // 如果勾選記住帳號 → 寫入 cookie（保存 30 天）
         if (remember) {
             setCookie('rememberAccount', account, 30);
         } else {
             deleteCookie('rememberAccount');
         }
 
-        await login(account, password);
-         setLoading(false);
+        try {
+            await login(account, password);
+            // login() will redirect on success via window.location.href
+        } catch (err) {
+            if (err instanceof LoginError) {
+                setError(err.message);
+            } else {
+                setError('登入時發生錯誤，請稍後再試');
+                console.error(err);
+            }
+            setLoading(false);
+        }
     };
 
-    const handleTogglePassword = () => {
-        if (!passwordRef.current) return;
-        setShowPassword(!showPassword);
-        passwordRef.current.type = showPassword ? 'password' : 'text';
+    const handleRegisterSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        alert('註冊功能尚未開放');
+    };
+
+    const handleForgotPassword = (e: React.MouseEvent) => {
+        e.preventDefault();
+        alert('忘記密碼功能尚未開放');
     };
 
     return (
-        <div className="mainframe">
-            <div className={style.topcontainer}>
-                <a href="/login">OHIMEOPP素材網</a>
-            </div>
+        <div className="login-wrap">
+            <div className="login-bg" />
+            <div className="login-grid" />
 
-            <div className={style.container1}>
-                <div className={style.logintitle}>會員登入</div>
-
-                {!showRegister ? (
-                    <form method="post" onSubmit={handleLogin}>
-                        <div className={style.login}>
-                            {/* 帳號輸入 */}
-                            <div className={style.passwordzone}>
-                                <input
-                                    id="account"
-                                    type="text"
-                                    value={account}
-                                    onChange={(e) => setAccount(e.target.value)}
-                                    placeholder="輸入帳號"
-                                    required
-                                />
-                            </div>
-
-                            {/* 密碼輸入 */}
-                            <div className={style.passwordzone}>
-                                <input
-                                    id="password"
-                                    ref={passwordRef}
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="輸入密碼"
-                                    required
-                                />
-                                <a href="#" onClick={handleTogglePassword}>
-                                    <Icon.eye />
-                                </a>
-                            </div>
-
-                            {/* 記住帳號 */}
-                            <div className={style.rememberZone}>
-                                <label className='d-flex justify-content-center align-items-center'>
-                                    <input
-                                        type="checkbox"
-                                        checked={remember}
-                                        onChange={(e) => setRemember(e.target.checked)}
-                                    />
-                                    <a>記住帳號</a>
-                                </label>
-                            </div>
-
-                            {/* 登入按鈕 */}
-                            <div>
-                                <Button loading={loading} className={style.submit_bt} type={'submit'} text="登入" loadingText='登入中...'/>
-                            </div>
-
-                            {/* 註冊與忘記密碼 */}
-                            <div className={style.switchRegister}>
-                                <span className={style.forgotZone}>
-                                    還沒有帳號嗎?{' '}
-                                    <a href="#" onClick={() => setShowRegister(true)}>註冊帳號</a>
-                                </span>
-                                <br />
-                                <span className={style.forgotZone}>
-                                    忘記密碼？{' '}
-                                    <a
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            alert('忘記密碼功能尚未開放');
-                                        }}
-                                    >
-                                        點我重設
-                                    </a>
-                                </span>
-                            </div>
+            {!showRegister ? (
+                <form className="login-card" onSubmit={handleLogin}>
+                    <div className="login-brand">
+                        <div className="brand-mark">K</div>
+                        <div>
+                            <div className="brand-text">KOATAG</div>
+                            <div className="brand-text-2">IMAGE TAG SYSTEM</div>
                         </div>
-                    </form>
-                ) : (
-                    <form method="post">
-                        <div className={style.login}>
-                            <div className="switch-login">
-                                <a onClick={() => setShowRegister(false)} style={{ cursor: 'pointer' }}>
-                                    返回登入
-                                </a>
-                            </div>
-                            <input type="text" name="increaseaccount" id="signAccount" placeholder="輸入帳號" />
-                            <div className="tab"></div>
-                            <input type="text" name="increasepassword" id="signPassword" placeholder="輸入密碼" />
-                            <div className="tab"></div>
-                            <button type="submit" className={style.submit_bt}>註冊</button>
+                    </div>
+                    <h1 className="login-title">會員登入</h1>
+                    <p className="login-sub">用您的帳號繼續管理圖庫</p>
+
+                    {error && <div className="login-error">{error}</div>}
+
+                    <Field label="帳號">
+                        <input
+                            className="input"
+                            value={account}
+                            onChange={(e) => setAccount(e.target.value)}
+                            placeholder="輸入帳號"
+                            autoComplete="username"
+                            required
+                        />
+                    </Field>
+                    <div style={{ height: 14 }} />
+                    <Field label="密碼">
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                className="input"
+                                type={showPassword ? 'text' : 'password'}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="輸入密碼"
+                                autoComplete="current-password"
+                                required
+                            />
+                            <button
+                                type="button"
+                                className="login-pwd-toggle"
+                                onClick={() => setShowPassword((s) => !s)}
+                                aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+                            >
+                                {showPassword ? <Icon.eyeOff /> : <Icon.eye />}
+                            </button>
                         </div>
-                    </form>
-                )}
-            </div>
+                    </Field>
+
+                    <div className="field-row" style={{ margin: '16px 0 20px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--color-text-secondary)' }}>
+                            <input
+                                type="checkbox"
+                                checked={remember}
+                                onChange={(e) => setRemember(e.target.checked)}
+                            />
+                            記住帳號 30 天
+                        </label>
+                        <a
+                            href="#"
+                            onClick={handleForgotPassword}
+                            style={{ fontSize: 12.5, color: 'var(--color-primary-light)', textDecoration: 'none' }}
+                        >
+                            忘記密碼?
+                        </a>
+                    </div>
+
+                    <Btn variant="primary" type="submit" disabled={loading}>
+                        {loading ? '登入中...' : <>登入 <Icon.chevronRight size={15} /></>}
+                    </Btn>
+
+                    <div className="login-foot">
+                        還沒有帳號嗎?{' '}
+                        <a href="#" onClick={(e) => { e.preventDefault(); setShowRegister(true); setError(''); }}>
+                            註冊帳號
+                        </a>
+                    </div>
+                </form>
+            ) : (
+                <form className="login-card" onSubmit={handleRegisterSubmit}>
+                    <div className="login-brand">
+                        <div className="brand-mark">K</div>
+                        <div>
+                            <div className="brand-text">KOATAG</div>
+                            <div className="brand-text-2">IMAGE TAG SYSTEM</div>
+                        </div>
+                    </div>
+                    <h1 className="login-title">註冊帳號</h1>
+                    <p className="login-sub">建立你的 KOATAG 帳號</p>
+
+                    <Field label="帳號">
+                        <input className="input" name="signAccount" placeholder="輸入帳號" required />
+                    </Field>
+                    <div style={{ height: 14 }} />
+                    <Field label="密碼">
+                        <input className="input" type="password" name="signPassword" placeholder="輸入密碼" required />
+                    </Field>
+
+                    <div style={{ height: 24 }} />
+
+                    <Btn variant="primary" type="submit">註冊</Btn>
+
+                    <div className="login-foot">
+                        已有帳號?{' '}
+                        <a href="#" onClick={(e) => { e.preventDefault(); setShowRegister(false); }}>
+                            返回登入
+                        </a>
+                    </div>
+                </form>
+            )}
         </div>
     );
 };
