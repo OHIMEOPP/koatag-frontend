@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Btn, Field, Icon, Data, Magnifier, TagInput } from 'components';
-import { getImagePageInfo } from 'services/pageInfo/image_page.service';
-import { parser, getFilePath, _dynamictagtype } from 'utils';
+import { getImagePageInfo, update } from 'services/pageInfo/image_page.service';
+import { parser, getFilePath, _dynamictagtype, $message } from 'utils';
 
 // Step 9.2 — v3 layout shell only.
 // Stage 顯示原圖 (無 Magnifier yet, 等 9.3 + 9.3.5)
@@ -24,10 +24,86 @@ const Image_page = () => {
     const [secondaryTag, setSecondaryTag] = useState('');
     const [ArtistTag, setArtistTag] = useState('');
     const [anotherTag, setAnotherTag] = useState('');
+    const [source, setSource] = useState('');
     const [isPublic, setIsPublic] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
     // 右側檢視模式切換 (避免版面太長, 預設 info 模式只看資訊)
     const [sideMode, setSideMode] = useState<'info' | 'edit'>('info');
+
+    // AI 辨識 loading state
+    const [isAiLoading, setIsAiLoading] = useState(false);
+
+    // 把 AI 回傳的 tag list 合進現有字串 (set dedupe + 保留 user 輸入)
+    const mergeTags = (existing: string, incoming: string[]): string => {
+        const set = new Set(existing.split(',').map((t) => t.trim()).filter(Boolean));
+        incoming.forEach((t) => {
+            const trimmed = (t ?? '').trim();
+            if (trimmed) set.add(trimmed);
+        });
+        return Array.from(set).join(',');
+    };
+
+    const handleAiTag = async () => {
+        if (!imageData) return;
+        setIsAiLoading(true);
+        $message('AI 辨識中…');
+
+        const isHttp = imageData.check_img_type === 'HTTP'
+            || imageData.img_path?.startsWith('http://')
+            || imageData.img_path?.startsWith('https://');
+        const aiSrc = isHttp ? imageData.img_path : getFilePath(user_id, imageData.img_path ?? '');
+        if (!aiSrc) { setIsAiLoading(false); return; }
+
+        const isCrossOrigin = aiSrc.startsWith('http://') || aiSrc.startsWith('https://');
+
+        try {
+            let response: Response;
+            if (isCrossOrigin) {
+                // cross-origin: 傳 URL 給 AI 服務 (它自己 fetch, 避免瀏覽器 CORS)
+                response = await fetch(`${process.env.REACT_APP_AI_API_URL}/upload_by_url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: aiSrc, translate_to_zh: true }),
+                });
+            } else {
+                // same-origin: fetch blob 上傳
+                const blob = await fetch(aiSrc).then((r) => r.blob());
+                const formData = new FormData();
+                formData.append('file', blob, 'image.jpg');
+                response = await fetch(`${process.env.REACT_APP_AI_API_URL}/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+            }
+            const result = await response.json();
+
+            // 人物 (mainTag) ← character_res_zh keys
+            const mainNames = Object.keys(result?.character_res_zh ?? {});
+            if (mainNames.length) setMainTag((prev) => mergeTags(prev, mainNames));
+
+            // 團體 (secondaryTag) ← character_res key 中括號內的作品名
+            const copyrights = Object.keys(result?.character_res ?? {})
+                .map((k: string) => {
+                    const m = k.match(/\(([^)]+)\)/);
+                    return m ? m[1] : '';
+                })
+                .filter(Boolean);
+            if (copyrights.length) setSecondaryTag((prev) => mergeTags(prev, copyrights));
+
+            // 其他 (anotherTag) ← sorted_general_strings_zh
+            const generalsZh = String(result?.sorted_general_strings_zh ?? '')
+                .split(',').map((t: string) => t.trim()).filter(Boolean);
+            if (generalsZh.length) setAnotherTag((prev) => mergeTags(prev, generalsZh));
+
+            $message('AI 辨識完成 — 已合併到對應欄位 (作者欄需手填)');
+        } catch (err) {
+            console.error('AI 辨識失敗:', err);
+            $message('AI 辨識失敗', 'error');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
 
     // Dirty 偵測 — 任一欄位跟 imageData 初始值不同就算 hasChanges, 用來控制儲存 btn enabled
     const hasChanges = imageData ? (
@@ -35,8 +111,58 @@ const Image_page = () => {
         secondaryTag !== (imageData.OsecondaryTag ?? '') ||
         ArtistTag !== (imageData.OArtistTag ?? '') ||
         anotherTag !== (imageData.OanotherTag ?? '') ||
+        source !== (imageData.source ?? '') ||
         isPublic !== (imageData.is_public === 'public')
     ) : false;
+
+    // ====== 9.7 actions: save / download / delete ======
+    const handleSave = async () => {
+        if (!img_id) return;
+        const formData = new FormData();
+        // 4 個 tag 字串 (空值省略, 後端會解讀為 [] 清空 OR 不變看 controller, 保守只送有值)
+        if (mainTag.trim())      formData.append('mainTag', mainTag.trim());
+        if (secondaryTag.trim()) formData.append('secondaryTag', secondaryTag.trim());
+        if (ArtistTag.trim())    formData.append('ArtistTag', ArtistTag.trim());
+        if (anotherTag.trim())   formData.append('anotherTag', anotherTag.trim());
+        if (source.trim())       formData.append('source', source.trim());
+        // isPublic 只 truthy 才送 (對齊 koatag 修好的 backend `?` 邏輯)
+        if (isPublic) formData.append('isPublic', '1');
+
+        setSubmitting(true);
+        $message('儲存中…');
+        try {
+            // koatag 確認: status 永遠 1 不論成敗, 看 HTTP code 判. axios 會在 HTTP >= 400
+            // throw, 所以進 try 就是 200 成功.
+            const response = await update(formData, img_id);
+            $message(response?.message ?? '更新成功');
+            // 重抓 imageData 讓 hasChanges 重置 + tag count 同步
+            const refreshed = await getImagePageInfo(img_id);
+            if (refreshed) {
+                const parsed = parser(refreshed);
+                setImageData(parsed.result);
+            }
+        } catch (err) {
+            console.error('updateImageData failed', err);
+            $message('儲存失敗，請稍後再試', 'error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDownload = () => {
+        if (!imageData) return;
+        const filename = imageData.img_path?.split('/').pop() ?? 'download.png';
+        const link = document.createElement('a');
+        link.href = imgSrc;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleDelete = () => {
+        alert('刪除功能尚未開放 (等 Step 12 後端 endpoint)');
+    };
 
     useEffect(() => {
         if (!imageData) return;
@@ -44,6 +170,7 @@ const Image_page = () => {
         setSecondaryTag(imageData.OsecondaryTag ?? '');
         setArtistTag(imageData.OArtistTag ?? '');
         setAnotherTag(imageData.OanotherTag ?? '');
+        setSource(imageData.source ?? '');
         setIsPublic(imageData.is_public === 'public');
     }, [imageData]);
 
@@ -140,21 +267,21 @@ const Image_page = () => {
                             編輯標籤
                         </button>
                     </div>
-                    <Btn variant="ghost" size="sm" icon={<Icon.download size={12} />} onClick={() => alert('下載 — 等 Step 9.7 接入')}>
+                    <Btn variant="ghost" size="sm" icon={<Icon.download size={12} />} onClick={handleDownload} disabled={!imageData}>
                         下載
                     </Btn>
-                    <Btn variant="ghost" size="sm" icon={<Icon.trash size={12} />} onClick={() => alert('刪除功能尚未開放 (Step 12 後端)')}>
+                    <Btn variant="ghost" size="sm" icon={<Icon.trash size={12} />} onClick={handleDelete}>
                         刪除
                     </Btn>
                     <Btn
                         variant="primary"
                         size="sm"
                         icon={<Icon.check size={12} />}
-                        disabled={sideMode === 'info'}
+                        disabled={sideMode === 'info' || submitting}
                         title={sideMode === 'info' ? '切到「編輯標籤」才能修改' : (hasChanges ? '送出變更' : '尚未變動 (仍可送)')}
-                        onClick={() => alert('儲存變更 — 等 Step 9.7 接入')}
+                        onClick={handleSave}
                     >
-                        儲存變更
+                        {submitting ? '儲存中…' : '儲存變更'}
                     </Btn>
                 </div>
             </div>
@@ -317,6 +444,18 @@ const Image_page = () => {
                                 placeholder="金髮, 黑絲, 藍瞳, ..."
                             />
                         </div>
+
+                        <div className="tag-edit-section">
+                            <div className="head">
+                                <span className="lbl">圖源 source</span>
+                            </div>
+                            <input
+                                className="input"
+                                value={source}
+                                onChange={(e) => setSource(e.target.value)}
+                                placeholder="https://..."
+                            />
+                        </div>
                     </div>}
 
                     {sideMode === 'info' && imageData && (
@@ -408,10 +547,23 @@ const Image_page = () => {
                     )}
 
                     {sideMode === 'edit' && (
-                        <div className="card info-card">
-                            <div style={{ color: 'var(--color-text-tertiary)', fontSize: 13 }}>
-                                [9.6] AI 辨識 suggestion card
-                            </div>
+                        <div className="card info-card" style={{ background: 'linear-gradient(135deg, rgba(232,185,106,0.08), transparent)', borderColor: 'rgba(232,185,106,0.2)' }}>
+                            <h3 style={{ color: 'var(--color-primary-light)' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <Icon.star size={14} />AI 辨識
+                                </span>
+                            </h3>
+                            <p style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--color-text-primary)', margin: '0 0 12px' }}>
+                                自動辨識圖片中的人物、作品系列、其他標籤，並合併到對應欄位（作者欄需手填）。
+                            </p>
+                            <Btn
+                                variant="primary"
+                                size="sm"
+                                disabled={isAiLoading || !imageData}
+                                onClick={handleAiTag}
+                            >
+                                {isAiLoading ? '辨識中…' : '開始 AI 辨識'}
+                            </Btn>
                         </div>
                     )}
                 </div>

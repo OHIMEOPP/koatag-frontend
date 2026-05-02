@@ -111,6 +111,14 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
         });
     };
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (e.key === 'Escape') {
+            // Esc 收 dropdown + 失焦 (任何時候都可)
+            setSuggestions([]);
+            setIsFocused(false);
+            setHighlightIndex(-1);
+            ref.current?.blur();
+            return;
+        }
         if (!suggestions.length) return;
         if (e.key === 'ArrowDown') {
             e.preventDefault();
