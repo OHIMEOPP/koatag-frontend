@@ -27,17 +27,23 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
         return parts.length ? parts[parts.length - 1] : '';
     };
 
+    // 已選 tag 的 set (從 inputValue 即時算)，用來在 dropdown 標註 + 點擊時 toggle
+    const selectedSet = (() => {
+        const parts = inputValue.split(',').map(p => p.trim()).filter(Boolean);
+        return new Set(parts);
+    })();
+
     useEffect(() => {
         const last = lastPart().toLowerCase();
-        const allParts = inputValue.split(',').map(p => p.trim()).filter(Boolean);
-        const enteredTags = allParts.slice(0, -1); // <-- 只排除已選過的 tag，不排除最後正在輸入的片段
 
+        // Toggle 模式：dropdown 顯示「所有 match last」的 tag，含已選過的
+        // (已選過的會用 .selected class 標註，點擊時 selectTag 偵測到後改成移除)
         const filtered: { group: string; tag: string }[] = [];
 
         Object.entries(allTags).forEach(([group, tags]) => {
             tags.forEach(tag => {
                 const tagLower = tag.toLowerCase();
-                if (tagLower.includes(last) && !enteredTags.includes(tag)) {
+                if (tagLower.includes(last)) {
                     filtered.push({ group, tag });
                 }
             });
@@ -63,12 +69,31 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
     }, []);
 
     const selectTag = (tag: string) => {
-        const parts = inputValue.split(',');
-        parts[parts.length - 1] = tag;
-        const newVal = parts.map(p => p.trim()).join(','); // 或 join(', ') 看你需求
+        const parts = inputValue.split(',').map(p => p.trim());
+        let newVal: string;
+
+        if (selectedSet.has(tag)) {
+            // 已在 list 內 → 移除
+            const filtered = parts.filter(p => p !== tag).filter(Boolean);
+            newVal = filtered.join(',');
+        } else {
+            // 不在 list 內 → 取代最後 partial (如果有) 或 append
+            const last = parts[parts.length - 1] ?? '';
+            if (last === '') {
+                // last is empty (剛打完逗號) → 直接 append
+                const cleaned = parts.filter(Boolean);
+                cleaned.push(tag);
+                newVal = cleaned.join(',');
+            } else {
+                // 取代 last partial
+                parts[parts.length - 1] = tag;
+                newVal = parts.filter(Boolean).join(',');
+            }
+        }
+
         setInputValue(newVal);
         onChange(newVal);
-        setSuggestions([]);
+        // 不關 dropdown — 讓 user 連續 toggle 多個 tag
 
         requestAnimationFrame(() => {
             const el = ref.current;
@@ -136,13 +161,20 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
 
         groupFiltered.forEach((tag, index) => {
             const currentIdx = idxCounter++;
+            const isSelected = selectedSet.has(tag);
+            const classes = [
+                highlightIndex === currentIdx ? "active" : "",
+                isSelected ? "selected" : "",
+            ].filter(Boolean).join(" ");
             groupedElements.push(
                 <div
                     key={`tag-${group}-${tag}-${index}`}
                     onClick={() => selectTag(tag)}
-                    className={highlightIndex === currentIdx ? "active" : ""}
+                    className={classes}
                     ref={el => { itemRefs.current[currentIdx] = el; }}
+                    title={isSelected ? '已選 — 點擊移除' : '點擊加入'}
                 >
+                    {isSelected && <span style={{ color: 'var(--color-primary)', marginRight: 6, fontWeight: 700 }}>✓</span>}
                     {tag}
                 </div>
             );

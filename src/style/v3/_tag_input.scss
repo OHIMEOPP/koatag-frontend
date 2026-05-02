@@ -47,5 +47,19 @@
             background: var(--color-bg-tertiary);
             color: var(--color-primary-light);
         }
+
+        // 已選 — 暖琥珀邊框 + 微底; hover 時轉紅標示「點擊移除」
+        &.selected {
+            background: rgba(232, 185, 106, 0.10);
+            color: var(--color-primary-light);
+            border-left: 2px solid var(--color-primary);
+            padding-left: 10px;
+
+            &:hover {
+                background: rgba(239, 79, 94, 0.10);
+                color: var(--color-danger);
+                border-left-color: var(--color-danger);
+            }
+        }
     }
 }
