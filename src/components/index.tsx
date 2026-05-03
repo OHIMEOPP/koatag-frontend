@@ -17,10 +17,16 @@ export * from './front_page/PublicTagsCard/PublicTagsCard'
 export * from './front_page/TagEditor/TagEditor'
 export * from './front_page/AddNewTag/AddNewTag'
 
-export * from './upload_area/ImagePreview/ImagePreview'
+export * from './upload_area/Dropzone/Dropzone'
+export * from './upload_area/UploadForm/UploadForm'
 
 export * from './image_area/ImageCard/ImageCard'
 export * from './image_area/FilterPanel/FilterPanel'
+
+export * from './image_page/DetailStage/DetailStage'
+export * from './image_page/TagEditCard/TagEditCard'
+export * from './image_page/SideInfoCards/SideInfoCards'
+export * from './image_page/AiSuggestionCard/AiSuggestionCard'
 
 export * from './types/images'
 export * from './types/tags'
