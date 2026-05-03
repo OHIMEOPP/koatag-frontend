@@ -55,6 +55,10 @@ export interface ImageResponseType {
     status: number;
     message: string;
     data: ImageData[];
-    path: string;
-    count: number;
+    meta: {
+        total: number;
+        page: number;
+        size: number;
+        total_pages: number;
+    };
 }

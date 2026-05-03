@@ -1,17 +1,35 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { getImageForImageReposity } from 'services/image.service';
+import { getImageList, ImageSort } from 'services/image.service';
 import { getUploadAreaInfo } from 'services/pageInfo/upload_page.service';
 import { Btn, Icon, ImageCard, ImageResponseType, FilterPanel, TagInput, Data } from 'components';
 
-// Step 7.5 — FilterPanel 接動態 (sort works via NodeRED, 其餘 filter UI placeholder)
+const PAGE_SIZE = 30;
+const VALID_SORTS: ImageSort[] = ['created_at', 'id', 'img_path'];
+
+const SORT_LABEL: Record<ImageSort, string> = {
+    created_at: '上傳日期',
+    id: 'ID',
+    img_path: '檔名',
+    mainTag: '人物',
+    secondaryTag: '團體',
+    ArtistTag: '作者',
+};
+
+const readSortValue = (): ImageSort => {
+    const v = localStorage.getItem('sortValue');
+    return (VALID_SORTS as string[]).includes(v ?? '') ? (v as ImageSort) : 'created_at';
+};
+
 const Image_area = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const formRef = useRef<HTMLFormElement>(null);
     const [images, setImages] = useState<ImageResponseType>();
-    const [sortValue, setSortValue] = useState<string>(localStorage.getItem('sortValue') ?? '上傳日期');
+    const [sortValue, setSortValue] = useState<ImageSort>(readSortValue());
     const [sortMethod, setSortMethod] = useState<'asc' | 'desc'>((localStorage.getItem('sortMethod') as 'asc' | 'desc') ?? 'desc');
+    const [isPublic, setIsPublic] = useState<'public' | 'private' | null>(null);
+    const [untagged, setUntagged] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [imageData, setImageData] = useState<Data>();
     const [tagInputHandler, setTagInputHandler] = useState(0);
@@ -20,39 +38,37 @@ const Image_area = () => {
     const urlParams = new URLSearchParams(location.search);
     const page = parseInt(urlParams.get('page') ?? '1', 10);
     const tagParam = urlParams.get('tag');
-    const groupParam = urlParams.get('group');
+    const groupParam = urlParams.get('group') as ImageSort | null;
     const strTag = tagParam ? `&tag=${tagParam}${groupParam ? `&group=${groupParam}` : ''}` : '';
-    const totalPageAmount = Math.ceil(Number(images?.count ?? 0) / 30);
+
+    const total = images?.meta?.total ?? 0;
+    const totalPageAmount = images?.meta?.total_pages ?? 0;
+    const dataLen = images?.data?.length ?? 0;
 
     useEffect(() => {
         const fetchImages = async () => {
             try {
-                const form = formRef.current;
-                if (!form) return;
+                const user_id = localStorage.getItem('user_id');
+                if (!user_id) return;
 
-                const tags = urlParams.getAll('tag');
-                let tag: any = null;
-                if (tags.length > 0) {
-                    tag = groupParam ? { [groupParam]: tags } : tags;
-                }
-
-                const formData = new FormData(form);
-                formData.set('order', sortMethod);
-                formData.set('selectSort', sortValue);
-                formData.append('amount', '30');
-                formData.append('page', `${page - 1}`);
-                formData.append('userId', `${localStorage.getItem('user_id')}`);
-                formData.append('tag', JSON.stringify(tag));
-
-                const res = await getImageForImageReposity(formData);
+                const res = await getImageList(user_id, {
+                    tag: tagParam ?? undefined,
+                    tag_group: (groupParam as any) ?? undefined,
+                    is_public: isPublic ?? undefined,
+                    untagged: untagged || undefined,
+                    sort: sortValue,
+                    order: sortMethod,
+                    page,
+                    size: PAGE_SIZE,
+                });
                 setImages(res);
             } catch (e) {
-                console.error('getImageForImageReposity failed', e);
+                console.error('getImageList failed', e);
             }
         };
         fetchImages();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.search, sortValue, sortMethod]);
+    }, [location.search, sortValue, sortMethod, isPublic, untagged]);
 
     useEffect(() => {
         getUploadAreaInfo()
@@ -97,7 +113,7 @@ const Image_area = () => {
         setBatchTagValue('');
     };
 
-    const handleSortValueChange = (v: string) => {
+    const handleSortValueChange = (v: ImageSort) => {
         setSortValue(v);
         localStorage.setItem('sortValue', v);
     };
@@ -112,9 +128,11 @@ const Image_area = () => {
         navigate('/main/image_area?page=1');
     };
     const handleReset = () => {
-        setSortValue('上傳日期');
+        setSortValue('created_at');
         setSortMethod('desc');
-        localStorage.setItem('sortValue', '上傳日期');
+        setIsPublic(null);
+        setUntagged(false);
+        localStorage.setItem('sortValue', 'created_at');
         localStorage.setItem('sortMethod', 'desc');
         navigate('/main/image_area?page=1');
     };
@@ -124,7 +142,7 @@ const Image_area = () => {
             <div className="page-head">
                 <div>
                     <h1 className="t-h1 page-title">圖庫</h1>
-                    <p className="page-sub">共 {images?.count ?? 0} 張圖片</p>
+                    <p className="page-sub">共 {total} 張圖片</p>
                 </div>
                 <div className="v-row v-gap-2">
                     <Btn
@@ -146,22 +164,26 @@ const Image_area = () => {
                     sortValue={sortValue}
                     sortMethod={sortMethod}
                     activeTag={tagParam}
+                    isPublic={isPublic}
+                    untagged={untagged}
                     onSortValueChange={handleSortValueChange}
                     onSortMethodToggle={handleSortMethodToggle}
                     onClearTag={handleClearTag}
+                    onIsPublicChange={setIsPublic}
+                    onUntaggedChange={setUntagged}
                     onReset={handleReset}
                 />
 
                 <div>
                     <div className="gallery-toolbar">
                         <span className="toolbar-meta">
-                            顯示 <b>{images?.data?.length ? `${(page - 1) * 30 + 1}–${(page - 1) * 30 + images.data.length}` : '0'}</b>
-                            {' '}共 <b>{images?.count ?? 0}</b> 張
+                            顯示 <b>{dataLen ? `${(page - 1) * PAGE_SIZE + 1}–${(page - 1) * PAGE_SIZE + dataLen}` : '0'}</b>
+                            {' '}共 <b>{total}</b> 張
                         </span>
                         <div className="spacer" />
                         <span className="sort-select" title="目前排序">
                             <Icon.sort size={13} />
-                            <span>{sortValue}</span>
+                            <span>{SORT_LABEL[sortValue]}</span>
                             <span style={{ display: 'inline-flex', transform: sortMethod === 'desc' ? 'rotate(90deg)' : 'rotate(-90deg)' }}>
                                 <Icon.chevronRight size={11} />
                             </span>
