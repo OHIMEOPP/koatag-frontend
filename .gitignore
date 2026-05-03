@@ -28,3 +28,13 @@ yarn-error.log*
 # Security audit drafts (not for repo)
 /SECURITY_FRONTEND_ONLY.md
 /SECURITY_BACKEND_COORDINATION.md
+
+# Playwright MCP work dir + test artifacts (snapshots / console logs / 截圖)
+/.playwright-mcp/
+/page-*.png
+/page-*.jpeg
+/image_area_*.png
+/image_page_*.png
+
+# Per-machine MCP config
+/.mcp.json
