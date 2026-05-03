@@ -30,11 +30,16 @@ const Main = () => {
 
         fetchIcon('check_img_type', 'backGoundImage', String(user_id))
             .then(response => {
+                const imgPath = response?.result?.img_path;
+                if (!imgPath) {
+                    document.body.style.backgroundImage = `url(${defaultBg})`;
+                    return;
+                }
                 const BGImage = new Image();
-                BGImage.src = getFilePath(user_id, response.result.img_path);
+                BGImage.src = getFilePath(user_id, imgPath);
                 BGImage.onload = () => {
-                    localStorage.setItem('backGoundImage', response.result.img_path)
-                    document.body.style.backgroundImage = `url(${getFilePath(user_id, response.result.img_path)})`;
+                    localStorage.setItem('backGoundImage', imgPath)
+                    document.body.style.backgroundImage = `url(${getFilePath(user_id, imgPath)})`;
                 }
                 BGImage.onerror = () => {
                     document.body.style.backgroundImage = `url(${defaultBg})`;

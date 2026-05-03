@@ -50,7 +50,9 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ onEditProfile, onUpload }) =>
         } else if (user_id && user_id !== '0') {
             fetchIcon('check_img_type', 'Wimage', user_id)
                 .then((res) => {
-                    const path = getFilePath(user_id, res.result.img_path);
+                    const imgPath = res?.result?.img_path;
+                    if (!imgPath) { setWimage(null); return; }
+                    const path = getFilePath(user_id, imgPath);
                     const img = new Image();
                     img.src = path;
                     img.onload = () => {
@@ -68,7 +70,9 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ onEditProfile, onUpload }) =>
         } else if (user_id && user_id !== '0') {
             fetchIcon('check_img_type', 'icon', user_id)
                 .then((res) => {
-                    const path = getFilePath(user_id, res.result.img_path ?? '');
+                    const imgPath = res?.result?.img_path;
+                    if (!imgPath) { setIcon(null); return; }
+                    const path = getFilePath(user_id, imgPath);
                     const img = new Image();
                     img.src = path;
                     img.onload = () => {
