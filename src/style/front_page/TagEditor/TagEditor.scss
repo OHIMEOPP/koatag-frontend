@@ -136,32 +136,62 @@
     }
 }
 
-/* checktag 區塊（type radio buttons as pill-shaped btns） */
-.checktag {
+/* button list layout — AddNewTag/EditTag/EditTagType 共用 gap 6px */
+.checktag,
+.revise_tag_type_checktag,
+.tag_type_checktag,
+.tag_type_checktag_chose_tag {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin: 6px 0;
+}
 
-    .tag-btn {
-        background: var(--color-bg-tertiary);
-        border: 1px solid var(--color-border);
-        color: var(--color-text-secondary);
-        padding: 5px 12px;
-        border-radius: var(--radius-full);
-        font-size: 12px;
-        cursor: pointer;
-        transition: all var(--transition-fast);
+/* revise_tag_checktag 特殊：外層 group div 縱排，每個 group 內 button flex-wrap */
+.revise_tag_checktag {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 6px 0;
 
-        &:hover {
-            background: var(--color-bg-hover);
-            color: var(--color-text-primary);
-        }
+    > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+    > div > p {
+        width: 100%;
+        margin: 0 0 2px;
+        font-size: 11px;
+        color: var(--color-text-tertiary);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+}
 
-        &.active {
-            background: rgba(232, 185, 106, 0.12);
-            color: var(--color-primary-light);
-            border-color: rgba(232, 185, 106, 0.4);
-        }
+/* .tag-btn — top-level，不限父容器，AddNewTag/EditTag/EditTagType 三邊統一 */
+.tag-btn {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &:hover:not(.active) {
+        background: var(--color-bg-hover);
+        color: var(--color-text-primary);
+        border-color: var(--color-text-tertiary);
+    }
+
+    &.active {
+        background: rgba(232, 185, 106, 0.32);
+        color: var(--color-primary);
+        border-color: var(--color-primary);
+        font-weight: var(--font-weight-semibold);
     }
 }

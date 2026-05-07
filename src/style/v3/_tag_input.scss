@@ -42,21 +42,23 @@
         overflow: hidden;
         color: var(--color-text-secondary);
 
+        // 未選 hover / keyboard active — 中性高亮，避免跟 .selected 的琥珀色撞
         &.active,
         &:hover {
             background: var(--color-bg-tertiary);
-            color: var(--color-primary-light);
+            color: var(--color-text-primary);
         }
 
-        // 已選 — 暖琥珀邊框 + 微底; hover 時轉紅標示「點擊移除」
+        // 已選 — 飽和琥珀底 + 粗左 border + 文字加粗，跟未選明顯區分
         &.selected {
-            background: rgba(232, 185, 106, 0.10);
-            color: var(--color-primary-light);
-            border-left: 2px solid var(--color-primary);
-            padding-left: 10px;
+            background: rgba(232, 185, 106, 0.22);
+            color: var(--color-primary);
+            border-left: 3px solid var(--color-primary);
+            padding-left: 9px;
+            font-weight: var(--font-weight-semibold);
 
             &:hover {
-                background: rgba(239, 79, 94, 0.10);
+                background: rgba(239, 79, 94, 0.22);
                 color: var(--color-danger);
                 border-left-color: var(--color-danger);
             }

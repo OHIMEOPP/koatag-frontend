@@ -69,6 +69,8 @@ const EditTag: React.FC<EditTagProps> = ({
                 {types.map((type, index) => (
                   <button
                     key={`revise-${key}-${index}-${type.tag_name}`}
+                    type="button"
+                    className="tag-btn"
                     onClick={() => handleSelectTag(type.tag_name)}
                   >
                     {type.tag_name}
@@ -120,7 +122,7 @@ const EditTag: React.FC<EditTagProps> = ({
               <button
                 key={type}
                 type="button"
-                className={selectedType === type ? "active" : ""}
+                className={`tag-btn ${selectedType === type ? "active" : ""}`}
                 onClick={() => handleSelectType(type)}
               >
                 {type}
