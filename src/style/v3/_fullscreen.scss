@@ -1,0 +1,68 @@
+// FullscreenViewer — CSS overlay (fixed inset:0) 全螢幕看圖
+.fs-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.92);
+    display: grid;
+    place-items: center;
+    cursor: zoom-out;
+    animation: fs-fade-in 120ms ease;
+}
+
+@keyframes fs-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.fs-stage {
+    cursor: default;
+    line-height: 0;
+    // Magnifier container 內已 inline-block; 確保不爆框
+    max-width: 95vw;
+    max-height: 95vh;
+
+    .magnifier-main {
+        max-width: 95vw;
+        max-height: 95vh;
+        object-fit: contain;
+    }
+}
+
+.fs-toolbar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 1;
+    cursor: default;
+}
+
+.fs-icon-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all var(--transition-fast);
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.32);
+        color: var(--color-primary-light);
+    }
+}
+
+.fs-icon-label {
+    line-height: 1;
+}

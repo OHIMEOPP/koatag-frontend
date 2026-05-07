@@ -33,3 +33,4 @@ export * from './types/tags'
 export * from './types/respones'
 
 export * from './Magnifier/Magnifier'
+export * from './FullscreenViewer/FullscreenViewer'

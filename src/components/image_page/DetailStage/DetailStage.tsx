@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Icon, Magnifier } from 'components';
+import { Icon, Magnifier, FullscreenViewer } from 'components';
 
 interface DetailStageProps {
     imgSrc: string;
@@ -19,6 +19,7 @@ const DetailStage: React.FC<DetailStageProps> = ({ imgSrc, alt, onNaturalDimsLoa
     const [zoom, setZoom] = useState(100);
     const [mirrorSize, setMirrorSize] = useState(200);
     const [naturalDims, setNaturalDims] = useState<{ w: number; h: number } | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     return (
         <div className="detail-stage">
@@ -84,6 +85,16 @@ const DetailStage: React.FC<DetailStageProps> = ({ imgSrc, alt, onNaturalDimsLoa
                 >
                     <Icon.search size={14} />
                 </button>
+                <span style={{ width: 1, height: 20, background: 'var(--color-border)', alignSelf: 'center' }} aria-hidden />
+                <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => setIsFullscreen(true)}
+                    aria-label="全螢幕"
+                    title="全螢幕 (Esc 退出)"
+                >
+                    <Icon.maximize size={14} />
+                </button>
             </div>
             <div className="detail-zoom">
                 {naturalDims && (
@@ -102,6 +113,12 @@ const DetailStage: React.FC<DetailStageProps> = ({ imgSrc, alt, onNaturalDimsLoa
                     <Icon.search size={11} />{mirrorSize}px
                 </span>
             </div>
+            <FullscreenViewer
+                src={imgSrc}
+                alt={alt}
+                open={isFullscreen}
+                onClose={() => setIsFullscreen(false)}
+            />
         </div>
     );
 };

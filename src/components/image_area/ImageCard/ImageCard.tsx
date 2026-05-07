@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ImageData } from 'components/types/images';
-import { Icon } from 'components';
+import { Icon, FullscreenViewer } from 'components';
 import { getFilePath } from 'utils';
 
 interface ImageCardProps {
@@ -18,6 +18,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
     const navigate = useNavigate();
     const [check, setCheck] = useState(false);
     const [imgError, setImgError] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     const tagCount =
         (image.mainTag?.length ?? 0) +
@@ -35,6 +36,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
         : image.check_img_type === 'HTTP'
             ? image.img_path
             : getFilePath(user_id, image.img_path);
+    // 全螢幕一定走原圖, 不走 thumb
+    const fullSrc = image.check_img_type === 'HTTP'
+        ? image.img_path
+        : getFilePath(user_id, image.img_path);
     const filename = (image.img_path?.split('/').pop() ?? '').replace(/\.[^/.]+$/, '') || `image-${image.id}`;
 
     const handleClick = () => {
@@ -48,6 +53,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
     const handleFav = (e: React.MouseEvent) => {
         e.stopPropagation();
         alert('收藏功能尚未開放');
+    };
+
+    const handleFullscreen = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsFullscreen(true);
     };
 
     return (
@@ -69,13 +79,27 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
             )}
             <div className="img-overlay" />
             <div className="img-top">
-                <span className="img-pill gold" data-tooltip-content={`共 ${tagCount} 個標籤`} data-tooltip-id="tooltip">
-                    <Icon.tag size={11} />
-                    {tagCount}
-                </span>
-                <span className="img-pill" data-tooltip-content={isPublic ? '公開' : '私人'} data-tooltip-id="tooltip">
-                    {isPublic ? <Icon.globe size={11} /> : <Icon.lock size={11} />}
-                </span>
+                <div className="img-top-pills">
+                    <span className="img-pill gold" data-tooltip-content={`共 ${tagCount} 個標籤`} data-tooltip-id="tooltip">
+                        <Icon.tag size={11} />
+                        {tagCount}
+                    </span>
+                    <span className="img-pill" data-tooltip-content={isPublic ? '公開' : '私人'} data-tooltip-id="tooltip">
+                        {isPublic ? <Icon.globe size={11} /> : <Icon.lock size={11} />}
+                    </span>
+                </div>
+                {!editMode && (
+                    <button
+                        type="button"
+                        className="img-fs"
+                        onClick={handleFullscreen}
+                        aria-label="全螢幕看圖"
+                        data-tooltip-content="全螢幕看圖"
+                        data-tooltip-id="tooltip"
+                    >
+                        <Icon.maximize size={12} />
+                    </button>
+                )}
             </div>
             <div className="img-bot">
                 <span className="name">{filename}</span>
@@ -94,6 +118,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
                     style={{ position: 'absolute', top: 8, right: 8, zIndex: 3, accentColor: 'var(--color-primary)' }}
                 />
             )}
+            <FullscreenViewer
+                src={fullSrc}
+                alt={filename}
+                open={isFullscreen}
+                onClose={() => setIsFullscreen(false)}
+            />
         </div>
     );
 };
