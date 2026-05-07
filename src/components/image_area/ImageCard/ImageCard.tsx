@@ -30,7 +30,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
     const publicRaw = image.is_public as unknown;
     const isPublic = publicRaw === 'public' || publicRaw === '1' || publicRaw === 1 || publicRaw === true;
 
-    const imgSrc = image.check_img_type === 'HTTP' ? image.img_path : getFilePath(user_id, image.img_path);
+    const imgSrc = image.thumb_path
+        ? getFilePath(user_id, image.thumb_path)
+        : image.check_img_type === 'HTTP'
+            ? image.img_path
+            : getFilePath(user_id, image.img_path);
     const filename = (image.img_path?.split('/').pop() ?? '').replace(/\.[^/.]+$/, '') || `image-${image.id}`;
 
     const handleClick = () => {
