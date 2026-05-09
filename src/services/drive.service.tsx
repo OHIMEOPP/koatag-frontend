@@ -74,13 +74,13 @@ export async function listFiles(opts: ListFilesOpts): Promise<PagedResp<DriveFil
     page: opts.page ?? 1,
     size: opts.size ?? 30,
   };
-  const resp: any = await driveApi.get("/api/drive/files", { params });
+  const resp: any = await driveApi.get("/drive/files", { params });
   const { data, meta } = unwrapDriveBody<{ items: DriveFile[] }>(resp.data);
   return { items: data.items, meta };
 }
 
 export async function listFolders(parentId: number | null): Promise<DriveFolder[]> {
-  const resp: any = await driveApi.get("/api/drive/folders", {
+  const resp: any = await driveApi.get("/drive/folders", {
     params: { parent_id: parentId },
   });
   const { data } = unwrapDriveBody<{ items: DriveFolder[] }>(resp.data);
@@ -88,7 +88,7 @@ export async function listFolders(parentId: number | null): Promise<DriveFolder[
 }
 
 export async function getBreadcrumb(folderId: number): Promise<DriveFolder[]> {
-  const resp: any = await driveApi.get(`/api/drive/folders/${folderId}/breadcrumb`);
+  const resp: any = await driveApi.get(`/drive/folders/${folderId}/breadcrumb`);
   const { data } = unwrapDriveBody<{ breadcrumb: DriveFolder[] }>(resp.data);
   return data.breadcrumb;
 }
@@ -139,15 +139,15 @@ export async function uploadFile(
       if (onProgress) onProgress(e.loaded, e.total ?? 0);
     },
   };
-  const resp: any = await driveApi.post("/api/drive/files", fd, config);
+  const resp: any = await driveApi.post("/drive/files", fd, config);
   const { data } = unwrapDriveBody<{ file: DriveFile }>(resp.data);
   return data.file;
 }
 
 /**
  * Drive 檔案 streaming / 下載 / 縮圖 URL 採用 signed URL pattern（backend spec §16）：
- * 1. frontend POST /api/drive/files/{id}/stream-url 帶 JWT → backend 驗 ACL + 簽 HMAC sig
- * 2. backend 回 `{ url: "/api/drive/files/{id}/download?sig=xxx&exp=yyy" }`
+ * 1. frontend POST /drive/files/{id}/stream-url 帶 JWT → backend 驗 ACL + 簽 HMAC sig
+ * 2. backend 回 `{ url: "/drive/files/{id}/download?sig=xxx&exp=yyy" }`
  * 3. frontend 把 url 給 <video src> / <a href> / <img src>
  * 4. browser native fetch 走 GET endpoint，**不過 JwtMiddleware**，純 HMAC verify
  *
@@ -157,7 +157,7 @@ export async function uploadFile(
  * 配對 hook：`useDriveStreamUrl(fileId, mode)` 包 useEffect/useState（見 src/hooks/useDriveStreamUrl）。
  */
 async function fetchSignedDownloadUrl(fileId: number): Promise<string> {
-  const resp: any = await driveApi.post(`/api/drive/files/${fileId}/stream-url`);
+  const resp: any = await driveApi.post(`/drive/files/${fileId}/stream-url`);
   const { data } = unwrapDriveBody<{ url: string }>(resp.data);
   return data.url;
 }
@@ -179,14 +179,14 @@ export async function thumbUrl(fileId: number): Promise<string> {
 }
 
 export async function deleteFile(fileId: number): Promise<void> {
-  await driveApi.delete(`/api/drive/files/${fileId}`);
+  await driveApi.delete(`/drive/files/${fileId}`);
 }
 
 export async function createFolder(
   name: string,
   parentId: number | null
 ): Promise<DriveFolder> {
-  const resp: any = await driveApi.post("/api/drive/folders", {
+  const resp: any = await driveApi.post("/drive/folders", {
     name,
     parent_id: parentId,
   });
@@ -195,7 +195,7 @@ export async function createFolder(
 }
 
 export async function deleteFolder(folderId: number): Promise<void> {
-  await driveApi.delete(`/api/drive/folders/${folderId}`);
+  await driveApi.delete(`/drive/folders/${folderId}`);
 }
 
 interface RenameOrMoveOpts {
@@ -206,7 +206,7 @@ interface RenameOrMoveOpts {
 }
 
 export async function renameOrMove(opts: RenameOrMoveOpts): Promise<void> {
-  const base = opts.resourceType === "file" ? "/api/drive/files" : "/api/drive/folders";
+  const base = opts.resourceType === "file" ? "/drive/files" : "/drive/folders";
   const body: Record<string, unknown> = {};
   if (opts.newName !== undefined) body.name = opts.newName;
   if (opts.targetFolderId !== undefined) {
@@ -216,7 +216,7 @@ export async function renameOrMove(opts: RenameOrMoveOpts): Promise<void> {
 }
 
 export async function getQuota(): Promise<DriveQuota> {
-  const resp: any = await driveApi.get("/api/drive/quota");
+  const resp: any = await driveApi.get("/drive/quota");
   const { data } = unwrapDriveBody<{ quota: DriveQuota }>(resp.data);
   return data.quota;
 }
@@ -230,7 +230,7 @@ interface CreateShareOpts {
 }
 
 export async function createShare(opts: CreateShareOpts): Promise<{ id: number }> {
-  const resp: any = await driveApi.post("/api/drive/shares", {
+  const resp: any = await driveApi.post("/drive/shares", {
     resource_type: opts.resourceType,
     resource_id: opts.resourceId,
     grantee_id: opts.granteeId,
@@ -242,7 +242,7 @@ export async function createShare(opts: CreateShareOpts): Promise<{ id: number }
 }
 
 export async function revokeShare(shareId: number): Promise<void> {
-  await driveApi.delete(`/api/drive/shares/${shareId}`);
+  await driveApi.delete(`/drive/shares/${shareId}`);
 }
 
 interface CreateShareLinkOpts {
@@ -256,7 +256,7 @@ interface CreateShareLinkOpts {
 export async function createShareLink(
   opts: CreateShareLinkOpts
 ): Promise<{ id: number; token: string }> {
-  const resp: any = await driveApi.post("/api/drive/share-links", {
+  const resp: any = await driveApi.post("/drive/share-links", {
     resource_type: opts.resourceType,
     resource_id: opts.resourceId,
     permission: opts.permission,
@@ -268,13 +268,13 @@ export async function createShareLink(
 }
 
 export async function revokeShareLink(linkId: number): Promise<void> {
-  await driveApi.delete(`/api/drive/share-links/${linkId}`);
+  await driveApi.delete(`/drive/share-links/${linkId}`);
 }
 
 export function publicAccessUrl(token: string): string {
-  return `/api/p/${token}`;
+  return `/p/${token}`;
 }
 
 export function publicDownloadUrl(token: string): string {
-  return `/api/p/${token}/download`;
+  return `/p/${token}/download`;
 }

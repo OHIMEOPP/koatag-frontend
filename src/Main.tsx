@@ -5,9 +5,6 @@ import { Tooltip } from 'react-tooltip';
 import LayOut from './LayOut';
 import { Image_area, Image_page, Upload_area, Front_page, History } from 'pages'
 
-// Drive 走 lazy load — feature 較大且不是每個 user 必進入
-const DrivePage = lazy(() => import('pages/drive/DrivePage'));
-
 import './style/style.scss'
 import './style/message/message.scss'
 import './style/main.scss';
@@ -17,6 +14,9 @@ import './style/v3/index.scss';
 import { AppShell, MetaHead } from 'components';
 import { getFilePath } from 'utils';
 import { fetchIcon } from 'services/image.service';
+
+// Drive 走 lazy load — feature 較大且不是每個 user 必進入
+const DrivePage = lazy(() => import('pages/drive/DrivePage'));
 
 const userRaw = localStorage.getItem('user');
 const user = userRaw ? JSON.parse(userRaw) : null;
