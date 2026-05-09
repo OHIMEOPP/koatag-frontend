@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
@@ -61,27 +61,42 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
     setCurrent(folderId);
   }, [folderId, setCurrent]);
 
-  const handleOpen = (item: DriveFile | DriveFolder, kind: "file" | "folder") => {
-    if (kind === "folder") {
-      navigate(`/main/drive/folder/${item.id}`);
-    } else {
-      // T13 才接 file detail page；MVP placeholder
-      console.log("[drive] open file (T13 wires to /main/drive/file/:id):", item.id);
-    }
-  };
+  // useCallback 穩定 ref，避免 SearchBar useEffect dep 變動觸發 timer reset
+  // (wiki T7 review finding A) — DrivePage 6 個 selector，任一變動 re-render
+  // 重新 gen closure 會讓 SearchBar 永遠 timer 重啟、search 不發送
+  const handleOpen = useCallback(
+    (item: DriveFile | DriveFolder, kind: "file" | "folder") => {
+      if (kind === "folder") {
+        navigate(`/main/drive/folder/${item.id}`);
+      } else {
+        // T13 才接 file detail page；MVP placeholder
+        console.log("[drive] open file (T13 wires to /main/drive/file/:id):", item.id);
+      }
+    },
+    [navigate],
+  );
 
-  const handleBreadcrumbNavigate = (id: number | null) => {
-    if (id == null) navigate("/main/drive");
-    else navigate(`/main/drive/folder/${id}`);
-  };
+  const handleBreadcrumbNavigate = useCallback(
+    (id: number | null) => {
+      if (id == null) navigate("/main/drive");
+      else navigate(`/main/drive/folder/${id}`);
+    },
+    [navigate],
+  );
 
-  const handleSortChange = (sort: SortKey, order: SortOrder) => {
-    setViewOpts({ sort, order, page: 1 });
-  };
+  const handleSortChange = useCallback(
+    (sort: SortKey, order: SortOrder) => {
+      setViewOpts({ sort, order, page: 1 });
+    },
+    [setViewOpts],
+  );
 
-  const handleQueryChange = (q: string) => {
-    setViewOpts({ q: q || undefined, page: 1 });
-  };
+  const handleQueryChange = useCallback(
+    (q: string) => {
+      setViewOpts({ q: q || undefined, page: 1 });
+    },
+    [setViewOpts],
+  );
 
   return (
     <UploadDropzone folderId={folderId}>
