@@ -56,6 +56,19 @@ export const SORT_LABELS: Record<SortKey, string> = {
 
 export const MAX_SYNC_UPLOAD_BYTES = 50 * 1024 * 1024;
 
+/**
+ * 暫時 graceful 404 — backend B9 (folders) / B12 (quota) 尚未實作期間，
+ * `/drive/folders` / `/drive/quota` 等 endpoint 會 404。
+ * 視為「資料不存在 → 空回應」而非錯誤，避免 DrivePage 整頁顯示 error
+ * 蓋掉 list 結果。B9/B12 完成後 endpoint 會 200，自動正確。
+ *
+ * 只對特定 endpoint 用（listFolders / getBreadcrumb / getQuota）。
+ * listFiles 不做（核心功能 B8a 已 up）。
+ */
+function is404(err: unknown): boolean {
+  return (err as any)?.response?.status === 404;
+}
+
 interface ListFilesOpts {
   folderId: number | null;
   sort?: SortKey;
@@ -80,17 +93,27 @@ export async function listFiles(opts: ListFilesOpts): Promise<PagedResp<DriveFil
 }
 
 export async function listFolders(parentId: number | null): Promise<DriveFolder[]> {
-  const resp: any = await driveApi.get("/drive/folders", {
-    params: { parent_id: parentId },
-  });
-  const { data } = unwrapDriveBody<{ items: DriveFolder[] }>(resp.data);
-  return data.items;
+  try {
+    const resp: any = await driveApi.get("/drive/folders", {
+      params: { parent_id: parentId },
+    });
+    const { data } = unwrapDriveBody<{ items: DriveFolder[] }>(resp.data);
+    return data.items;
+  } catch (err) {
+    if (is404(err)) return []; // B9 未實作期間，graceful empty
+    throw err;
+  }
 }
 
 export async function getBreadcrumb(folderId: number): Promise<DriveFolder[]> {
-  const resp: any = await driveApi.get(`/drive/folders/${folderId}/breadcrumb`);
-  const { data } = unwrapDriveBody<{ breadcrumb: DriveFolder[] }>(resp.data);
-  return data.breadcrumb;
+  try {
+    const resp: any = await driveApi.get(`/drive/folders/${folderId}/breadcrumb`);
+    const { data } = unwrapDriveBody<{ breadcrumb: DriveFolder[] }>(resp.data);
+    return data.breadcrumb;
+  } catch (err) {
+    if (is404(err)) return []; // B9 未實作期間，graceful empty
+    throw err;
+  }
 }
 
 interface FolderViewOpts {
@@ -227,10 +250,15 @@ export async function renameOrMove(opts: RenameOrMoveOpts): Promise<void> {
   await driveApi.patch(`${base}/${opts.resourceId}`, body);
 }
 
-export async function getQuota(): Promise<DriveQuota> {
-  const resp: any = await driveApi.get("/drive/quota");
-  const { data } = unwrapDriveBody<{ quota: DriveQuota }>(resp.data);
-  return data.quota;
+export async function getQuota(): Promise<DriveQuota | null> {
+  try {
+    const resp: any = await driveApi.get("/drive/quota");
+    const { data } = unwrapDriveBody<{ quota: DriveQuota }>(resp.data);
+    return data.quota;
+  } catch (err) {
+    if (is404(err)) return null; // B12 未實作期間，quota 視為未知
+    throw err;
+  }
 }
 
 interface CreateShareOpts {
