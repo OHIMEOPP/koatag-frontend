@@ -1,29 +1,24 @@
 import React, { useEffect } from "react";
-import { Routes, Route, useParams } from "react-router-dom";
+import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
+import { Breadcrumb, FileListPanel } from "components/drive";
+import { DriveFile, DriveFolder } from "services/drive.service";
 
 /**
- * KOATAG Drive 入口頁 — T4 skeleton
+ * KOATAG Drive 入口頁
  *
- * MVP 階段只放 layout + store wire-up 骨架，實際 UI 元件 T5+ 才填：
- * - T5: Breadcrumb + FileGrid + FileList + view toggle
- * - T6: FileCard / FolderCard
+ * T4 skeleton + T5 list / breadcrumb / view toggle。後續：
+ * - T6: FileCard / FolderCard 真 thumb (依賴 B17 backend up)
  * - T7: SortMenu + SearchBar
- * - T8: UploadDropzone + 50MB guard
+ * - T8: UploadDropzone
  * - T9: UploadProgressList + scheduler
  * - T10: QuotaIndicator
  * - T11: ContextMenu
- * - T12: VideoPlayer (依賴 B17 backend signed URL up)
- * - T13: DriveFilePage (lightbox / video player 整合)
- *
- * Routing：`/main/drive` 走 `<DrivePage>`，內部 nested:
- *  - ""           → DriveRootView (folderId = null)
- *  - "folder/:id" → DriveFolderView (folderId = :id)
- *  - "file/:id"   → 留 T13 才加
+ * - T12: VideoPlayer
+ * - T13: DriveFilePage
  */
 const DrivePage: React.FC = () => {
-  const setCurrent = useFolderTreeStore((s) => s.setCurrent);
   const reset = useFolderTreeStore((s) => s.reset);
   const fetchQuota = useDriveQuotaStore((s) => s.fetch);
 
@@ -36,47 +31,58 @@ const DrivePage: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="" element={<DriveRootView setCurrent={setCurrent} />} />
-      <Route path="folder/:id" element={<DriveFolderView setCurrent={setCurrent} />} />
+      <Route path="" element={<DriveContentView folderId={null} />} />
+      <Route path="folder/:id" element={<DriveFolderRoute />} />
     </Routes>
   );
 };
 
-const DriveRootView: React.FC<{ setCurrent: (id: number | null) => Promise<void> }> = ({
-  setCurrent,
-}) => {
-  useEffect(() => {
-    setCurrent(null);
-  }, [setCurrent]);
-
-  return (
-    <div className="drive-page">
-      <div className="drive-placeholder">
-        <h2>Drive — 根目錄</h2>
-        <p>TODO: Breadcrumb / FileGrid / Upload / QuotaIndicator (T5+)</p>
-      </div>
-    </div>
-  );
+const DriveFolderRoute: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const folderId = id ? Number(id) : NaN;
+  if (Number.isNaN(folderId)) {
+    return <div className="drive-page"><div className="drive-error">資料夾 ID 無效</div></div>;
+  }
+  return <DriveContentView folderId={folderId} />;
 };
 
-const DriveFolderView: React.FC<{
-  setCurrent: (id: number | null) => Promise<void>;
-}> = ({ setCurrent }) => {
-  const { id } = useParams<{ id: string }>();
-  const folderId = id ? Number(id) : null;
+const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) => {
+  const navigate = useNavigate();
+  const setCurrent = useFolderTreeStore((s) => s.setCurrent);
+  const folders = useFolderTreeStore((s) => s.folders);
+  const files = useFolderTreeStore((s) => s.files);
+  const breadcrumb = useFolderTreeStore((s) => s.breadcrumb);
+  const loading = useFolderTreeStore((s) => s.loading);
+  const error = useFolderTreeStore((s) => s.error);
 
   useEffect(() => {
-    if (folderId != null && !Number.isNaN(folderId)) {
-      setCurrent(folderId);
-    }
+    setCurrent(folderId);
   }, [folderId, setCurrent]);
+
+  const handleOpen = (item: DriveFile | DriveFolder, kind: "file" | "folder") => {
+    if (kind === "folder") {
+      navigate(`/main/drive/folder/${item.id}`);
+    } else {
+      // T13 才接 file detail page；MVP placeholder
+      console.log("[drive] open file (T13 wires to /main/drive/file/:id):", item.id);
+    }
+  };
+
+  const handleBreadcrumbNavigate = (id: number | null) => {
+    if (id == null) navigate("/main/drive");
+    else navigate(`/main/drive/folder/${id}`);
+  };
 
   return (
     <div className="drive-page">
-      <div className="drive-placeholder">
-        <h2>Drive — 資料夾 #{folderId ?? "?"}</h2>
-        <p>TODO: Breadcrumb / FileGrid / Upload (T5+)</p>
-      </div>
+      <Breadcrumb ancestors={breadcrumb} onNavigate={handleBreadcrumbNavigate} />
+      {error ? (
+        <div className="drive-error">{error}</div>
+      ) : loading ? (
+        <div className="drive-loading">載入中…</div>
+      ) : (
+        <FileListPanel folders={folders} files={files} onItemOpen={handleOpen} />
+      )}
     </div>
   );
 };

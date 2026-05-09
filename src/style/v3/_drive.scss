@@ -1,0 +1,188 @@
+// KOATAG Drive — v3 styles (T5 skeleton)
+// 對齊既有 v3 token-based 設計，最小範圍 css，T5 只蓋 functional layout
+
+.drive-page {
+  padding: 24px;
+}
+
+.drive-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 20px;
+
+  &-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-secondary);
+    background: none;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover:not(.drive-breadcrumb-current) {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+    }
+  }
+
+  &-current {
+    color: var(--color-text-primary);
+    font-weight: 600;
+    cursor: default;
+  }
+
+  &-sep {
+    color: var(--color-text-quaternary);
+  }
+}
+
+.drive-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drive-panel-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drive-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.drive-view-btn {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.15s, color 0.15s;
+
+  &.active {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+  }
+
+  &:not(.active):hover {
+    background: var(--color-bg-tertiary);
+  }
+}
+
+.drive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.drive-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+
+  &:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+}
+
+.drive-card-icon {
+  font-size: 40px;
+  line-height: 1;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.drive-card-name {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drive-card-meta {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.drive-list {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--color-text-tertiary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  tbody tr {
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover {
+      background: var(--color-bg-tertiary);
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 13px;
+      color: var(--color-text-primary);
+
+      &:first-child {
+        width: 48px;
+        text-align: center;
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+.drive-empty,
+.drive-loading {
+  text-align: center;
+  color: var(--color-text-tertiary);
+  padding: 48px 0;
+  font-size: 14px;
+}
+
+.drive-error {
+  color: var(--color-danger, #ef4444);
+  padding: 16px;
+  background: var(--color-danger-glow, rgba(239, 68, 68, 0.1));
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.drive-placeholder {
+  text-align: center;
+  color: var(--color-text-tertiary);
+  padding: 48px 0;
+
+  h2 {
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+  }
+}
