@@ -8,6 +8,11 @@ export const Icon = {
       <path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" />
     </svg>
   ),
+  cloud: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.78 5.5 5.5 0 0 0-10.6 1.06A4 4 0 0 0 6 19h11.5z" />
+    </svg>
+  ),
   upload: ({ size = 18, className }: IP) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M12 3v14" /><path d="M5 10l7-7 7 7" /><path d="M3 21h18" />
