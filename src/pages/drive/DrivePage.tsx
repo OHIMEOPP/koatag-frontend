@@ -2,8 +2,9 @@ import React, { useCallback, useEffect } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
-import { Breadcrumb, FileListPanel, SortMenu, SearchBar, UploadDropzone } from "components/drive";
+import { Breadcrumb, FileListPanel, SortMenu, SearchBar, UploadDropzone, UploadProgressList } from "components/drive";
 import { DriveFile, DriveFolder, SortKey, SortOrder } from "services/drive.service";
+import { useUploadScheduler } from "hooks/useUploadScheduler";
 
 /**
  * KOATAG Drive 入口頁
@@ -22,6 +23,9 @@ const DrivePage: React.FC = () => {
   const reset = useFolderTreeStore((s) => s.reset);
   const fetchQuota = useDriveQuotaStore((s) => s.fetch);
 
+  // 啟動上傳並行 scheduler (max 3)，user 在 Drive 期間運作
+  useUploadScheduler();
+
   useEffect(() => {
     fetchQuota();
     return () => {
@@ -30,10 +34,13 @@ const DrivePage: React.FC = () => {
   }, [fetchQuota, reset]);
 
   return (
-    <Routes>
-      <Route path="" element={<DriveContentView folderId={null} />} />
-      <Route path="folder/:id" element={<DriveFolderRoute />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="" element={<DriveContentView folderId={null} />} />
+        <Route path="folder/:id" element={<DriveFolderRoute />} />
+      </Routes>
+      <UploadProgressList />
+    </>
   );
 };
 

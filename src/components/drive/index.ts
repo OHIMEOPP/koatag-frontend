@@ -5,3 +5,4 @@ export { FileListPanel } from "./FileListPanel";
 export { SortMenu } from "./SortMenu";
 export { SearchBar } from "./SearchBar";
 export { UploadDropzone } from "./UploadDropzone";
+export { UploadProgressList } from "./UploadProgressList";

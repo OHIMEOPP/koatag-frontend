@@ -120,7 +120,8 @@ export async function loadFolderView(
 export async function uploadFile(
   file: File,
   folderId: number | null,
-  onProgress?: (loaded: number, total: number) => void
+  onProgress?: (loaded: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<DriveFile> {
   if (file.size > MAX_SYNC_UPLOAD_BYTES) {
     throw new DriveServiceError("FILE_TOO_LARGE", "檔案超過 50MB 限制", {
@@ -133,6 +134,7 @@ export async function uploadFile(
   if (folderId != null) fd.append("folder_id", String(folderId));
   const config: any = {
     headers: { "Content-Type": "multipart/form-data" },
+    signal,
     onUploadProgress: (e: any) => {
       if (onProgress) onProgress(e.loaded, e.total ?? 0);
     },
