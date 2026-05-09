@@ -79,6 +79,7 @@ export function unwrapDriveBody<T = any>(respData: any): { data: T; meta?: any }
     );
   }
   // Guard: ok:true 但缺 data field 的 degenerate case（void endpoint 不該走 unwrap）
+  // 對齊 backend spec §9 23 codes，沿用 INTERNAL_ERROR + details.reason 區分 root cause
   if (
     respData &&
     typeof respData === "object" &&
@@ -86,8 +87,9 @@ export function unwrapDriveBody<T = any>(respData: any): { data: T; meta?: any }
     respData.data === undefined
   ) {
     throw new DriveServiceError(
-      "MALFORMED_RESPONSE",
-      "Backend returned ok:true without data field"
+      "INTERNAL_ERROR",
+      "Backend returned ok:true without data field",
+      { reason: "malformed_response" }
     );
   }
   return { data: respData?.data, meta: respData?.meta };
