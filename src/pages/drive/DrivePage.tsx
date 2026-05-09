@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
-import { Breadcrumb, FileListPanel, SortMenu, SearchBar } from "components/drive";
+import { Breadcrumb, FileListPanel, SortMenu, SearchBar, UploadDropzone } from "components/drive";
 import { DriveFile, DriveFolder, SortKey, SortOrder } from "services/drive.service";
 
 /**
@@ -84,24 +84,26 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
   };
 
   return (
-    <div className="drive-page">
-      <Breadcrumb ancestors={breadcrumb} onNavigate={handleBreadcrumbNavigate} />
-      <div className="drive-toolbar">
-        <SearchBar query={viewOpts.q ?? ""} onQueryChange={handleQueryChange} />
-        <SortMenu
-          sort={viewOpts.sort ?? "name"}
-          order={viewOpts.order ?? "asc"}
-          onChange={handleSortChange}
-        />
+    <UploadDropzone folderId={folderId}>
+      <div className="drive-page">
+        <Breadcrumb ancestors={breadcrumb} onNavigate={handleBreadcrumbNavigate} />
+        <div className="drive-toolbar">
+          <SearchBar query={viewOpts.q ?? ""} onQueryChange={handleQueryChange} />
+          <SortMenu
+            sort={viewOpts.sort ?? "name"}
+            order={viewOpts.order ?? "asc"}
+            onChange={handleSortChange}
+          />
+        </div>
+        {error ? (
+          <div className="drive-error">{error}</div>
+        ) : loading ? (
+          <div className="drive-loading">載入中…</div>
+        ) : (
+          <FileListPanel folders={folders} files={files} onItemOpen={handleOpen} />
+        )}
       </div>
-      {error ? (
-        <div className="drive-error">{error}</div>
-      ) : loading ? (
-        <div className="drive-loading">載入中…</div>
-      ) : (
-        <FileListPanel folders={folders} files={files} onItemOpen={handleOpen} />
-      )}
-    </div>
+    </UploadDropzone>
   );
 };
 
