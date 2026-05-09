@@ -145,37 +145,49 @@ export async function uploadFile(
 }
 
 /**
- * Drive 檔案 streaming / 下載 / 縮圖 URL 採用 signed URL pattern（backend spec §16）：
+ * Drive 檔案 streaming / 下載 / 縮圖 URL 採用 signed URL pattern（backend spec §16，B17 + B8a）：
  * 1. frontend POST /drive/files/{id}/stream-url 帶 JWT → backend 驗 ACL + 簽 HMAC sig
- * 2. backend 回 `{ url: "/drive/files/{id}/download?sig=xxx&exp=yyy" }`
- * 3. frontend 把 url 給 <video src> / <a href> / <img src>
+ * 2. backend 回 `{ok:true, data:{file_id, sig, exp}}`（v1.8 shape，spec §16.2）
+ * 3. frontend self-compose URL：
+ *    - stream/inline: `/api/drive/files/{id}/download?sig=...&exp=...`
+ *    - download attachment: 同上 + `&download=1`
+ *    - thumb: `/api/drive/files/{id}/thumb?sig=...&exp=...`
  * 4. browser native fetch 走 GET endpoint，**不過 JwtMiddleware**，純 HMAC verify
  *
- * thumb 共用 sig（HMAC payload 是 "${id}:${exp}" 不含 path），swap `/download?` → `/thumb?` 即可。
- * download 用途（attachment）在簽完 URL 後 append `&download=1`。
+ * HMAC payload `"${id}:${exp}"` 不含 path → sig 對 /download 與 /thumb 同 valid。
+ * URL 用 absolute path（含 `/api/` 前綴）給 `<video>` / `<img>` / `<a>` 直接吃。
  *
  * 配對 hook：`useDriveStreamUrl(fileId, mode)` 包 useEffect/useState（見 src/hooks/useDriveStreamUrl）。
  */
-async function fetchSignedDownloadUrl(fileId: number): Promise<string> {
+interface SignedUrlPayload {
+  file_id: number;
+  sig: string;
+  exp: number;
+}
+
+async function fetchSignedPayload(fileId: number): Promise<SignedUrlPayload> {
   const resp: any = await driveApi.post(`/drive/files/${fileId}/stream-url`);
-  const { data } = unwrapDriveBody<{ url: string }>(resp.data);
-  return data.url;
+  const { data } = unwrapDriveBody<SignedUrlPayload>(resp.data);
+  return data;
+}
+
+function composeFileUrl(payload: SignedUrlPayload, kind: "download" | "thumb"): string {
+  return `/api/drive/files/${payload.file_id}/${kind}?sig=${payload.sig}&exp=${payload.exp}`;
 }
 
 export async function streamUrl(fileId: number): Promise<string> {
-  return fetchSignedDownloadUrl(fileId);
+  const payload = await fetchSignedPayload(fileId);
+  return composeFileUrl(payload, "download");
 }
 
 export async function downloadUrl(fileId: number): Promise<string> {
-  const url = await fetchSignedDownloadUrl(fileId);
-  // backend 簽出的 URL 必含 ?sig=&exp=；append &download=1 觸發 Content-Disposition: attachment
-  return `${url}&download=1`;
+  const payload = await fetchSignedPayload(fileId);
+  return `${composeFileUrl(payload, "download")}&download=1`;
 }
 
 export async function thumbUrl(fileId: number): Promise<string> {
-  const url = await fetchSignedDownloadUrl(fileId);
-  // HMAC payload 不含 path，sig 對 /download 與 /thumb 同 valid
-  return url.replace("/download?", "/thumb?");
+  const payload = await fetchSignedPayload(fileId);
+  return composeFileUrl(payload, "thumb");
 }
 
 export async function deleteFile(fileId: number): Promise<void> {
