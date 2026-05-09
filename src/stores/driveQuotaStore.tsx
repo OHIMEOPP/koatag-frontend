@@ -21,10 +21,8 @@ const initialState: DriveQuotaState = {
 };
 
 export const useDriveQuotaStore = create<DriveQuotaState & DriveQuotaActions>(
-  (set) => ({
-    ...initialState,
-
-    fetch: async () => {
+  (set) => {
+    const refetch = async () => {
       set({ loading: true, error: null });
       try {
         const quota = await getQuota();
@@ -32,18 +30,13 @@ export const useDriveQuotaStore = create<DriveQuotaState & DriveQuotaActions>(
       } catch (err) {
         set({ loading: false, error: mapDriveError(err) });
       }
-    },
+    };
 
-    invalidate: async () => {
-      set({ loading: true, error: null });
-      try {
-        const quota = await getQuota();
-        set({ quota, loading: false });
-      } catch (err) {
-        set({ loading: false, error: mapDriveError(err) });
-      }
-    },
-
-    reset: () => set({ ...initialState }),
-  })
+    return {
+      ...initialState,
+      fetch: refetch,
+      invalidate: refetch,
+      reset: () => set({ ...initialState }),
+    };
+  }
 );

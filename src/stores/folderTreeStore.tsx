@@ -46,15 +46,18 @@ const initialState: FolderTreeState = {
   error: null,
 };
 
+// Generation counter 防 concurrent loadFolderView race (wiki review #197 finding F)：
+// user 快速連點不同資料夾時，stale response 不應覆寫 latest state
+let generation = 0;
+
 export const useFolderTreeStore = create<FolderTreeState & FolderTreeActions>(
-  (set, get) => ({
-    ...initialState,
-
-    setCurrent: async (id, opts) => {
-      const nextOpts = { ...get().viewOpts, ...opts };
-      set({ currentFolderId: id, viewOpts: nextOpts, loading: true, error: null });
+  (set, get) => {
+    const load = async (id: number | null, opts: FolderViewOpts) => {
+      const myGen = ++generation;
+      set({ currentFolderId: id, viewOpts: opts, loading: true, error: null });
       try {
-        const view = await loadFolderView(id, nextOpts);
+        const view = await loadFolderView(id, opts);
+        if (myGen !== generation) return;
         set({
           folders: view.folders,
           files: view.files.items,
@@ -63,32 +66,17 @@ export const useFolderTreeStore = create<FolderTreeState & FolderTreeActions>(
           loading: false,
         });
       } catch (err) {
+        if (myGen !== generation) return;
         set({ loading: false, error: mapDriveError(err) });
       }
-    },
+    };
 
-    setViewOpts: async (partial) => {
-      const nextOpts = { ...get().viewOpts, ...partial };
-      const id = get().currentFolderId;
-      set({ viewOpts: nextOpts, loading: true, error: null });
-      try {
-        const view = await loadFolderView(id, nextOpts);
-        set({
-          folders: view.folders,
-          files: view.files.items,
-          filesMeta: view.files.meta,
-          breadcrumb: view.breadcrumb,
-          loading: false,
-        });
-      } catch (err) {
-        set({ loading: false, error: mapDriveError(err) });
-      }
-    },
-
-    invalidate: async () => {
-      await get().setCurrent(get().currentFolderId, get().viewOpts);
-    },
-
-    reset: () => set({ ...initialState }),
-  })
+    return {
+      ...initialState,
+      setCurrent: (id, opts) => load(id, { ...get().viewOpts, ...opts }),
+      setViewOpts: (partial) => load(get().currentFolderId, { ...get().viewOpts, ...partial }),
+      invalidate: () => load(get().currentFolderId, get().viewOpts),
+      reset: () => set({ ...initialState }),
+    };
+  }
 );
