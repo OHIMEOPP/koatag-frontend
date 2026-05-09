@@ -186,3 +186,143 @@
     margin-bottom: 8px;
   }
 }
+
+// ── T7 SortMenu + SearchBar ─────────────────────────
+
+.drive-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .drive-search-bar {
+    flex: 1 1 240px;
+    max-width: 360px;
+  }
+}
+
+.drive-search-bar {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 36px;
+  transition: border-color 0.15s;
+
+  &:focus-within {
+    border-color: var(--color-primary);
+  }
+}
+
+.drive-search-icon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.drive-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0 8px;
+  color: var(--color-text-primary);
+  font-size: 14px;
+
+  &::placeholder {
+    color: var(--color-text-quaternary);
+  }
+}
+
+.drive-search-clear {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 6px;
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
+}
+
+.drive-sort-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.drive-sort-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.drive-sort-order {
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+}
+
+.drive-sort-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  list-style: none;
+  margin: 0;
+
+  li {
+    list-style: none;
+  }
+}
+
+.drive-sort-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+
+  &:hover {
+    background: var(--color-bg-tertiary);
+  }
+
+  &.active {
+    background: var(--color-bg-tertiary);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+}
+
+.drive-sort-current-order {
+  color: var(--color-primary);
+  font-weight: 700;
+}

@@ -2,8 +2,8 @@ import React, { useEffect } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
-import { Breadcrumb, FileListPanel } from "components/drive";
-import { DriveFile, DriveFolder } from "services/drive.service";
+import { Breadcrumb, FileListPanel, SortMenu, SearchBar } from "components/drive";
+import { DriveFile, DriveFolder, SortKey, SortOrder } from "services/drive.service";
 
 /**
  * KOATAG Drive 入口頁
@@ -49,9 +49,11 @@ const DriveFolderRoute: React.FC = () => {
 const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) => {
   const navigate = useNavigate();
   const setCurrent = useFolderTreeStore((s) => s.setCurrent);
+  const setViewOpts = useFolderTreeStore((s) => s.setViewOpts);
   const folders = useFolderTreeStore((s) => s.folders);
   const files = useFolderTreeStore((s) => s.files);
   const breadcrumb = useFolderTreeStore((s) => s.breadcrumb);
+  const viewOpts = useFolderTreeStore((s) => s.viewOpts);
   const loading = useFolderTreeStore((s) => s.loading);
   const error = useFolderTreeStore((s) => s.error);
 
@@ -73,9 +75,25 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
     else navigate(`/main/drive/folder/${id}`);
   };
 
+  const handleSortChange = (sort: SortKey, order: SortOrder) => {
+    setViewOpts({ sort, order, page: 1 });
+  };
+
+  const handleQueryChange = (q: string) => {
+    setViewOpts({ q: q || undefined, page: 1 });
+  };
+
   return (
     <div className="drive-page">
       <Breadcrumb ancestors={breadcrumb} onNavigate={handleBreadcrumbNavigate} />
+      <div className="drive-toolbar">
+        <SearchBar query={viewOpts.q ?? ""} onQueryChange={handleQueryChange} />
+        <SortMenu
+          sort={viewOpts.sort ?? "name"}
+          order={viewOpts.order ?? "asc"}
+          onChange={handleSortChange}
+        />
+      </div>
       {error ? (
         <div className="drive-error">{error}</div>
       ) : loading ? (
