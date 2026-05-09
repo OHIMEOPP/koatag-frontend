@@ -54,7 +54,6 @@
     ]
   },
   "devDependencies": {
-    "@types/axios": "^0.9.36",
     "@types/crypto-js": "^4.2.2",
     "@types/react-helmet": "^6.1.11",
     "eslint-config-prettier": "^10.1.8",
