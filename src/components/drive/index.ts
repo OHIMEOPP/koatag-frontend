@@ -1,5 +1,7 @@
 export { Breadcrumb } from "./Breadcrumb";
 export { FileGrid, formatBytes, getMimeIconText } from "./FileGrid";
+export { FileCard } from "./FileCard";
+export { FolderCard } from "./FolderCard";
 export { FileList } from "./FileList";
 export { FileListPanel } from "./FileListPanel";
 export { SortMenu } from "./SortMenu";

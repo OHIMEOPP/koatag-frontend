@@ -1,5 +1,7 @@
 import React from "react";
 import { DriveFile, DriveFolder } from "services/drive.service";
+import { FileCard } from "./FileCard";
+import { FolderCard } from "./FolderCard";
 
 interface FileGridProps {
   folders: DriveFolder[];
@@ -37,37 +39,20 @@ export const FileGrid: React.FC<FileGridProps> = ({
   return (
     <div className="drive-grid">
       {folders.map((folder) => (
-        <div
+        <FolderCard
           key={`folder-${folder.id}`}
-          className="drive-card drive-card-folder"
-          onClick={() => onItemOpen(folder, "folder")}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            onItemContextMenu?.(folder, "folder", e);
-          }}
-        >
-          <div className="drive-card-icon">📁</div>
-          <div className="drive-card-name" title={folder.name}>
-            {folder.name}
-          </div>
-        </div>
+          folder={folder}
+          onOpen={() => onItemOpen(folder, "folder")}
+          onContextMenu={(e) => onItemContextMenu?.(folder, "folder", e)}
+        />
       ))}
       {files.map((file) => (
-        <div
+        <FileCard
           key={`file-${file.id}`}
-          className="drive-card drive-card-file"
-          onClick={() => onItemOpen(file, "file")}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            onItemContextMenu?.(file, "file", e);
-          }}
-        >
-          <div className="drive-card-icon">{getMimeIconText(file.mime)}</div>
-          <div className="drive-card-name" title={file.name}>
-            {file.name}
-          </div>
-          <div className="drive-card-meta">{formatBytes(file.size_bytes)}</div>
-        </div>
+          file={file}
+          onOpen={() => onItemOpen(file, "file")}
+          onContextMenu={(e) => onItemContextMenu?.(file, "file", e)}
+        />
       ))}
     </div>
   );

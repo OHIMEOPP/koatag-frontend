@@ -172,13 +172,14 @@ export async function uploadFile(
  * 1. frontend POST /drive/files/{id}/stream-url 帶 JWT → backend 驗 ACL + 簽 HMAC sig
  * 2. backend 回 `{ok:true, data:{file_id, sig, exp}}`（v1.8 shape，spec §16.2）
  * 3. frontend self-compose URL：
- *    - stream/inline: `/api/drive/files/{id}/download?sig=...&exp=...`
+ *    - stream/inline: `${API_URL}/drive/files/{id}/download?sig=...&exp=...`
  *    - download attachment: 同上 + `&download=1`
- *    - thumb: `/api/drive/files/{id}/thumb?sig=...&exp=...`
+ *    - thumb: `${API_URL}/drive/files/{id}/thumb?sig=...&exp=...`
  * 4. browser native fetch 走 GET endpoint，**不過 JwtMiddleware**，純 HMAC verify
  *
  * HMAC payload `"${id}:${exp}"` 不含 path → sig 對 /download 與 /thumb 同 valid。
- * URL 用 absolute path（含 `/api/` 前綴）給 `<video>` / `<img>` / `<a>` 直接吃。
+ * URL 用 `REACT_APP_API_URL` 為 base，產出 absolute URL 直接給 `<video>` / `<img>` / `<a>` 吃，
+ * 跨 origin（dev: localhost:3000 ↔ koatag.com:8123）也能正確 resolve。
  *
  * 配對 hook：`useDriveStreamUrl(fileId, mode)` 包 useEffect/useState（見 src/hooks/useDriveStreamUrl）。
  */
@@ -195,7 +196,8 @@ async function fetchSignedPayload(fileId: number): Promise<SignedUrlPayload> {
 }
 
 function composeFileUrl(payload: SignedUrlPayload, kind: "download" | "thumb"): string {
-  return `/api/drive/files/${payload.file_id}/${kind}?sig=${payload.sig}&exp=${payload.exp}`;
+  const base = process.env.REACT_APP_API_URL || "/api";
+  return `${base}/drive/files/${payload.file_id}/${kind}?sig=${payload.sig}&exp=${payload.exp}`;
 }
 
 export async function streamUrl(fileId: number): Promise<string> {
