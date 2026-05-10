@@ -1,13 +1,15 @@
 import React, { useEffect, useRef } from "react";
 import { DriveFile, DriveFolder } from "services/drive.service";
 import { Icon } from "components/Icon";
+import { useDialogEsc } from "hooks/useDialogEsc";
 
 export type ContextMenuAction =
   | "open"
   | "rename"
   | "move"
   | "delete"
-  | "download";
+  | "download"
+  | "share";
 
 interface ContextMenuProps {
   item: DriveFile | DriveFolder;
@@ -28,6 +30,7 @@ interface MenuEntry {
 const ENTRIES: MenuEntry[] = [
   { action: "open", label: "開啟", icon: Icon.eye },
   { action: "download", label: "下載", icon: Icon.download, fileOnly: true },
+  { action: "share", label: "分享…", icon: Icon.link },
   { action: "rename", label: "重新命名", icon: Icon.edit },
   { action: "move", label: "移動到…", icon: Icon.expand },
   { action: "delete", label: "刪除", icon: Icon.trash, destructive: true },
@@ -36,19 +39,13 @@ const ENTRIES: MenuEntry[] = [
 export const ContextMenu: React.FC<ContextMenuProps> = ({ kind, position, onAction, onClose }) => {
   const ref = useRef<HTMLDivElement>(null);
 
+  useDialogEsc(onClose);
   useEffect(() => {
     const handleDoc = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
     document.addEventListener("mousedown", handleDoc);
-    document.addEventListener("keydown", handleEsc);
-    return () => {
-      document.removeEventListener("mousedown", handleDoc);
-      document.removeEventListener("keydown", handleEsc);
-    };
+    return () => document.removeEventListener("mousedown", handleDoc);
   }, [onClose]);
 
   // 讓 menu 不超過 viewport

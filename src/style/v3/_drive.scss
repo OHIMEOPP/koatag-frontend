@@ -560,6 +560,12 @@
   pointer-events: none;
 }
 
+// Progressive thumb 顯示時 blur，stream 載完 swap 平滑
+.drive-img-loading-blur {
+  filter: blur(2px);
+  transition: filter 0.25s ease;
+}
+
 .drive-generic-preview {
   text-align: center;
   padding: 48px;
@@ -800,6 +806,184 @@
   &:hover:not(:disabled) {
     filter: brightness(1.1);
   }
+}
+
+.drive-modal-btn-destructive {
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  border-color: var(--color-danger, #ef4444);
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+}
+
+.drive-modal-message {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+// ── v3 share UI ─────────────────────────
+
+.drive-page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  margin: 0 0 16px;
+  color: var(--color-text-primary);
+}
+
+.drive-share-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+
+.drive-share-tab {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
+
+  &.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+}
+
+.drive-share-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drive-share-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.drive-share-submit-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drive-share-link-row {
+  display: flex;
+  gap: 8px;
+
+  input {
+    flex: 1;
+    font-family: monospace;
+    font-size: 12px;
+  }
+}
+
+.drive-share-note {
+  font-size: 11px;
+  color: var(--color-text-quaternary);
+  font-style: italic;
+}
+
+.drive-modal-success {
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-success, #22c55e);
+  padding: 24px;
+}
+
+.drive-share-row-revoked {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+// Public share-link landing page (no auth)
+
+.drive-public-landing {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg-primary, #0a0a0c);
+}
+
+.drive-public-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.drive-public-brand {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+}
+
+.drive-public-icon {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.drive-public-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  word-break: break-word;
+  margin-bottom: 8px;
+}
+
+.drive-public-meta {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+}
+
+.drive-public-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding: 10px 24px;
+  text-decoration: none;
+}
+
+.drive-public-note {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--color-text-quaternary);
+  font-style: italic;
+}
+
+.drive-public-error {
+  padding: 24px 0;
+}
+
+.drive-public-error-msg {
+  color: var(--color-danger, #ef4444);
+  font-size: 14px;
 }
 
 .drive-modal-breadcrumb {

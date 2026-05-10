@@ -385,18 +385,116 @@ export async function createShareLink(
     expires_at: opts.expiresAt,
     max_uses: opts.maxUses,
   });
-  const { data } = unwrapDriveBody<{ link: { id: number; token: string } }>(resp.data);
-  return data.link;
+  // backend B11 回 `data.share_link`（含 id/token + 其他 metadata）
+  const { data } = unwrapDriveBody<{ share_link: { id: number; token: string } }>(
+    resp.data,
+  );
+  return data.share_link;
 }
 
 export async function revokeShareLink(linkId: number): Promise<void> {
   await driveApi.delete(`/drive/share-links/${linkId}`);
 }
 
+// ───── v3 list / landing helpers ─────
+
+export interface ShareResourceSummary {
+  id: number;
+  name: string;
+  mime?: string;
+  size_bytes?: number;
+}
+
+export interface IncomingShare {
+  id: number;
+  resource_type: "file" | "folder";
+  resource: ShareResourceSummary;
+  granter_id: number;
+  granter?: { id: number; account: string };
+  permission: "read" | "write";
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface OutgoingShare {
+  id: number;
+  resource_type: "file" | "folder";
+  resource: ShareResourceSummary;
+  grantee_id: number;
+  grantee?: { id: number; account: string };
+  permission: "read" | "write";
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface MyShareLink {
+  id: number;
+  token: string;
+  resource_type: "file" | "folder";
+  resource: ShareResourceSummary;
+  permission: "read" | "write";
+  expires_at: string | null;
+  max_uses: number | null;
+  use_count: number;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export interface ShareLandingMeta {
+  resource_type: "file" | "folder";
+  resource: ShareResourceSummary;
+  expires_at: string | null;
+  max_uses: number | null;
+  use_count: number;
+}
+
+export async function listIncomingShares(): Promise<IncomingShare[]> {
+  const resp: any = await driveApi.get("/drive/shares/incoming");
+  const { data } = unwrapDriveBody<{ items: IncomingShare[] }>(resp.data);
+  return data.items;
+}
+
+export async function listOutgoingShares(): Promise<OutgoingShare[]> {
+  const resp: any = await driveApi.get("/drive/shares/outgoing");
+  const { data } = unwrapDriveBody<{ items: OutgoingShare[] }>(resp.data);
+  return data.items;
+}
+
+export async function listMyShareLinks(): Promise<MyShareLink[]> {
+  const resp: any = await driveApi.get("/drive/share-links/outgoing");
+  const { data } = unwrapDriveBody<{ items: MyShareLink[] }>(resp.data);
+  return data.items;
+}
+
+/**
+ * 公開 share-link landing meta — 不帶 JWT，純 token 驗證（spec §3.5）。
+ * 用 plain fetch 避開 driveApi 的 Authorization header interceptor。
+ * landing 不消耗 use_count；download 才 atomic consume（backend `b11` 確認）。
+ */
+export async function getShareLanding(token: string): Promise<ShareLandingMeta> {
+  const base = process.env.REACT_APP_API_URL || "/api";
+  const resp = await fetch(`${base}/p/${encodeURIComponent(token)}`, {
+    headers: { Accept: "application/json" },
+  });
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok || body?.ok === false) {
+    const err = body?.error ?? {};
+    throw new DriveServiceError(
+      err.code ?? "SHARE_LINK_INVALID",
+      err.message ?? "分享連結無效",
+      err.details,
+    );
+  }
+  return body.data;
+}
+
+// `<a href>` 直接點：絕對 URL 跨 origin 也 work（同 composeFileUrl pattern）
 export function publicAccessUrl(token: string): string {
-  return `/p/${token}`;
+  const base = process.env.REACT_APP_API_URL || "/api";
+  return `${base}/p/${encodeURIComponent(token)}`;
 }
 
 export function publicDownloadUrl(token: string): string {
-  return `/p/${token}/download`;
+  const base = process.env.REACT_APP_API_URL || "/api";
+  return `${base}/p/${encodeURIComponent(token)}/download`;
 }

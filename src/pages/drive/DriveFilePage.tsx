@@ -148,14 +148,32 @@ const BackBtn: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   </button>
 );
 
+/**
+ * Progressive thumb → stream（v2 polish T13 finding A）：
+ * - 先 render 600px thumb（cache 命中可瞬間顯示）
+ * - 背景同時 preload 原圖 stream URL
+ * - stream onLoad 觸發 swap，user 看到 high-res 版本
+ *
+ * thumb_path null 的圖（backend gen 失敗等）直接走 stream。
+ */
 const ImagePreview: React.FC<{
   file: DriveFile;
   onClickToFullscreen: () => void;
 }> = ({ file, onClickToFullscreen }) => {
-  const { url, loading, error } = useDriveStreamUrl(file.id, "stream");
-  if (loading) return <div className="drive-loading">載入中…</div>;
-  if (error) return <div className="drive-error">{error}</div>;
-  if (!url) return null;
+  const hasThumb = !!file.thumb_path;
+  const { url: thumbUrl } = useDriveStreamUrl(hasThumb ? file.id : null, "thumb");
+  const { url: streamUrl, loading, error } = useDriveStreamUrl(file.id, "stream");
+  const [streamReady, setStreamReady] = useState(false);
+
+  const displayUrl = streamReady && streamUrl ? streamUrl : (thumbUrl ?? streamUrl);
+
+  // thumb 不可用時 fallback stream loading 邏輯
+  if (!displayUrl) {
+    if (loading) return <div className="drive-loading">載入中…</div>;
+    if (error) return <div className="drive-error">{error}</div>;
+    return null;
+  }
+
   return (
     <div
       className="drive-img-preview"
@@ -166,7 +184,22 @@ const ImagePreview: React.FC<{
         if (e.key === "Enter" || e.key === " ") onClickToFullscreen();
       }}
     >
-      <img src={url} alt={file.name} crossOrigin="anonymous" />
+      <img
+        src={displayUrl}
+        alt={file.name}
+        crossOrigin="anonymous"
+        className={!streamReady && hasThumb ? "drive-img-loading-blur" : ""}
+      />
+      {/* 背景 preloader：載完高解析 stream 後 swap */}
+      {streamUrl && !streamReady && hasThumb && (
+        <img
+          src={streamUrl}
+          alt=""
+          crossOrigin="anonymous"
+          style={{ display: "none" }}
+          onLoad={() => setStreamReady(true)}
+        />
+      )}
       <div className="drive-img-overlay">點擊放大檢視</div>
     </div>
   );

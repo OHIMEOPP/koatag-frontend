@@ -13,6 +13,8 @@ import {
   ContextMenuAction,
   RenameDialog,
   MoveDialog,
+  ConfirmDialog,
+  ShareDialog,
 } from "components/drive";
 import {
   DriveFile,
@@ -27,6 +29,8 @@ import {
 import { mapDriveError } from "services/drive.errorMap";
 import { useUploadScheduler } from "hooks/useUploadScheduler";
 import DriveFilePage from "./DriveFilePage";
+import SharedWithMePage from "./SharedWithMePage";
+import MySharesPage from "./MySharesPage";
 
 /**
  * KOATAG Drive 入口頁
@@ -61,6 +65,8 @@ const DrivePage: React.FC = () => {
         <Route path="" element={<DriveContentView folderId={null} />} />
         <Route path="folder/:id" element={<DriveFolderRoute />} />
         <Route path="file/:id" element={<DriveFilePage />} />
+        <Route path="shared/in" element={<SharedWithMePage />} />
+        <Route path="shared/out" element={<MySharesPage />} />
       </Routes>
       <UploadProgressList />
     </>
@@ -80,6 +86,8 @@ type CtxItem = { item: DriveFile | DriveFolder; kind: "file" | "folder" };
 type ModalState =
   | { type: "rename"; ctx: CtxItem }
   | { type: "move"; ctx: CtxItem }
+  | { type: "delete"; ctx: CtxItem }
+  | { type: "share"; ctx: CtxItem }
   | null;
 
 const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) => {
@@ -162,18 +170,9 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
         } else if (action === "move") {
           setModal({ type: "move", ctx: target });
         } else if (action === "delete") {
-          const confirmed = window.confirm(
-            kind === "folder"
-              ? `確定刪除資料夾「${item.name}」？（資料夾必須為空）`
-              : `確定刪除檔案「${item.name}」？`,
-          );
-          if (!confirmed) return;
-          if (kind === "file") {
-            await deleteFile(item.id);
-          } else {
-            await deleteFolder(item.id);
-          }
-          await Promise.all([invalidateTree(), invalidateQuota()]);
+          setModal({ type: "delete", ctx: target });
+        } else if (action === "share") {
+          setModal({ type: "share", ctx: target });
         }
       } catch (err) {
         setActionError(mapDriveError(err));
@@ -242,6 +241,35 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
               newName,
             });
             await invalidateTree();
+          }}
+        />
+      )}
+      {modal?.type === "share" && (
+        <ShareDialog
+          resourceType={modal.ctx.kind}
+          resourceId={modal.ctx.item.id}
+          resourceName={modal.ctx.item.name}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === "delete" && (
+        <ConfirmDialog
+          title="刪除確認"
+          message={
+            modal.ctx.kind === "folder"
+              ? `確定刪除資料夾「${modal.ctx.item.name}」？（資料夾必須為空）`
+              : `確定刪除檔案「${modal.ctx.item.name}」？此動作無法復原。`
+          }
+          confirmLabel="刪除"
+          destructive
+          onClose={() => setModal(null)}
+          onConfirm={async () => {
+            if (modal.ctx.kind === "file") {
+              await deleteFile(modal.ctx.item.id);
+            } else {
+              await deleteFolder(modal.ctx.item.id);
+            }
+            await Promise.all([invalidateTree(), invalidateQuota()]);
           }}
         />
       )}
