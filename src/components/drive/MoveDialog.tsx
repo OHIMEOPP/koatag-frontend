@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { listFolders, DriveFolder } from "services/drive.service";
 import { mapDriveError } from "services/drive.errorMap";
+import { useDialogEsc } from "hooks/useDialogEsc";
 
 interface MoveDialogProps {
   itemId: number;
@@ -48,13 +49,7 @@ export const MoveDialog: React.FC<MoveDialogProps> = ({
     };
   }, [currentId]);
 
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
+  useDialogEsc(onClose);
 
   const enter = (f: DriveFolder) => setStack([...stack, f]);
   const goRoot = () => setStack([]);

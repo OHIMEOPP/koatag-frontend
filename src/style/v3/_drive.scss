@@ -560,6 +560,12 @@
   pointer-events: none;
 }
 
+// Progressive thumb 顯示時 blur，stream 載完 swap 平滑
+.drive-img-loading-blur {
+  filter: blur(2px);
+  transition: filter 0.25s ease;
+}
+
 .drive-generic-preview {
   text-align: center;
   padding: 48px;
@@ -800,6 +806,22 @@
   &:hover:not(:disabled) {
     filter: brightness(1.1);
   }
+}
+
+.drive-modal-btn-destructive {
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  border-color: var(--color-danger, #ef4444);
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+}
+
+.drive-modal-message {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
 .drive-modal-breadcrumb {

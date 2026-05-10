@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { DriveFile, DriveFolder } from "services/drive.service";
 import { Icon } from "components/Icon";
+import { useDialogEsc } from "hooks/useDialogEsc";
 
 export type ContextMenuAction =
   | "open"
@@ -36,19 +37,13 @@ const ENTRIES: MenuEntry[] = [
 export const ContextMenu: React.FC<ContextMenuProps> = ({ kind, position, onAction, onClose }) => {
   const ref = useRef<HTMLDivElement>(null);
 
+  useDialogEsc(onClose);
   useEffect(() => {
     const handleDoc = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
     document.addEventListener("mousedown", handleDoc);
-    document.addEventListener("keydown", handleEsc);
-    return () => {
-      document.removeEventListener("mousedown", handleDoc);
-      document.removeEventListener("keydown", handleEsc);
-    };
+    return () => document.removeEventListener("mousedown", handleDoc);
   }, [onClose]);
 
   // 讓 menu 不超過 viewport

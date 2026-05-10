@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useDialogEsc } from "hooks/useDialogEsc";
 
 interface RenameDialogProps {
   initialName: string;
@@ -10,14 +11,7 @@ export const RenameDialog: React.FC<RenameDialogProps> = ({ initialName, onSubmi
   const [name, setName] = useState(initialName);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
+  useDialogEsc(onClose);
 
   const submit = async () => {
     const trimmed = name.trim();

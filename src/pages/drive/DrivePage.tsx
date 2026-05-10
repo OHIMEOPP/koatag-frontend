@@ -13,6 +13,7 @@ import {
   ContextMenuAction,
   RenameDialog,
   MoveDialog,
+  ConfirmDialog,
 } from "components/drive";
 import {
   DriveFile,
@@ -80,6 +81,7 @@ type CtxItem = { item: DriveFile | DriveFolder; kind: "file" | "folder" };
 type ModalState =
   | { type: "rename"; ctx: CtxItem }
   | { type: "move"; ctx: CtxItem }
+  | { type: "delete"; ctx: CtxItem }
   | null;
 
 const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) => {
@@ -162,18 +164,7 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
         } else if (action === "move") {
           setModal({ type: "move", ctx: target });
         } else if (action === "delete") {
-          const confirmed = window.confirm(
-            kind === "folder"
-              ? `確定刪除資料夾「${item.name}」？（資料夾必須為空）`
-              : `確定刪除檔案「${item.name}」？`,
-          );
-          if (!confirmed) return;
-          if (kind === "file") {
-            await deleteFile(item.id);
-          } else {
-            await deleteFolder(item.id);
-          }
-          await Promise.all([invalidateTree(), invalidateQuota()]);
+          setModal({ type: "delete", ctx: target });
         }
       } catch (err) {
         setActionError(mapDriveError(err));
@@ -242,6 +233,27 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
               newName,
             });
             await invalidateTree();
+          }}
+        />
+      )}
+      {modal?.type === "delete" && (
+        <ConfirmDialog
+          title="刪除確認"
+          message={
+            modal.ctx.kind === "folder"
+              ? `確定刪除資料夾「${modal.ctx.item.name}」？（資料夾必須為空）`
+              : `確定刪除檔案「${modal.ctx.item.name}」？此動作無法復原。`
+          }
+          confirmLabel="刪除"
+          destructive
+          onClose={() => setModal(null)}
+          onConfirm={async () => {
+            if (modal.ctx.kind === "file") {
+              await deleteFile(modal.ctx.item.id);
+            } else {
+              await deleteFolder(modal.ctx.item.id);
+            }
+            await Promise.all([invalidateTree(), invalidateQuota()]);
           }}
         />
       )}
