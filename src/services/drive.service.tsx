@@ -195,10 +195,20 @@ export async function uploadFile(
  * 4. browser native fetch 走 GET endpoint，**不過 JwtMiddleware**，純 HMAC verify
  *
  * HMAC payload `"${id}:${exp}"` 不含 path → sig 對 /download 與 /thumb 同 valid。
+ * → 同一 fileId 簽 1 次，所有 kind (download / thumb) 都通 → cache key 只用 fileId。
+ *
  * URL 用 `REACT_APP_API_URL` 為 base，產出 absolute URL 直接給 `<video>` / `<img>` / `<a>` 吃，
  * 跨 origin（dev: localhost:3000 ↔ koatag.com:8123）也能正確 resolve。
  *
  * 配對 hook：`useDriveStreamUrl(fileId, mode)` 包 useEffect/useState（見 src/hooks/useDriveStreamUrl）。
+ *
+ * Module-level cache（v2 unification, addresses wiki finding T6 A / T12 B+C / T13 B+H）：
+ * - sigCache: Map<fileId, {sig, exp}> 共用 sig；exp - now < buffer 視為 stale 不 reuse
+ * - inFlight: Map<fileId, Promise> 同 fileId 並發 request de-dupe，30 卡片頁從
+ *   30 POST 降到 1 POST + 29 share
+ * - delete file 時 invalidateSigCache(fileId) 主動清；其他情境靠 lazy expiry
+ * - 沒 size cap 設計（單 user single session 不太可能 unique fileId 爆量），
+ *   v3 evaluate 加 LRU 若需要
  */
 interface SignedUrlPayload {
   file_id: number;
@@ -206,10 +216,62 @@ interface SignedUrlPayload {
   exp: number;
 }
 
+interface CachedSig {
+  sig: string;
+  exp: number;
+}
+
+const SIG_REFRESH_BUFFER_SECONDS = 30;
+const sigCache = new Map<number, CachedSig>();
+const sigInFlight = new Map<number, Promise<SignedUrlPayload>>();
+
+function readCachedSig(fileId: number): SignedUrlPayload | null {
+  const cached = sigCache.get(fileId);
+  if (!cached) return null;
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (cached.exp - nowSec < SIG_REFRESH_BUFFER_SECONDS) {
+    sigCache.delete(fileId);
+    return null;
+  }
+  return { file_id: fileId, sig: cached.sig, exp: cached.exp };
+}
+
+/**
+ * 主動清 cache —— 跟 backend revoke / delete 同步用。
+ * 純 cache 操作不打 backend；caller 負責決定何時 invalidate。
+ */
+export function invalidateSigCache(fileId?: number): void {
+  if (fileId == null) {
+    sigCache.clear();
+    sigInFlight.clear();
+  } else {
+    sigCache.delete(fileId);
+    sigInFlight.delete(fileId);
+  }
+}
+
 async function fetchSignedPayload(fileId: number): Promise<SignedUrlPayload> {
-  const resp: any = await driveApi.post(`/drive/files/${fileId}/stream-url`);
-  const { data } = unwrapDriveBody<SignedUrlPayload>(resp.data);
-  return data;
+  // 1) cache hit (within exp - 30s buffer)
+  const cached = readCachedSig(fileId);
+  if (cached) return cached;
+
+  // 2) in-flight de-dupe
+  const existing = sigInFlight.get(fileId);
+  if (existing) return existing;
+
+  // 3) new fetch
+  const promise = (async () => {
+    try {
+      const resp: any = await driveApi.post(`/drive/files/${fileId}/stream-url`);
+      const { data } = unwrapDriveBody<SignedUrlPayload>(resp.data);
+      sigCache.set(fileId, { sig: data.sig, exp: data.exp });
+      return data;
+    } finally {
+      sigInFlight.delete(fileId);
+    }
+  })();
+  sigInFlight.set(fileId, promise);
+  return promise;
 }
 
 function composeFileUrl(payload: SignedUrlPayload, kind: "download" | "thumb"): string {
@@ -234,6 +296,7 @@ export async function thumbUrl(fileId: number): Promise<string> {
 
 export async function deleteFile(fileId: number): Promise<void> {
   await driveApi.delete(`/drive/files/${fileId}`);
+  invalidateSigCache(fileId);
 }
 
 export async function createFolder(
