@@ -430,6 +430,28 @@
   font-style: italic;
 }
 
+// ── T12 VideoPlayer ─────────────────────────
+
+.drive-video {
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  background: #000;
+  border-radius: 8px;
+}
+
+.drive-video-loading,
+.drive-video-error {
+  text-align: center;
+  padding: 32px;
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+}
+
+.drive-video-error {
+  color: var(--color-danger, #ef4444);
+}
+
 // ── T11 ContextMenu + RenameDialog + MoveDialog ─────────────────────────
 
 .drive-ctxmenu {

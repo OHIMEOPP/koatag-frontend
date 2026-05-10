@@ -13,3 +13,4 @@ export { ContextMenu } from "./ContextMenu";
 export type { ContextMenuAction } from "./ContextMenu";
 export { RenameDialog } from "./RenameDialog";
 export { MoveDialog } from "./MoveDialog";
+export { VideoPlayer } from "./VideoPlayer";
