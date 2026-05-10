@@ -86,6 +86,7 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
   const setViewOpts = useFolderTreeStore((s) => s.setViewOpts);
   const invalidateTree = useFolderTreeStore((s) => s.invalidate);
   const invalidateQuota = useDriveQuotaStore((s) => s.invalidate);
+  const quota = useDriveQuotaStore((s) => s.quota);
   const folders = useFolderTreeStore((s) => s.folders);
   const files = useFolderTreeStore((s) => s.files);
   const breadcrumb = useFolderTreeStore((s) => s.breadcrumb);
@@ -191,7 +192,7 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
   );
 
   return (
-    <UploadDropzone folderId={folderId}>
+    <UploadDropzone folderId={folderId} disabled={quota ? quota.ratio >= 1 : false}>
       <div className="drive-page">
         <Breadcrumb ancestors={breadcrumb} onNavigate={handleBreadcrumbNavigate} />
         <div className="drive-toolbar">
