@@ -26,6 +26,7 @@ import {
 } from "services/drive.service";
 import { mapDriveError } from "services/drive.errorMap";
 import { useUploadScheduler } from "hooks/useUploadScheduler";
+import DriveFilePage from "./DriveFilePage";
 
 /**
  * KOATAG Drive 入口頁
@@ -59,6 +60,7 @@ const DrivePage: React.FC = () => {
       <Routes>
         <Route path="" element={<DriveContentView folderId={null} />} />
         <Route path="folder/:id" element={<DriveFolderRoute />} />
+        <Route path="file/:id" element={<DriveFilePage />} />
       </Routes>
       <UploadProgressList />
     </>
@@ -110,8 +112,7 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
       if (kind === "folder") {
         navigate(`/main/drive/folder/${item.id}`);
       } else {
-        // T13 才接 file detail page；MVP placeholder
-        console.log("[drive] open file (T13 wires to /main/drive/file/:id):", item.id);
+        navigate(`/main/drive/file/${item.id}`);
       }
     },
     [navigate],

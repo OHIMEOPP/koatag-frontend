@@ -10,6 +10,9 @@ interface MagnifierProps {
     onLoad?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
     imgStyle?: React.CSSProperties;
     className?: string;
+    // Drive 端跨 origin 圖（koatag.com:8123）需 "anonymous" 才能後續 canvas drawImage
+    // 不被 taint。legacy image_area 同 origin 不傳此 prop 行為不變。
+    crossOrigin?: "anonymous" | "use-credentials";
 }
 
 // 放大鏡 hover loupe — 滑鼠移到主圖上會出現一個圓形 mirror box，顯示游標位置
@@ -25,6 +28,7 @@ const Magnifier: React.FC<MagnifierProps> = ({
     onLoad,
     imgStyle,
     className = '',
+    crossOrigin,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const mainImgRef = useRef<HTMLImageElement>(null);
@@ -140,14 +144,14 @@ const Magnifier: React.FC<MagnifierProps> = ({
 
     return (
         <div ref={containerRef} className={`magnifier-container ${className}`}>
-            <img ref={mainImgRef} src={src} alt={alt} className="magnifier-main" style={imgStyle} onLoad={onLoad} />
+            <img ref={mainImgRef} src={src} alt={alt} className="magnifier-main" style={imgStyle} onLoad={onLoad} crossOrigin={crossOrigin} />
             <div
                 ref={mirrorRef}
                 className={`magnifier-mirror ${isLocked ? 'is-locked' : ''}`}
                 aria-hidden
                 style={{ width: mirrorSize, height: mirrorSize }}
             >
-                <img ref={zoomImgRef} src={src} alt="" className="magnifier-zoom" />
+                <img ref={zoomImgRef} src={src} alt="" className="magnifier-zoom" crossOrigin={crossOrigin} />
             </div>
         </div>
     );

@@ -23,6 +23,7 @@ const driveErrorMessages: Record<string, string> = {
   SHARE_LINK_REVOKED: "此分享連結已被撤銷",
   SHARE_LINK_USED_UP: "此分享連結已達使用次數上限",
   SHARE_LINK_INVALID: "分享連結不存在",
+  INVALID_IMAGE_DATA: "指定的圖片資料不存在或無權連結",
   INTERNAL_ERROR: "系統錯誤，請稍後再試",
 };
 

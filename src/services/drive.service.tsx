@@ -1,4 +1,5 @@
 import driveApi, { DriveServiceError, unwrapDriveBody } from "api/driveAxios";
+import type { ImageData } from "components/types/images";
 
 export { DriveServiceError };
 
@@ -11,6 +12,11 @@ export interface DriveFile {
   size_bytes: number;
   checksum_sha1: string;
   thumb_path: string | null;
+  // v2-X drive_files.image_data_id alter (backend commit b6f0bb6)：
+  // null 或數字；null → 未連結 / 數字 → 連結到 image_datas.id
+  image_data_id: number | null;
+  // 帶 ?include=image_data query 才出現；UI (b) readonly tag display 用
+  image_data?: ImageData;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -76,6 +82,17 @@ interface ListFilesOpts {
   q?: string;
   page?: number;
   size?: number;
+}
+
+export async function getFile(
+  fileId: number,
+  opts: { include?: "image_data" } = {}
+): Promise<DriveFile> {
+  const params: Record<string, string> = {};
+  if (opts.include) params.include = opts.include;
+  const resp: any = await driveApi.get(`/drive/files/${fileId}`, { params });
+  const { data } = unwrapDriveBody<{ file: DriveFile }>(resp.data);
+  return data.file;
 }
 
 export async function listFiles(opts: ListFilesOpts): Promise<PagedResp<DriveFile>> {

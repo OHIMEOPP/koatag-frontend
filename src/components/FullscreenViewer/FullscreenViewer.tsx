@@ -8,6 +8,8 @@ interface FullscreenViewerProps {
     alt?: string;
     open: boolean;
     onClose: () => void;
+    // 跨 origin（如 Drive signed URL）需 "anonymous"，配 backend CORS spec §17.7c
+    crossOrigin?: "anonymous" | "use-credentials";
 }
 
 const MIRROR_SIZES = [150, 200, 300, 400, 600] as const;
@@ -15,7 +17,7 @@ const MIRROR_SIZES = [150, 200, 300, 400, 600] as const;
 // CSS overlay 全螢幕看圖 — 走 React Portal 避免父層 transform/overflow 截斷
 // 內嵌 Magnifier 保留 hover loupe + click 鎖定 + 滾輪縮放體驗
 // ESC 關閉, 點黑底空白處關閉 (圖本體 stopPropagation), open 期間 body overflow lock
-const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ src, alt, open, onClose }) => {
+const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ src, alt, open, onClose, crossOrigin }) => {
     const [mirrorSize, setMirrorSize] = useState<typeof MIRROR_SIZES[number]>(200);
 
     useEffect(() => {
@@ -65,6 +67,7 @@ const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ src, alt, open, onC
                     src={src}
                     alt={alt}
                     mirrorSize={mirrorSize}
+                    crossOrigin={crossOrigin}
                     imgStyle={{
                         maxWidth: '95vw',
                         maxHeight: '95vh',
