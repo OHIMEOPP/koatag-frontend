@@ -13,9 +13,9 @@ interface LoginResp {
 
 /**
  * 直接打 backend login 拿 JWT（避免每個 spec 走完整登入頁面 form）。
- * 寫進 localStorage 模擬已登入狀態。
+ * 寫進 localStorage 模擬已登入狀態，並回 token 給 caller 後續 cleanup 用。
  */
-export async function loginAsTestUser(page: Page): Promise<void> {
+export async function loginAsTestUser(page: Page): Promise<string> {
   const email = process.env.E2E_USER_EMAIL;
   const password = process.env.E2E_USER_PASSWORD;
   if (!email || !password) {
@@ -41,6 +41,7 @@ export async function loginAsTestUser(page: Page): Promise<void> {
     },
     { token, user },
   );
+  return token;
 }
 
 /**

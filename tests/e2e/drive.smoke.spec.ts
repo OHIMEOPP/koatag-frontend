@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import * as path from "path";
-import { loginAsTestUser } from "./helpers/auth";
+import { loginAsTestUser, cleanupUserDrive } from "./helpers/auth";
 
 /**
  * PR smoke set per spec §13.3 — S1 / S3 / S6
@@ -10,7 +10,10 @@ import { loginAsTestUser } from "./helpers/auth";
  */
 test.describe("Drive smoke (PR set)", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsTestUser(page);
+    const token = await loginAsTestUser(page);
+    // 跑 test 前把該 user root 清空，避免前 run 殘留汙染 assertion
+    // shallow only（多層 folder 留 backend reset endpoint，spec §13.1）
+    await cleanupUserDrive(token);
     await page.goto("/main/drive");
   });
 

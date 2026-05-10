@@ -1,10 +1,11 @@
 import { test, expect } from "@playwright/test";
 import * as path from "path";
-import { loginAsTestUser } from "./helpers/auth";
+import { loginAsTestUser, cleanupUserDrive } from "./helpers/auth";
 
 test.describe("Drive full scenarios", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsTestUser(page);
+    const token = await loginAsTestUser(page);
+    await cleanupUserDrive(token);
     await page.goto("/main/drive");
   });
 
