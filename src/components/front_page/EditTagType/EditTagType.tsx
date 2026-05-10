@@ -39,7 +39,7 @@ const EditTagType: React.FC<EditTagTypeProps> = ({ tagtype, UncategorizedTags, s
                     <button
                         key={type}
                         type="button"
-                        className={selectedType === type ? "active" : ""}
+                        className={`tag-btn ${selectedType === type ? "active" : ""}`}
                         onClick={() => {
                             setSelectedType(type);
                             setEditTagTypeFrom(prev => ({ ...prev, type: type }));
@@ -56,7 +56,7 @@ const EditTagType: React.FC<EditTagTypeProps> = ({ tagtype, UncategorizedTags, s
                     <button
                         key={tag.tag_name}
                         type="button"
-                        className={selectedTags.includes(tag.tag_name) ? "active" : ""}
+                        className={`tag-btn ${selectedTags.includes(tag.tag_name) ? "active" : ""}`}
                         onClick={() => toggleTag(tag.tag_name)}
                     >
                         {tag.tag_name}

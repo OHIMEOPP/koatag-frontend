@@ -1,0 +1,105 @@
+// ImageCard inside gallery grid
+.img-card {
+  position: relative;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition-base);
+  aspect-ratio: 3/4;
+
+  &:hover {
+    border-color: var(--color-border-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+
+    .img-fav { color: var(--color-danger); }
+  }
+}
+.img-thumb {
+  position: absolute; inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.img-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.85) 100%);
+}
+.img-top {
+  position: absolute;
+  top: 8px; left: 8px; right: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px;
+  z-index: 2;
+}
+.img-top-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.img-fs {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(11,13,18,0.6);
+  backdrop-filter: blur(10px);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  opacity: 0;
+  pointer-events: none;
+
+  .img-card:hover & {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &:hover {
+    color: var(--color-primary-light);
+    border-color: rgba(232,185,106,0.4);
+  }
+}
+.img-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px;
+  background: rgba(11,13,18,0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font: var(--font-weight-semibold) 10.5px var(--font-family-base);
+  color: var(--color-text-primary);
+
+  svg { width: 11px; height: 11px; }
+  &.gold { color: var(--color-primary-light); border-color: rgba(232,185,106,0.4); }
+}
+.img-bot {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 10px;
+  z-index: 2;
+  display: flex; align-items: center; justify-content: space-between;
+
+  .name {
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+.img-fav {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(11,13,18,0.6);
+  backdrop-filter: blur(10px);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  transition: var(--transition-fast);
+
+  &.on { color: var(--color-danger); border-color: rgba(239,79,94,0.4); }
+}

@@ -1,0 +1,39 @@
+// Magnifier — v3 風格 (圓形 mirror box, 暖琥珀 border, dark shadow)
+.magnifier-container {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+
+    .magnifier-main {
+        max-width: 100%;
+        display: block;
+    }
+
+    .magnifier-mirror {
+        position: absolute;
+        display: none;
+        width: 200px;
+        height: 200px;
+        overflow: hidden;
+        border: 2px solid var(--color-primary);
+        border-radius: 50%;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(232, 185, 106, 0.3);
+        background: var(--color-bg-primary);
+        pointer-events: none;
+        z-index: 5;
+        transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+        // Locked 狀態 — 暖琥珀換綠色標示「凍結中」, click 圖片再切回 follow
+        &.is-locked {
+            border-color: var(--color-success);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(62, 207, 142, 0.4);
+        }
+
+        .magnifier-zoom {
+            position: absolute;
+            pointer-events: none;
+            max-width: none;
+            max-height: none;
+        }
+    }
+}

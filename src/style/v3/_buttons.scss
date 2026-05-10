@@ -1,0 +1,91 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font: var(--font-weight-semibold) 13px/1 var(--font-family-base);
+  letter-spacing: -0.005em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-light);
+    box-shadow: 0 0 24px -4px var(--color-primary-glow);
+  }
+  &:active:not(:disabled) { background: var(--color-primary-dark); }
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+
+  &:hover:not(:disabled) {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-strong);
+  }
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--color-danger);
+  border-color: rgba(239,79,94,0.3);
+
+  &:hover:not(:disabled) {
+    background: rgba(239,79,94,0.1);
+    border-color: rgba(239,79,94,0.5);
+  }
+}
+
+.btn-sm   { height: 28px; padding: 0 10px; font-size: 12px; }
+.btn-lg   { height: 44px; padding: 0 20px; font-size: 14px; }
+.btn-icon { width: 36px; padding: 0; &.btn-sm { width: 28px; } }
+
+// Floating square icon button (used in topbar etc.)
+.icon-btn {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+
+  &:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+
+  .dot {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    top: 8px; right: 8px;
+    box-shadow: 0 0 6px var(--color-primary);
+  }
+}

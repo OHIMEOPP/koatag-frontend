@@ -1,0 +1,95 @@
+.input,
+input.input,
+textarea.input {
+  width: 100%;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  font: var(--font-weight-medium) 14px/1.4 var(--font-family-base);
+  transition: all var(--transition-fast);
+
+  &::placeholder { color: var(--color-text-quaternary); }
+
+  &:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-tertiary);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-glow);
+  }
+}
+
+textarea.input { min-height: 96px; resize: vertical; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.field-label {
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+  margin: 6px 0 18px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  input { accent-color: var(--color-primary); width: 14px; height: 14px; }
+}
+
+// Toggle switch
+.toggle {
+  width: 36px; height: 20px;
+  background: var(--color-bg-hover);
+  border-radius: 999px;
+  position: relative;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: var(--transition-base);
+  flex-shrink: 0;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--color-text-secondary);
+    transition: var(--transition-base);
+  }
+  &.on {
+    background: rgba(232,185,106,0.3);
+    border-color: var(--color-primary);
+    &::after { left: 18px; background: var(--color-primary); }
+  }
+}
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  .text { display: flex; flex-direction: column; gap: 2px; }
+  .lbl  { font-size: 13px; font-weight: var(--font-weight-semibold); }
+  .sub  { font-size: 12px; color: var(--color-text-tertiary); }
+}

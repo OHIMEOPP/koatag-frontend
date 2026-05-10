@@ -1,0 +1,66 @@
+// Global resets, body chrome (vignette + grain), scrollbars
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  // background-color (fallback) + background-image (set by JS in Main.tsx for user-uploaded bg);
+  // keep color shorthand minimal so JS-set backgroundImage isn't wiped.
+  background-color: var(--color-bg-primary);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+  min-height: 100vh;
+
+  // Cinematic darkening overlay + dual-radial vignette.
+  // Without an explicit dark layer the redesign effects were drowned out by colourful
+  // user-uploaded backgrounds — adding a 0.55 black overlay restores the dark UI feel
+  // while keeping the image readable underneath. Vignette colour glows are stacked
+  // on top so the amber/blue corners still register over the dim layer.
+  &::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%,    rgba(232,185,106,0.10), transparent 60%),
+      radial-gradient(ellipse 90% 70% at 100% 100%, rgba(91,155,255,0.10),  transparent 60%),
+      rgba(0,0,0,0.55);
+  }
+
+  // Grain layer back to redesign-strength 0.4 — now that the dim layer above fixes
+  // the contrast issue, overlay blend reads properly.
+  &::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 1;
+    opacity: 0.4;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+}
+
+#root { position: relative; z-index: 2; }
+
+// Scrollbar
+*::-webkit-scrollbar       { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+
+  &:hover { background: var(--color-border-strong); background-clip: padding-box; }
+}
+
+// Focus ring fallback
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }

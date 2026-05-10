@@ -1,0 +1,72 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font: var(--font-weight-medium) 12px/1.4 var(--font-family-base);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-strong);
+  }
+
+  &.is-on {
+    background: rgba(232,185,106,0.12);
+    color: var(--color-primary-light);
+    border-color: rgba(232,185,106,0.4);
+
+    .chip-count { color: var(--color-primary); }
+  }
+}
+
+.chip-count {
+  color: var(--color-text-quaternary);
+  font-size: 11px;
+  font-family: var(--font-family-mono);
+}
+
+// Badge
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &.create { background: rgba(62,207,142,0.12);  color: var(--color-success); }
+  &.update { background: rgba(91,155,255,0.12);  color: var(--color-secondary); }
+  &.delete { background: rgba(239,79,94,0.12);   color: var(--color-danger); }
+  &.tag    { background: rgba(232,185,106,0.12); color: var(--color-primary-light); }
+}
+
+// Card
+.card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.card-elev {
+  background: var(--color-bg-tertiary);
+  box-shadow: var(--shadow-md);
+}
+
+// Layout utility classes (namespaced .v-* to avoid Bootstrap collision —
+// Bootstrap defines its own .row / .gap-N with !important and weird gutter margins,
+// which fights us even when v3 loads later. .v-row keeps redesign behaviour intact.)
+.v-row { display: flex; align-items: center; gap: 8px; }
+.v-gap-1 { gap: 4px; }
+.v-gap-2 { gap: 8px; }
+.v-gap-4 { gap: 16px; }

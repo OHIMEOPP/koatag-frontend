@@ -1,0 +1,67 @@
+// TagInput dropdown — v3 風格 (solid bg + backdrop blur 確保使用者上傳背景圖時依然清楚)
+.tag-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--color-bg-secondary);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-popover);
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 6px;
+    font-size: 13px;
+
+    // group section header
+    .tag-group {
+        margin: 8px 8px 4px;
+        font-size: 10.5px;
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--color-text-quaternary);
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--color-border-light);
+
+        &:first-child { margin-top: 4px; }
+    }
+
+    // each tag item
+    div:not(.tag-group) {
+        margin: 2px 0;
+        border-radius: var(--radius-sm);
+        padding: 7px 12px;
+        cursor: pointer;
+        transition: var(--transition-fast);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        color: var(--color-text-secondary);
+
+        // 未選 hover / keyboard active — 中性高亮，避免跟 .selected 的琥珀色撞
+        &.active,
+        &:hover {
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+        }
+
+        // 已選 — 飽和琥珀底 + 粗左 border + 文字加粗，跟未選明顯區分
+        &.selected {
+            background: rgba(232, 185, 106, 0.22);
+            color: var(--color-primary);
+            border-left: 3px solid var(--color-primary);
+            padding-left: 9px;
+            font-weight: var(--font-weight-semibold);
+
+            &:hover {
+                background: rgba(239, 79, 94, 0.22);
+                color: var(--color-danger);
+                border-left-color: var(--color-danger);
+            }
+        }
+    }
+}

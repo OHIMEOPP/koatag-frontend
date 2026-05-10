@@ -1,0 +1,48 @@
+// Typography utility classes — calibrated for dark surfaces
+.t-display {
+  font-size: var(--font-size-3xl);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  font-weight: var(--font-weight-bold);
+}
+.t-h1 {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.02em;
+  font-weight: var(--font-weight-bold);
+}
+.t-h2 {
+  font-size: var(--font-size-xl);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  font-weight: var(--font-weight-semibold);
+}
+.t-h3 {
+  font-size: var(--font-size-lg);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  font-weight: var(--font-weight-semibold);
+}
+.t-body { font-size: var(--font-size-base); line-height: 1.55; font-weight: var(--font-weight-normal); }
+.t-sm   { font-size: var(--font-size-sm);   line-height: 1.5; }
+.t-xs {
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.mono { font-family: var(--font-family-mono); font-feature-settings: "zero","ss01"; }
+
+.txt-mute   { color: var(--color-text-tertiary); }
+.txt-accent { color: var(--color-primary-light); }
+
+// Default heading sizes (used outside of utility classes)
+h1 { font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold);     line-height: var(--line-height-tight); margin: 0 0 var(--spacing-md); }
+h2 { font-size: var(--font-size-xl);  font-weight: var(--font-weight-semibold); line-height: 1.25; margin: 0 0 var(--spacing-md); }
+h3 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-semibold); line-height: 1.35; margin: 0 0 var(--spacing-sm); }
+h4, h5, h6 { font-weight: var(--font-weight-medium); margin: 0 0 var(--spacing-sm); }
+
+p { margin: 0 0 var(--spacing-md); line-height: var(--line-height-relaxed); }

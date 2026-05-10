@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, ReactNode } from "react";
-import '../style/TagInput.scss';
+// .tag-suggestions styles 已搬進 src/style/v3/_tag_input.scss, 全域載入
 
 interface TagInputProps {
     allTags: Record<string, string[]>; // { groupName: [tag1, tag2] }
@@ -16,8 +16,16 @@ interface TagInputProps {
 
 const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isTextarea, isOpen, onToggleOpen, inputListaner, placeholder, setAnotherValue }) => {
     const [inputValue, setInputValue] = useState(value);
+
+    // Sync external value prop → internal state (例如父層 useEffect 從 API 抓 imageData
+    // 後才能填回 TagInput; 內部 typing 走 onChange path 不會觸發 loop 因為 value 已同步)
+    useEffect(() => {
+        if (value !== inputValue) setInputValue(value);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value]);
     const [suggestions, setSuggestions] = useState<{ group: string; tag: string }[]>([]);
     const [highlightIndex, setHighlightIndex] = useState(-1);
+    const [isFocused, setIsFocused] = useState(false);
     const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
     const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -26,17 +34,23 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
         return parts.length ? parts[parts.length - 1] : '';
     };
 
+    // 已選 tag 的 set (從 inputValue 即時算)，用來在 dropdown 標註 + 點擊時 toggle
+    const selectedSet = (() => {
+        const parts = inputValue.split(',').map(p => p.trim()).filter(Boolean);
+        return new Set(parts);
+    })();
+
     useEffect(() => {
         const last = lastPart().toLowerCase();
-        const allParts = inputValue.split(',').map(p => p.trim()).filter(Boolean);
-        const enteredTags = allParts.slice(0, -1); // <-- 只排除已選過的 tag，不排除最後正在輸入的片段
 
+        // Toggle 模式：dropdown 顯示「所有 match last」的 tag，含已選過的
+        // (已選過的會用 .selected class 標註，點擊時 selectTag 偵測到後改成移除)
         const filtered: { group: string; tag: string }[] = [];
 
         Object.entries(allTags).forEach(([group, tags]) => {
             tags.forEach(tag => {
                 const tagLower = tag.toLowerCase();
-                if (tagLower.includes(last) && !enteredTags.includes(tag)) {
+                if (tagLower.includes(last)) {
                     filtered.push({ group, tag });
                 }
             });
@@ -49,21 +63,44 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
-                setSuggestions([]);
-            }
+            const target = e.target as Node;
+            // Keep open if click is on the input OR within the .tag-suggestions dropdown
+            if (ref.current?.contains(target)) return;
+            const dropdown = ref.current?.parentElement?.querySelector('.tag-suggestions');
+            if (dropdown?.contains(target)) return;
+            setSuggestions([]);
+            setIsFocused(false);
         };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
     const selectTag = (tag: string) => {
-        const parts = inputValue.split(',');
-        parts[parts.length - 1] = tag;
-        const newVal = parts.map(p => p.trim()).join(','); // 或 join(', ') 看你需求
+        const parts = inputValue.split(',').map(p => p.trim());
+        let newVal: string;
+
+        if (selectedSet.has(tag)) {
+            // 已在 list 內 → 移除
+            const filtered = parts.filter(p => p !== tag).filter(Boolean);
+            newVal = filtered.join(',');
+        } else {
+            // 不在 list 內 → 取代最後 partial (如果有) 或 append
+            const last = parts[parts.length - 1] ?? '';
+            if (last === '') {
+                // last is empty (剛打完逗號) → 直接 append
+                const cleaned = parts.filter(Boolean);
+                cleaned.push(tag);
+                newVal = cleaned.join(',');
+            } else {
+                // 取代 last partial
+                parts[parts.length - 1] = tag;
+                newVal = parts.filter(Boolean).join(',');
+            }
+        }
+
         setInputValue(newVal);
         onChange(newVal);
-        setSuggestions([]);
+        // 不關 dropdown — 讓 user 連續 toggle 多個 tag
 
         requestAnimationFrame(() => {
             const el = ref.current;
@@ -74,6 +111,14 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
         });
     };
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (e.key === 'Escape') {
+            // Esc 收 dropdown + 失焦 (任何時候都可)
+            setSuggestions([]);
+            setIsFocused(false);
+            setHighlightIndex(-1);
+            ref.current?.blur();
+            return;
+        }
         if (!suggestions.length) return;
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -99,8 +144,9 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
 
     const commonProps = {
         ref,
-        defaultValue: inputValue,
+        value: inputValue,
         autoComplete: "off",
+        className: "input",
         onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
             const next = e.target.value;
             setInputValue(next);
@@ -108,7 +154,7 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
             onChange(next); // 同步父層狀態，讓 selectedTags 等 derived state 即時更新
         },
         onKeyDown: handleKeyDown,
-        onFocus: () => onToggleOpen?.(),
+        onFocus: () => { setIsFocused(true); onToggleOpen?.(); },
         name,
         placeholder,
         type: "text"
@@ -130,13 +176,20 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
 
         groupFiltered.forEach((tag, index) => {
             const currentIdx = idxCounter++;
+            const isSelected = selectedSet.has(tag);
+            const classes = [
+                highlightIndex === currentIdx ? "active" : "",
+                isSelected ? "selected" : "",
+            ].filter(Boolean).join(" ");
             groupedElements.push(
                 <div
                     key={`tag-${group}-${tag}-${index}`}
                     onClick={() => selectTag(tag)}
-                    className={highlightIndex === currentIdx ? "active" : ""}
+                    className={classes}
                     ref={el => { itemRefs.current[currentIdx] = el; }}
+                    title={isSelected ? '已選 — 點擊移除' : '點擊加入'}
                 >
+                    {isSelected && <span style={{ color: 'var(--color-primary)', marginRight: 6, fontWeight: 700 }}>✓</span>}
                     {tag}
                 </div>
             );
@@ -150,7 +203,7 @@ const TagInput: React.FC<TagInputProps> = ({ allTags, value, onChange, name, isT
             ) : (
                 <input {...commonProps as React.InputHTMLAttributes<HTMLInputElement>} />
             )}
-            {(isOpen || suggestions.length > 0) && groupedElements.length > 0 && inputValue !== "" && (
+            {(isOpen || isFocused) && groupedElements.length > 0 && (
                 <div className="tag-suggestions">{groupedElements}</div>
             )}
         </div>
