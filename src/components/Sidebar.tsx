@@ -27,8 +27,10 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
       { to: '/main/front_page',  label: '首頁',     icon: 'home' },
       { to: '/main/image_area',  label: '圖庫',     icon: 'gallery', badge: '1,716' },
       { to: '/main/upload_area', label: '上傳',     icon: 'upload' },
-      { to: '/main/drive',       label: 'Drive',    icon: 'cloud' },
-      { to: '/main/front_page',  label: '我的最愛', icon: 'heart',   badge: '184', placeholder: true },
+      { to: '/main/drive',           label: 'Drive',     icon: 'cloud' },
+      { to: '/main/drive/shared/in', label: '共享給我',  icon: 'heart' },
+      { to: '/main/drive/shared/out',label: '我的分享',  icon: 'link' },
+      { to: '/main/front_page',      label: '我的最愛',  icon: 'heart',   badge: '184', placeholder: true },
     ],
   },
   {

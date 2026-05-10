@@ -14,6 +14,7 @@ import {
   RenameDialog,
   MoveDialog,
   ConfirmDialog,
+  ShareDialog,
 } from "components/drive";
 import {
   DriveFile,
@@ -28,6 +29,8 @@ import {
 import { mapDriveError } from "services/drive.errorMap";
 import { useUploadScheduler } from "hooks/useUploadScheduler";
 import DriveFilePage from "./DriveFilePage";
+import SharedWithMePage from "./SharedWithMePage";
+import MySharesPage from "./MySharesPage";
 
 /**
  * KOATAG Drive 入口頁
@@ -62,6 +65,8 @@ const DrivePage: React.FC = () => {
         <Route path="" element={<DriveContentView folderId={null} />} />
         <Route path="folder/:id" element={<DriveFolderRoute />} />
         <Route path="file/:id" element={<DriveFilePage />} />
+        <Route path="shared/in" element={<SharedWithMePage />} />
+        <Route path="shared/out" element={<MySharesPage />} />
       </Routes>
       <UploadProgressList />
     </>
@@ -82,6 +87,7 @@ type ModalState =
   | { type: "rename"; ctx: CtxItem }
   | { type: "move"; ctx: CtxItem }
   | { type: "delete"; ctx: CtxItem }
+  | { type: "share"; ctx: CtxItem }
   | null;
 
 const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) => {
@@ -165,6 +171,8 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
           setModal({ type: "move", ctx: target });
         } else if (action === "delete") {
           setModal({ type: "delete", ctx: target });
+        } else if (action === "share") {
+          setModal({ type: "share", ctx: target });
         }
       } catch (err) {
         setActionError(mapDriveError(err));
@@ -234,6 +242,14 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
             });
             await invalidateTree();
           }}
+        />
+      )}
+      {modal?.type === "share" && (
+        <ShareDialog
+          resourceType={modal.ctx.kind}
+          resourceId={modal.ctx.item.id}
+          resourceName={modal.ctx.item.name}
+          onClose={() => setModal(null)}
         />
       )}
       {modal?.type === "delete" && (

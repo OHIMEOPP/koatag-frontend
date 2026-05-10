@@ -8,7 +8,8 @@ export type ContextMenuAction =
   | "rename"
   | "move"
   | "delete"
-  | "download";
+  | "download"
+  | "share";
 
 interface ContextMenuProps {
   item: DriveFile | DriveFolder;
@@ -29,6 +30,7 @@ interface MenuEntry {
 const ENTRIES: MenuEntry[] = [
   { action: "open", label: "開啟", icon: Icon.eye },
   { action: "download", label: "下載", icon: Icon.download, fileOnly: true },
+  { action: "share", label: "分享…", icon: Icon.link },
   { action: "rename", label: "重新命名", icon: Icon.edit },
   { action: "move", label: "移動到…", icon: Icon.expand },
   { action: "delete", label: "刪除", icon: Icon.trash, destructive: true },

@@ -1,10 +1,16 @@
 import { ScrollTop, ScrollToTop } from 'components';
+import { lazy, Suspense } from 'react';
 import './App.css';
 import Main from './Main';
 import { Login } from 'pages';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Test from 'pages/test';
 import { getUserId } from 'utils';
+
+// Public share-link landing — 不需 auth，放 App-level Routes 外於 /main/* gate
+const ShareLinkLandingPage = lazy(
+  () => import('pages/drive/ShareLinkLandingPage'),
+);
 
 const token = localStorage.getItem('token');
 const user_id = getUserId();
@@ -27,6 +33,14 @@ function App() {
         <Route
           path="/login"
           element={!token || !user_id ? <Login /> : <Navigate to="/main/front_page" replace />}
+        />
+        <Route
+          path="/main/drive/share/:token"
+          element={
+            <Suspense fallback={<div className="drive-loading">載入中…</div>}>
+              <ShareLinkLandingPage />
+            </Suspense>
+          }
         />
         <Route
           path="/main/*"
