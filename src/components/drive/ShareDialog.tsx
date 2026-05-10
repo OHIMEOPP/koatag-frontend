@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   createShare,
   createShareLink,
@@ -92,6 +92,14 @@ const AclForm: React.FC<{
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // unmount 清 setTimeout 防 dialog 已 close 還 fire onClose 觸發 setState warning
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const submit = async () => {
     const id = Number(granteeId);
@@ -110,8 +118,8 @@ const AclForm: React.FC<{
         expiresAt: expiresAt || undefined,
       });
       setOk(true);
-      // 1.2s 後 auto close
-      setTimeout(() => onClose(), 1200);
+      // 1.2s 後 auto close（unmount cleanup 防 race）
+      closeTimerRef.current = setTimeout(() => onClose(), 1200);
     } catch (e) {
       setErr(mapDriveError(e));
       setSubmitting(false);
@@ -144,7 +152,9 @@ const AclForm: React.FC<{
           disabled={submitting}
         >
           <option value="read">唯讀</option>
-          <option value="write">編輯（MVP 後端可能 422）</option>
+          <option value="write" disabled title="後端尚未支援，敬請期待">
+            編輯（規劃中）
+          </option>
         </select>
       </label>
       <label className="drive-share-field">
@@ -248,7 +258,9 @@ const LinkForm: React.FC<{
           disabled={submitting}
         >
           <option value="read">唯讀</option>
-          <option value="write">編輯（MVP 後端可能 422）</option>
+          <option value="write" disabled title="後端尚未支援，敬請期待">
+            編輯（規劃中）
+          </option>
         </select>
       </label>
       <label className="drive-share-field">
