@@ -38,3 +38,7 @@ yarn-error.log*
 
 # Per-machine MCP config
 /.mcp.json
+tests/e2e/fixtures/build/
+playwright-report/
+test-results/
+.env.test

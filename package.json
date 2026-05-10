@@ -34,7 +34,11 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,scss,css,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,scss,css,json}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,scss,css,json}\"",
+    "e2e": "playwright test",
+    "e2e:smoke": "playwright test tests/e2e/drive.smoke.spec.ts",
+    "e2e:headed": "playwright test --headed",
+    "e2e:fixtures": "node tests/e2e/fixtures/generate.js"
   },
   "eslintConfig": {
     "extends": [
@@ -56,6 +60,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/crypto-js": "^4.2.2",
     "@types/react-helmet": "^6.1.11",
     "eslint-config-prettier": "^10.1.8",
