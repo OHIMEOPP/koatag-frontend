@@ -372,6 +372,264 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
 }
 
+// ── T10 QuotaIndicator ─────────────────────────
+
+.drive-quota {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.drive-quota-label {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.drive-quota-bar {
+  position: relative;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.drive-quota-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-primary);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.drive-quota-warn .drive-quota-fill {
+  background: var(--color-warning, #f59e0b);
+}
+
+.drive-quota-full .drive-quota-fill {
+  background: var(--color-danger, #ef4444);
+}
+
+.drive-quota-text {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.drive-quota-pct {
+  color: var(--color-text-tertiary);
+  margin-left: 4px;
+}
+
+.drive-quota-loading .drive-quota-text {
+  color: var(--color-text-quaternary);
+  font-style: italic;
+}
+
+// ── T11 ContextMenu + RenameDialog + MoveDialog ─────────────────────────
+
+.drive-ctxmenu {
+  position: fixed;
+  z-index: 1100;
+  min-width: 180px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.drive-ctxmenu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border-radius: 6px;
+  text-align: left;
+
+  &:hover {
+    background: var(--color-bg-tertiary);
+  }
+}
+
+.drive-ctxmenu-item-destructive {
+  color: var(--color-danger, #ef4444);
+}
+
+.drive-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.drive-modal {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drive-modal-wide {
+  width: 480px;
+}
+
+.drive-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.drive-modal-input {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus {
+    border-color: var(--color-primary);
+  }
+}
+
+.drive-modal-error {
+  color: var(--color-danger, #ef4444);
+  font-size: 12px;
+}
+
+.drive-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.drive-modal-btn {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.drive-modal-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+}
+
+.drive-modal-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 6px;
+}
+
+.drive-modal-crumb {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+
+  &:hover {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+  }
+}
+
+.drive-modal-crumb-sep {
+  color: var(--color-text-quaternary);
+}
+
+.drive-modal-folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--color-bg-tertiary);
+  border-radius: 8px;
+}
+
+.drive-modal-folder-item {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border-radius: 6px;
+
+  &:hover:not(:disabled) {
+    background: var(--color-bg-secondary);
+  }
+
+  &:disabled {
+    color: var(--color-text-quaternary);
+    cursor: not-allowed;
+  }
+}
+
+.drive-modal-folder-item-disabled {
+  opacity: 0.5;
+}
+
+.drive-modal-loading,
+.drive-modal-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+
 // ── T9 UploadProgressList ─────────────────────────
 
 .drive-upload-list {

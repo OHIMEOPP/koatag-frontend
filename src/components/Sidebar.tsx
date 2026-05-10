@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
+import { QuotaIndicator } from './drive';
 import { logout } from 'services/auth.service';
 
 interface SidebarProps {
@@ -97,6 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
         ))}
       </nav>
       <div className="side-foot">
+        <QuotaIndicator />
         <div className="user-card">
           <div className="user-avatar">{initial}</div>
           <div className="side-foot-text">
