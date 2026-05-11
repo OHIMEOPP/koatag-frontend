@@ -5,6 +5,8 @@ import {
 } from "services/drive.service";
 import { mapDriveError } from "services/drive.errorMap";
 import { useDialogEsc } from "hooks/useDialogEsc";
+import { UserSearchAutocomplete } from "./UserSearchAutocomplete";
+import type { User } from "components/types/users";
 
 type Tab = "acl" | "link";
 
@@ -81,11 +83,15 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   );
 };
 
+type GranteeMode = "search" | "id";
+
 const AclForm: React.FC<{
   resourceType: "file" | "folder";
   resourceId: number;
   onClose: () => void;
 }> = ({ resourceType, resourceId, onClose }) => {
+  const [mode, setMode] = useState<GranteeMode>("search");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [granteeId, setGranteeId] = useState("");
   const [permission, setPermission] = useState<"read" | "write">("read");
   const [expiresAt, setExpiresAt] = useState("");
@@ -102,9 +108,14 @@ const AclForm: React.FC<{
   }, []);
 
   const submit = async () => {
-    const id = Number(granteeId);
+    const id =
+      mode === "search" ? selectedUser?.id ?? NaN : Number(granteeId);
     if (!Number.isFinite(id) || id <= 0) {
-      setErr("請輸入有效的使用者 ID（正整數）");
+      setErr(
+        mode === "search"
+          ? "請先選擇使用者"
+          : "請輸入有效的使用者 ID（正整數）",
+      );
       return;
     }
     setSubmitting(true);
@@ -132,17 +143,38 @@ const AclForm: React.FC<{
 
   return (
     <div className="drive-share-form">
-      <label className="drive-share-field">
-        <span>使用者 ID</span>
-        <input
-          type="number"
-          className="drive-modal-input"
-          value={granteeId}
-          onChange={(e) => setGranteeId(e.target.value)}
-          placeholder="例如 38"
-          disabled={submitting}
-        />
-      </label>
+      <div className="drive-share-field">
+        <span>邀請對象</span>
+        {mode === "search" ? (
+          <UserSearchAutocomplete
+            onSelect={setSelectedUser}
+            selected={selectedUser}
+            autoFocus
+          />
+        ) : (
+          <input
+            type="number"
+            className="drive-modal-input"
+            value={granteeId}
+            onChange={(e) => setGranteeId(e.target.value)}
+            placeholder="例如 38"
+            disabled={submitting}
+            autoFocus
+          />
+        )}
+        <button
+          type="button"
+          className="drive-share-mode-toggle"
+          onClick={() => {
+            setMode((m) => (m === "search" ? "id" : "search"));
+            setSelectedUser(null);
+            setGranteeId("");
+            setErr(null);
+          }}
+        >
+          {mode === "search" ? "改用 user ID 輸入" : "改用搜尋"}
+        </button>
+      </div>
       <label className="drive-share-field">
         <span>權限</span>
         <select

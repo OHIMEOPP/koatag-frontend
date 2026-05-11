@@ -1,5 +1,6 @@
 import driveApi, { DriveServiceError, unwrapDriveBody } from "api/driveAxios";
 import type { ImageData } from "components/types/images";
+import type { User } from "components/types/users";
 
 export { DriveServiceError };
 
@@ -394,6 +395,24 @@ export async function createShareLink(
 
 export async function revokeShareLink(linkId: number): Promise<void> {
   await driveApi.delete(`/drive/share-links/${linkId}`);
+}
+
+// ───── Phase 1 user search (autocomplete) ─────
+
+/**
+ * 搜尋 KOATAG users — ShareDialog autocomplete 用。
+ * backend `GET /api/drive/users/search?q=&limit=10` (commits aa0c5f4 + 02e3a9f + 796d37a)：
+ * - q.length >= 2 (backend < 2 直接回 [] 無 audit；frontend 也 client-guard 省 round trip)
+ * - throttle 60/min (debounce 300ms 對齊)
+ * - exclude current user (backend 過濾)
+ * - LIKE escape (% / _ literal)
+ */
+export async function searchUsers(q: string, limit = 10): Promise<User[]> {
+  const resp: any = await driveApi.get("/drive/users/search", {
+    params: { q, limit },
+  });
+  const { data } = unwrapDriveBody<{ items: User[] }>(resp.data);
+  return data.items;
 }
 
 // ───── v3 list / landing helpers ─────
