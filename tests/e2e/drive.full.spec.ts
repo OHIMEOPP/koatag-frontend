@@ -1,12 +1,18 @@
 import { test, expect } from "@playwright/test";
 import * as path from "path";
-import { loginAsTestUser, cleanupUserDrive } from "./helpers/auth";
+import { createEphemeralUser, destroyEphemeralUser } from "./helpers/auth";
 
 test.describe("Drive full scenarios", () => {
+  let ephemeralUserId: number;
+
   test.beforeEach(async ({ page }) => {
-    const token = await loginAsTestUser(page);
-    await cleanupUserDrive(token);
+    const u = await createEphemeralUser(page);
+    ephemeralUserId = u.userId;
     await page.goto("/main/drive");
+  });
+
+  test.afterEach(async () => {
+    await destroyEphemeralUser(ephemeralUserId);
   });
 
   test("S2: 60MB 上傳被前端 reject (no /api/drive/files POST)", async ({ page }) => {

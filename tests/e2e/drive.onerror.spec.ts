@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import * as path from "path";
-import { loginAsTestUser, cleanupUserDrive } from "./helpers/auth";
+import { createEphemeralUser, destroyEphemeralUser } from "./helpers/auth";
 
 /**
  * v3 video onError refresh e2e (commit `f3c3566`)
@@ -15,9 +15,15 @@ import { loginAsTestUser, cleanupUserDrive } from "./helpers/auth";
  * spec §13.2 沒列此 case，是 wiki #323 點到的 v3 onError 真 work verify。
  */
 test.describe("v3 video onError refresh", () => {
+  let ephemeralUserId: number;
+
   test.beforeEach(async ({ page }) => {
-    const token = await loginAsTestUser(page);
-    await cleanupUserDrive(token);
+    const u = await createEphemeralUser(page);
+    ephemeralUserId = u.userId;
+  });
+
+  test.afterEach(async () => {
+    await destroyEphemeralUser(ephemeralUserId);
   });
 
   test("video onError → refresh → retry-once 成功", async ({ page }) => {

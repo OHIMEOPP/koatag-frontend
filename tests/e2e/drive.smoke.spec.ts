@@ -1,17 +1,24 @@
 import { test, expect } from "@playwright/test";
 import * as path from "path";
-import { loginAsTestUser, cleanupUserDrive } from "./helpers/auth";
+import { createEphemeralUser, destroyEphemeralUser } from "./helpers/auth";
 
 /**
  * PR smoke set per spec §13.3 — S1 / S3 / S6
+ *
+ * Phase 2 Task 3: 用 ephemeral test user per-test (parallel-safe + isolation 強)
+ * 取代 cleanupUserDrive shallow approach。
  */
 test.describe("Drive smoke (PR set)", () => {
+  let ephemeralUserId: number;
+
   test.beforeEach(async ({ page }) => {
-    const token = await loginAsTestUser(page);
-    // 跑 test 前把該 user root 清空，避免前 run 殘留汙染 assertion
-    // shallow only（多層 folder 留 backend reset endpoint，spec §13.1）
-    await cleanupUserDrive(token);
+    const u = await createEphemeralUser(page);
+    ephemeralUserId = u.userId;
     await page.goto("/main/drive");
+  });
+
+  test.afterEach(async () => {
+    await destroyEphemeralUser(ephemeralUserId);
   });
 
   test("S1: 上傳 1MB 圖片", async ({ page }) => {
