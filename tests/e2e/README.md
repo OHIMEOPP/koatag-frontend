@@ -53,7 +53,7 @@ npm run e2e:fixtures   # 重新產 fixture
 | S3 | 建資料夾 + 進入 + 上傳 | ⚠️ 用 service API 建資料夾（前端沒 create-folder UI） |
 | S4 | rename / move / delete | ⚠️ 跳過 move（沒 sub-folder fixture） |
 | S5 | 同名檔上傳 | ✅ |
-| S6 | 影片 Range request 206 | ⏸ skipped — 需 sample.mp4 fixture + backend video mime allowlist verify |
+| S6 | 影片 Range request 206 | ✅ 實作 — `sample.mp4` 已在 `tests/e2e/fixtures/`（11.2MB H.264）|
 | S7 | lightbox magnifier + canvas CORS | ✅（端到端 verify cross-origin canvas read）|
 
 ## 已知限制
@@ -65,8 +65,8 @@ npm run e2e:fixtures   # 重新產 fixture
 2. **Test user 必須先在 backend 手動 create** — spec §13.1 說 `test-drive@example.com` quota
    100MB；實際用 register API 建 user + 設 quota（非 frontend 範圍）。
 
-3. **S6 video** — 需 `sample.mp4` fixture（現場無）+ backend `mime in:image/*,video/*` allowlist
-   確認。
+3. **S6 video** — `sample.mp4` 已 commit 進 fixtures/（11.2MB BlueStacks recording）。
+   spec 用 `page.on("response")` server-side hook 收 206 status（避開 cross-origin opaque）。
 
 4. **Folder isolation** — 多個 test 共享 root，撞名靠 `pw-${Date.now()}` 後綴緩解。
    無 transaction rollback。

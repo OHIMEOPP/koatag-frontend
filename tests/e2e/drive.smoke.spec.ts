@@ -4,9 +4,6 @@ import { loginAsTestUser, cleanupUserDrive } from "./helpers/auth";
 
 /**
  * PR smoke set per spec §13.3 — S1 / S3 / S6
- *
- * S6 (video Range) 暫 skip：backend MVP allow video mime 但需要 fixture 影片，
- * spec §13.2 沒指定編碼，現場無 sample.mp4。等 user 提供或 backend 給 fixture 後 enable。
  */
 test.describe("Drive smoke (PR set)", () => {
   test.beforeEach(async ({ page }) => {
@@ -57,7 +54,47 @@ test.describe("Drive smoke (PR set)", () => {
     });
   });
 
-  test.skip("S6: 影片 Range request (206 Partial Content)", async ({ page }) => {
-    // 需 sample.mp4 fixture + backend mime allowlist 含 video/*；user 提供後 enable
+  test("S6: 影片 Range request (206 Partial Content)", async ({ page }) => {
+    // capture 206 partial content responses for any drive download endpoint
+    const partialResponses: string[] = [];
+    page.on("response", (r) => {
+      if (r.status() === 206 && r.url().includes("/api/drive/files/")) {
+        partialResponses.push(r.url());
+      }
+    });
+
+    const fixturePath = path.join(__dirname, "fixtures", "sample.mp4");
+    await page.locator('input[type="file"]').first().setInputFiles(fixturePath);
+    // 11MB upload 等較久
+    await expect(page.locator(".drive-card-file").first()).toBeVisible({
+      timeout: 30_000,
+    });
+
+    // 進 file detail page
+    await page.locator(".drive-card-file").first().click();
+    await expect(page).toHaveURL(/\/main\/drive\/file\/\d+/);
+
+    // VideoPlayer 應該渲染
+    const video = page.locator(".drive-video");
+    await expect(video).toBeVisible({ timeout: 10_000 });
+
+    // preload="metadata" 觸發 → naturalDuration 應該有值
+    await page.waitForFunction(
+      () => {
+        const v = document.querySelector(".drive-video") as HTMLVideoElement;
+        return !!v && Number.isFinite(v.duration) && v.duration > 0;
+      },
+      null,
+      { timeout: 15_000 },
+    );
+
+    // seek 觸發 Range request
+    await video.evaluate((v: HTMLVideoElement) => {
+      v.currentTime = Math.max(1, Math.floor(v.duration / 2));
+    });
+    await page.waitForTimeout(2_000);
+
+    // 至少一個 206 Partial Content（preload metadata + seek）
+    expect(partialResponses.length).toBeGreaterThan(0);
   });
 });
