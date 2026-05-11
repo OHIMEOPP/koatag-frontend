@@ -52,19 +52,22 @@ test.describe("Drive full scenarios", () => {
     await page.getByRole("button", { name: /確認/ }).click();
     await expect(page.locator(".drive-card-name").first()).toContainText("renamed-by-pw.jpg");
 
-    // delete via confirm
-    page.once("dialog", (d) => d.accept());
+    // delete via ConfirmDialog modal (commit 0cddb23 換掉 window.confirm)
     await page.locator(".drive-card-file").first().click({ button: "right" });
     await page.getByRole("menuitem", { name: /刪除/ }).click();
+    // ConfirmDialog 出現 → 點紅色「刪除」 confirm button (drive-modal-btn-destructive)
+    await page.locator(".drive-modal-btn-destructive").click();
     await expect(page.locator(".drive-card-file")).toHaveCount(0, { timeout: 10_000 });
   });
 
   test("S5: duplicate names co-exist", async ({ page }) => {
     const fixturePath = path.join(__dirname, "fixtures", "build", "1mb.jpg");
-    // 上傳兩次同檔
-    await page.locator('input[type="file"]').first().setInputFiles(fixturePath);
+    const input = page.locator('input[type="file"]').first();
+    // 上傳兩次同檔（browser 對 setInputFiles 同 path 會 dedup，要先清 input.value 觸發 fresh change event）
+    await input.setInputFiles(fixturePath);
     await expect(page.locator('.drive-card-file').first()).toBeVisible({ timeout: 15_000 });
-    await page.locator('input[type="file"]').first().setInputFiles(fixturePath);
+    await input.evaluate((el: HTMLInputElement) => { el.value = ""; });
+    await input.setInputFiles(fixturePath);
     // 等第二張卡片
     await expect(page.locator('.drive-card-file')).toHaveCount(2, { timeout: 15_000 });
   });
