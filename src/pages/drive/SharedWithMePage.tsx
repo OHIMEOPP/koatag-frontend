@@ -81,7 +81,13 @@ const SharedWithMePage: React.FC = () => {
                 </td>
                 <td>{it.resource.name}</td>
                 <td>{it.granter?.account ?? `#${it.granter_id}`}</td>
-                <td>{it.permission === "write" ? "可編輯" : "唯讀"}</td>
+                <td>
+                  <span
+                    className={`drive-share-permission-badge drive-share-permission-${it.permission}`}
+                  >
+                    {it.permission === "write" ? "可編輯" : "唯讀"}
+                  </span>
+                </td>
                 <td>
                   {it.resource.size_bytes != null ? formatBytes(it.resource.size_bytes) : "—"}
                 </td>

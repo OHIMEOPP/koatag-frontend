@@ -183,10 +183,8 @@ const AclForm: React.FC<{
           onChange={(e) => setPermission(e.target.value as "read" | "write")}
           disabled={submitting}
         >
-          <option value="read">唯讀</option>
-          <option value="write" disabled title="後端尚未支援，敬請期待">
-            編輯（規劃中）
-          </option>
+          <option value="read">只能查看</option>
+          <option value="write">可編輯</option>
         </select>
       </label>
       <label className="drive-share-field">
@@ -289,10 +287,8 @@ const LinkForm: React.FC<{
           onChange={(e) => setPermission(e.target.value as "read" | "write")}
           disabled={submitting}
         >
-          <option value="read">唯讀</option>
-          <option value="write" disabled title="後端尚未支援，敬請期待">
-            編輯（規劃中）
-          </option>
+          <option value="read">只能查看</option>
+          <option value="write">可編輯</option>
         </select>
       </label>
       <label className="drive-share-field">

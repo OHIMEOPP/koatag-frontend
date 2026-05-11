@@ -364,8 +364,34 @@ export async function createShare(opts: CreateShareOpts): Promise<{ id: number }
   return data.share;
 }
 
-export async function revokeShare(shareId: number): Promise<void> {
-  await driveApi.delete(`/drive/shares/${shareId}`);
+/**
+ * Revoke 結果含 cascade move trace（Task 2 backend `6fb4fc0`）：
+ * - moved_files > 0：grantee 在 shared folder 內創檔已 move 到 grantee root
+ *   （A1 borrowee owns semantic — wiki #390 design freeze）
+ * - file share revoke 永遠 moved_files = 0（file 不會 cascade）
+ */
+export async function revokeShare(
+  shareId: number,
+): Promise<{ share_id: number; moved_files: number }> {
+  const resp: any = await driveApi.delete(`/drive/shares/${shareId}`);
+  // backend response: { ok, data: { share_id, moved_files } }
+  // 容讓舊 backend 不回 body 的情境（pre `6fb4fc0`），fallback to 0
+  const data = resp.data?.data;
+  return {
+    share_id: data?.share_id ?? shareId,
+    moved_files: data?.moved_files ?? 0,
+  };
+}
+
+/**
+ * Update share permission (Task 2 backend `6fb4fc0`, PATCH partial)
+ * 只 grantor 可改；audit `drive.share.permission_update`
+ */
+export async function updateSharePermission(
+  shareId: number,
+  permission: "read" | "write",
+): Promise<void> {
+  await driveApi.patch(`/drive/shares/${shareId}`, { permission });
 }
 
 interface CreateShareLinkOpts {
