@@ -9,10 +9,12 @@ Playwright e2e for KOATAG Drive feature。對應 spec §13。
 複製 `.env.test.example` 成 `.env.test`（or export 到 shell）：
 
 ```bash
-E2E_BASE_URL=http://localhost:3000          # frontend dev server
-E2E_API_BASE=http://koatag.com:8123/api      # backend
-E2E_USER_EMAIL=test-drive@example.com        # spec §13.1 fixture user
-E2E_USER_PASSWORD=...                        # 該 user 密碼
+E2E_BASE_URL=http://localhost:3000           # frontend dev server
+E2E_API_BASE=http://koatag.com:8123/api       # backend
+# backend container 需 APP_E2E_ENABLED=true 開放 ephemeral user endpoints
+# loginAsTestUser fallback (dev manual smoke) 才需:
+# E2E_USER_EMAIL=...
+# E2E_USER_PASSWORD=...
 ```
 
 ### 2. 產 fixture 檔（`1mb.jpg` + `60mb.bin`）
@@ -58,15 +60,16 @@ npm run e2e:fixtures   # 重新產 fixture
 
 ## 已知限制
 
-1. **沒 backend test reset endpoint** — beforeEach 沒清理 user drive；spec §13.1 寫
-   「test API 或 DB seed」backend 沒提供。當前 test order 自由，多跑會累積 test data。
-   v2 backend 加 `POST /test/reset-user` (test env only) 後 enable。
+1. ~~**沒 backend test reset endpoint**~~ — ✅ Phase 2 Task 3 (backend `2a7716a`)
+   `POST/DELETE /api/test/users/ephemeral` env-guarded by `APP_E2E_ENABLED=true`。
+   specs beforeEach 用 `createEphemeralUser`，afterEach `destroyEphemeralUser`
+   cascade。**per-test isolation + parallel-safe** — `playwright.config workers`
+   仍 1，follow-up 才 flip。
 
-2. **Test user 必須先在 backend 手動 create** — spec §13.1 說 `test-drive@example.com` quota
-   100MB；實際用 register API 建 user + 設 quota（非 frontend 範圍）。
+2. ~~**Test user 必須先在 backend 手動 create**~~ — ✅ ephemeral 自動造，
+   prefix `e2e_ephemeral_*` fence 防誤刪真 user。
 
 3. **S6 video** — `sample.mp4` 已 commit 進 fixtures/（11.2MB BlueStacks recording）。
    spec 用 `page.on("response")` server-side hook 收 206 status（避開 cross-origin opaque）。
 
-4. **Folder isolation** — 多個 test 共享 root，撞名靠 `pw-${Date.now()}` 後綴緩解。
-   無 transaction rollback。
+4. **Folder isolation** — ephemeral user 各自獨立 drive，folder name 撞無關。

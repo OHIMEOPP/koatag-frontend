@@ -1,5 +1,6 @@
 import driveApi, { DriveServiceError, unwrapDriveBody } from "api/driveAxios";
 import type { ImageData } from "components/types/images";
+import type { User } from "components/types/users";
 
 export { DriveServiceError };
 
@@ -363,8 +364,34 @@ export async function createShare(opts: CreateShareOpts): Promise<{ id: number }
   return data.share;
 }
 
-export async function revokeShare(shareId: number): Promise<void> {
-  await driveApi.delete(`/drive/shares/${shareId}`);
+/**
+ * Revoke 結果含 cascade move trace（Task 2 backend `6fb4fc0`）：
+ * - moved_files > 0：grantee 在 shared folder 內創檔已 move 到 grantee root
+ *   （A1 borrowee owns semantic — wiki #390 design freeze）
+ * - file share revoke 永遠 moved_files = 0（file 不會 cascade）
+ */
+export async function revokeShare(
+  shareId: number,
+): Promise<{ share_id: number; moved_files: number }> {
+  const resp: any = await driveApi.delete(`/drive/shares/${shareId}`);
+  // backend response: { ok, data: { share_id, moved_files } }
+  // 容讓舊 backend 不回 body 的情境（pre `6fb4fc0`），fallback to 0
+  const data = resp.data?.data;
+  return {
+    share_id: data?.share_id ?? shareId,
+    moved_files: data?.moved_files ?? 0,
+  };
+}
+
+/**
+ * Update share permission (Task 2 backend `6fb4fc0`, PATCH partial)
+ * 只 grantor 可改；audit `drive.share.permission_update`
+ */
+export async function updateSharePermission(
+  shareId: number,
+  permission: "read" | "write",
+): Promise<void> {
+  await driveApi.patch(`/drive/shares/${shareId}`, { permission });
 }
 
 interface CreateShareLinkOpts {
@@ -394,6 +421,24 @@ export async function createShareLink(
 
 export async function revokeShareLink(linkId: number): Promise<void> {
   await driveApi.delete(`/drive/share-links/${linkId}`);
+}
+
+// ───── Phase 1 user search (autocomplete) ─────
+
+/**
+ * 搜尋 KOATAG users — ShareDialog autocomplete 用。
+ * backend `GET /api/drive/users/search?q=&limit=10` (commits aa0c5f4 + 02e3a9f + 796d37a)：
+ * - q.length >= 2 (backend < 2 直接回 [] 無 audit；frontend 也 client-guard 省 round trip)
+ * - throttle 60/min (debounce 300ms 對齊)
+ * - exclude current user (backend 過濾)
+ * - LIKE escape (% / _ literal)
+ */
+export async function searchUsers(q: string, limit = 10): Promise<User[]> {
+  const resp: any = await driveApi.get("/drive/users/search", {
+    params: { q, limit },
+  });
+  const { data } = unwrapDriveBody<{ items: User[] }>(resp.data);
+  return data.items;
 }
 
 // ───── v3 list / landing helpers ─────

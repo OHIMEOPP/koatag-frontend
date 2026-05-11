@@ -15,4 +15,5 @@ export { RenameDialog } from "./RenameDialog";
 export { MoveDialog } from "./MoveDialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { ShareDialog } from "./ShareDialog";
+export { UserSearchAutocomplete } from "./UserSearchAutocomplete";
 export { VideoPlayer } from "./VideoPlayer";

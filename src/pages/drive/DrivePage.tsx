@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
+import { useBorrowedSharesStore, borrowedKey } from "stores/borrowedSharesStore";
 import {
   Breadcrumb,
   FileListPanel,
@@ -48,16 +49,21 @@ import MySharesPage from "./MySharesPage";
 const DrivePage: React.FC = () => {
   const reset = useFolderTreeStore((s) => s.reset);
   const fetchQuota = useDriveQuotaStore((s) => s.fetch);
+  const fetchBorrowed = useBorrowedSharesStore((s) => s.fetch);
+  const resetBorrowed = useBorrowedSharesStore((s) => s.reset);
 
   // 啟動上傳並行 scheduler (max 3)，user 在 Drive 期間運作
   useUploadScheduler();
 
   useEffect(() => {
     fetchQuota();
+    // Phase 2 part C — borrowed permission map mount-time fetch（wiki #403 Option B）
+    fetchBorrowed();
     return () => {
       reset();
+      resetBorrowed();
     };
-  }, [fetchQuota, reset]);
+  }, [fetchQuota, fetchBorrowed, reset, resetBorrowed]);
 
   return (
     <>
@@ -222,7 +228,7 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
         )}
       </div>
       {ctx && (
-        <ContextMenu
+        <ContextMenuWithPermission
           item={ctx.ctx.item}
           kind={ctx.ctx.kind}
           position={ctx.pos}
@@ -295,6 +301,31 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
         />
       )}
     </UploadDropzone>
+  );
+};
+
+/**
+ * ContextMenu wrapper — 從 borrowedSharesStore lookup permission，
+ * 傳給 ContextMenu 決定哪 actions disable。subscribe map 而非整個 store 避免不必要 re-render。
+ */
+const ContextMenuWithPermission: React.FC<{
+  item: DriveFile | DriveFolder;
+  kind: "file" | "folder";
+  position: { x: number; y: number };
+  onAction: (action: ContextMenuAction) => void;
+  onClose: () => void;
+}> = ({ item, kind, position, onAction, onClose }) => {
+  const borrowedMap = useBorrowedSharesStore((s) => s.map);
+  const borrowedPermission = borrowedMap.get(borrowedKey(kind, item.id));
+  return (
+    <ContextMenu
+      item={item}
+      kind={kind}
+      position={position}
+      borrowedPermission={borrowedPermission}
+      onAction={onAction}
+      onClose={onClose}
+    />
   );
 };
 

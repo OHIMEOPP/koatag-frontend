@@ -44,8 +44,79 @@ export async function loginAsTestUser(page: Page): Promise<string> {
   return token;
 }
 
+// ───── Phase 2 Task 3 e2e ephemeral test user (backend commit 2a7716a) ─────
+
+interface EphemeralUser {
+  token: string;
+  userId: number;
+  account: string;
+}
+
+/**
+ * 建 ephemeral test user — backend `POST /api/test/users/ephemeral`
+ * (env-guarded by `APP_E2E_ENABLED=true`, prefix `e2e_ephemeral_*`)
+ *
+ * 對齊 wiki #382 helper sketch：addInitScript 注 token 進 localStorage，
+ * page 訪問時直接帶 auth。每 test isolation + parallel-safe — 解 #306
+ * finding A workers:1 ~10min 瓶頸。
+ *
+ * 用法 (對 specs):
+ * ```ts
+ * let ephemeralUserId: number;
+ * test.beforeEach(async ({ page }) => {
+ *   const u = await createEphemeralUser(page);
+ *   ephemeralUserId = u.userId;
+ * });
+ * test.afterEach(async () => {
+ *   await destroyEphemeralUser(ephemeralUserId);
+ * });
+ * ```
+ */
+export async function createEphemeralUser(page: Page): Promise<EphemeralUser> {
+  const resp = await axios.post(`${API_BASE}/test/users/ephemeral`);
+  const body = resp.data;
+  const token = body?.data?.token;
+  const user = body?.data?.user;
+  if (!token || !user) {
+    throw new Error(
+      `ephemeral user create failed: ${JSON.stringify(body).slice(0, 200)}`,
+    );
+  }
+  // page navigate 之前 inject 進 localStorage（既有 loginAsTestUser pattern）
+  await page.addInitScript(
+    ({ token, user }) => {
+      window.localStorage.setItem("token", token);
+      window.localStorage.setItem("user", JSON.stringify(user));
+    },
+    { token, user },
+  );
+  return { token, userId: user.id, account: user.account };
+}
+
+/**
+ * Destroy ephemeral user — backend cascade delete drive_files / folders /
+ * shares / share-links。
+ * fence: account prefix `e2e_ephemeral_*` 防誤刪真 user。
+ *
+ * 失敗不 throw（test 已過 / cleanup-only 場景），改 console.warn 給 visibility。
+ */
+export async function destroyEphemeralUser(userId: number): Promise<void> {
+  try {
+    await axios.delete(`${API_BASE}/test/users/ephemeral/${userId}`);
+  } catch (err: any) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `ephemeral user destroy failed: id=${userId}, ${err?.response?.status ?? err}`,
+    );
+  }
+}
+
 /**
  * 清空當前 user 的 drive 資料 — 列 root + 對每個 file/folder 呼叫 delete。
+ *
+ * Phase 1 後 prefer createEphemeralUser (per-test isolation 強)；本 helper
+ * 留作 dev manual smoke fallback 或 legacy spec compat。
+ *
  * Folder 必須空才能刪 → 由 leaf 往上 delete (folders 列表已 root only;
  * 多層需 recursion，MVP 假設 test 不留太深的 tree)。
  */

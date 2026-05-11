@@ -4,11 +4,12 @@ import {
   listMyShareLinks,
   revokeShare,
   revokeShareLink,
+  updateSharePermission,
   OutgoingShare,
   MyShareLink,
 } from "services/drive.service";
 import { mapDriveError } from "services/drive.errorMap";
-import { formatBytes, getMimeIconText, ConfirmDialog } from "components/drive";
+import { getMimeIconText, ConfirmDialog } from "components/drive";
 import { Icon } from "components/Icon";
 
 type Tab = "acl" | "link";
@@ -52,6 +53,12 @@ const AclList: React.FC = () => {
   const [items, setItems] = useState<OutgoingShare[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<OutgoingShare | null>(null);
+  // 行內 permission 編輯：tracks per-row pending PATCH
+  const [permissionUpdating, setPermissionUpdating] = useState<Set<number>>(
+    new Set(),
+  );
+  // revoke 後 cascade moved files 提示（A1 borrowee owns；wiki #393 design）
+  const [revokeTrace, setRevokeTrace] = useState<string | null>(null);
 
   const load = () => {
     setError(null);
@@ -62,12 +69,44 @@ const AclList: React.FC = () => {
 
   useEffect(load, []);
 
-  if (error) return <div className="drive-error">{error}</div>;
+  const onPermissionChange = async (
+    share: OutgoingShare,
+    nextPermission: "read" | "write",
+  ) => {
+    if (nextPermission === share.permission) return;
+    setPermissionUpdating((s) => new Set(s).add(share.id));
+    setError(null);
+    try {
+      await updateSharePermission(share.id, nextPermission);
+      // 樂觀 update 本地 state，避免重新整 list 刷整頁
+      setItems((cur) =>
+        cur?.map((s) =>
+          s.id === share.id ? { ...s, permission: nextPermission } : s,
+        ) ?? null,
+      );
+    } catch (e) {
+      setError(mapDriveError(e));
+    } finally {
+      setPermissionUpdating((s) => {
+        const next = new Set(s);
+        next.delete(share.id);
+        return next;
+      });
+    }
+  };
+
+  if (error && items == null) return <div className="drive-error">{error}</div>;
   if (items == null) return <div className="drive-loading">載入中…</div>;
   if (items.length === 0) return <div className="drive-empty">沒有任何分享</div>;
 
   return (
     <>
+      {error && <div className="drive-error">{error}</div>}
+      {revokeTrace && (
+        <div className="drive-share-trace" onClick={() => setRevokeTrace(null)}>
+          {revokeTrace}（點擊關閉）
+        </div>
+      )}
       <table className="drive-list">
         <thead>
           <tr>
@@ -80,41 +119,69 @@ const AclList: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => (
-            <tr key={it.id}>
-              <td>
-                {it.resource_type === "folder"
-                  ? "📁"
-                  : getMimeIconText(it.resource.mime ?? "")}
-              </td>
-              <td>{it.resource.name}</td>
-              <td>{it.grantee?.account ?? `#${it.grantee_id}`}</td>
-              <td>{it.permission === "write" ? "可編輯" : "唯讀"}</td>
-              <td>
-                {it.expires_at ? new Date(it.expires_at).toLocaleDateString() : "永久"}
-              </td>
-              <td>
-                <button
-                  type="button"
-                  className="drive-modal-btn"
-                  onClick={() => setPending(it)}
-                >
-                  撤銷
-                </button>
-              </td>
-            </tr>
-          ))}
+          {items.map((it) => {
+            const updating = permissionUpdating.has(it.id);
+            return (
+              <tr key={it.id}>
+                <td>
+                  {it.resource_type === "folder"
+                    ? "📁"
+                    : getMimeIconText(it.resource.mime ?? "")}
+                </td>
+                <td>{it.resource.name}</td>
+                <td>{it.grantee?.account ?? `#${it.grantee_id}`}</td>
+                <td>
+                  <select
+                    className="drive-share-permission-select"
+                    value={it.permission}
+                    onChange={(e) =>
+                      onPermissionChange(it, e.target.value as "read" | "write")
+                    }
+                    disabled={updating}
+                    aria-label="權限"
+                  >
+                    <option value="read">只能查看</option>
+                    <option value="write">可編輯</option>
+                  </select>
+                  {updating && <span className="drive-share-pending">…</span>}
+                </td>
+                <td>
+                  {it.expires_at
+                    ? new Date(it.expires_at).toLocaleDateString()
+                    : "永久"}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="drive-modal-btn"
+                    onClick={() => setPending(it)}
+                  >
+                    撤銷
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {pending && (
         <ConfirmDialog
           title="撤銷分享"
-          message={`確定撤銷對「${pending.grantee?.account ?? `#${pending.grantee_id}`}」的「${pending.resource.name}」分享？`}
+          message={
+            pending.resource_type === "folder"
+              ? `撤銷對「${pending.grantee?.account ?? `#${pending.grantee_id}`}」分享的資料夾「${pending.resource.name}」？\n\n注意：對方在此資料夾內建立的檔案會移動到其根目錄（仍歸對方所有）。`
+              : `確定撤銷對「${pending.grantee?.account ?? `#${pending.grantee_id}`}」的「${pending.resource.name}」分享？`
+          }
           confirmLabel="撤銷"
           destructive
           onClose={() => setPending(null)}
           onConfirm={async () => {
-            await revokeShare(pending.id);
+            const result = await revokeShare(pending.id);
+            if (result.moved_files > 0) {
+              setRevokeTrace(
+                `已撤銷分享 — 對方先前在資料夾內建立的 ${result.moved_files} 個檔案已移到對方根目錄`,
+              );
+            }
             load();
           }}
         />

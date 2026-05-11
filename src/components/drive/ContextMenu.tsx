@@ -15,6 +15,18 @@ interface ContextMenuProps {
   item: DriveFile | DriveFolder;
   kind: "file" | "folder";
   position: { x: number; y: number };
+  /**
+   * 若此 resource 是別人 share 給我（borrowed），permission 是 'read' or 'write'。
+   * undefined = 自己擁有，所有 op 都 enabled。
+   *
+   * Mental model（wiki spec rule §11）：「act IN」 ≠ 「manage identity OF」
+   * - borrowed read file: rename/move/delete/share 全 disable
+   * - borrowed write file: rename/move/delete enabled, share 仍 disable (只 owner 可分享)
+   * - borrowed read folder: 全 disable
+   * - borrowed write folder: identity ops (rename/move/delete) disable
+   *   (in-folder ops 不在此 contextmenu 範圍 — 是 child item 各自判斷)
+   */
+  borrowedPermission?: "read" | "write";
   onAction: (action: ContextMenuAction) => void;
   onClose: () => void;
 }
@@ -36,7 +48,54 @@ const ENTRIES: MenuEntry[] = [
   { action: "delete", label: "刪除", icon: Icon.trash, destructive: true },
 ];
 
-export const ContextMenu: React.FC<ContextMenuProps> = ({ kind, position, onAction, onClose }) => {
+function actionDisabledInfo(
+  action: ContextMenuAction,
+  kind: "file" | "folder",
+  borrowedPermission: "read" | "write" | undefined,
+): { disabled: boolean; tooltip?: string } {
+  const isBorrowed = borrowedPermission !== undefined;
+  const isReadOnly = borrowedPermission === "read";
+
+  // open / download — 純讀，borrowed read 也 OK
+  if (action === "open" || action === "download") {
+    return { disabled: false };
+  }
+
+  // share — 永遠 owner-only
+  if (action === "share") {
+    if (isBorrowed) {
+      return { disabled: true, tooltip: "只能由擁有者分享" };
+    }
+    return { disabled: false };
+  }
+
+  // rename / move / delete
+  if (!isBorrowed) {
+    return { disabled: false };
+  }
+
+  if (kind === "file") {
+    if (isReadOnly) {
+      return { disabled: true, tooltip: "此檔案唯讀" };
+    }
+    return { disabled: false };
+  }
+
+  // folder identity ops 永遠 owner-only by design
+  // (Task 2 backend `0615cd9` finding A clarify: write share grantee 只能 act IN folder)
+  if (isReadOnly) {
+    return { disabled: true, tooltip: "此資料夾唯讀" };
+  }
+  return { disabled: true, tooltip: "資料夾本身需擁有者修改" };
+}
+
+export const ContextMenu: React.FC<ContextMenuProps> = ({
+  kind,
+  position,
+  borrowedPermission,
+  onAction,
+  onClose,
+}) => {
   const ref = useRef<HTMLDivElement>(null);
 
   useDialogEsc(onClose);
@@ -58,13 +117,23 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ kind, position, onActi
     <div className="drive-ctxmenu" style={style} ref={ref} role="menu">
       {ENTRIES.filter((e) => !(e.fileOnly && kind === "folder")).map((e) => {
         const I = e.icon;
+        const { disabled, tooltip } = actionDisabledInfo(
+          e.action,
+          kind,
+          borrowedPermission,
+        );
         return (
           <button
             type="button"
             key={e.action}
             className={`drive-ctxmenu-item ${e.destructive ? "drive-ctxmenu-item-destructive" : ""}`}
-            onClick={() => onAction(e.action)}
+            onClick={() => {
+              if (!disabled) onAction(e.action);
+            }}
+            disabled={disabled}
+            title={tooltip}
             role="menuitem"
+            aria-disabled={disabled}
           >
             <I size={14} />
             <span>{e.label}</span>

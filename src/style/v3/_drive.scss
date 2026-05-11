@@ -709,8 +709,13 @@
   border-radius: 6px;
   text-align: left;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--color-bg-tertiary);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 
@@ -908,6 +913,185 @@
 .drive-share-row-revoked {
   opacity: 0.5;
   text-decoration: line-through;
+}
+
+.drive-share-permission-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.drive-share-permission-read {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.drive-share-permission-write {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning, #f59e0b);
+}
+
+.drive-share-permission-select {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+
+.drive-share-pending {
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.drive-share-trace {
+  background: var(--color-bg-tertiary);
+  border-left: 3px solid var(--color-warning, #f59e0b);
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.drive-share-mode-toggle {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 2px 0;
+  align-self: flex-start;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+}
+
+// ── Phase 1 UserSearchAutocomplete ─────────────────────────
+
+.drive-user-autocomplete {
+  position: relative;
+}
+
+.drive-user-autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1300;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drive-user-autocomplete-status {
+  text-align: center;
+  padding: 12px;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.drive-user-autocomplete-error {
+  color: var(--color-danger, #ef4444);
+}
+
+.drive-user-autocomplete-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+
+  &.hover,
+  &:hover {
+    background: var(--color-bg-tertiary);
+  }
+}
+
+.drive-user-autocomplete-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.drive-user-autocomplete-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.drive-user-autocomplete-account {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drive-user-autocomplete-name {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drive-user-autocomplete-email {
+  font-size: 11px;
+  color: var(--color-text-quaternary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // Public share-link landing page (no auth)
