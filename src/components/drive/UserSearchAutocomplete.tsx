@@ -65,6 +65,9 @@ export const UserSearchAutocomplete: React.FC<UserSearchAutocompleteProps> = ({
       })
       .catch((err) => {
         if (aborted) return;
+        // dev debug — mapDriveError 給 user 友善 message，raw err 留 console 排查
+        // eslint-disable-next-line no-console
+        console.warn("searchUsers failed:", err);
         setError(mapDriveError(err));
         setResults([]);
         setLoading(false);
