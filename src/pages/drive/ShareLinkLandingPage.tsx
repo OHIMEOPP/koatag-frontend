@@ -99,18 +99,19 @@ const PublicResourceCard: React.FC<{ meta: ShareLandingMeta; token: string }> = 
           ? `剩餘 ${usesLeft} 次`
           : "不限次數"}
       </div>
-      {isFolder ? (
-        <div className="drive-public-note">資料夾打包下載後續版本支援</div>
-      ) : (
-        <a
-          className="drive-modal-btn drive-modal-btn-primary drive-public-download"
-          href={publicDownloadUrl(token)}
-          target="_blank"
-          rel="noopener noreferrer"
-          download
-        >
-          下載
-        </a>
+      <a
+        className="drive-modal-btn drive-modal-btn-primary drive-public-download"
+        href={publicDownloadUrl(token)}
+        target="_blank"
+        rel="noopener noreferrer"
+        download
+      >
+        下載{isFolder ? "（zip）" : ""}
+      </a>
+      {isFolder && (
+        <div className="drive-public-note">
+          下載為 zip 檔，含資料夾結構
+        </div>
       )}
     </>
   );
