@@ -709,8 +709,13 @@
   border-radius: 6px;
   text-align: left;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--color-bg-tertiary);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 
