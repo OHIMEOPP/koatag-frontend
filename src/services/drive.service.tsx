@@ -23,6 +23,17 @@ export interface DriveFile {
   deleted_at: string | null;
 }
 
+// v3 Trash UI — soft-deleted file augmented with retention metadata
+// (backend #498，30-day retention 預備)
+export interface TrashedFile extends DriveFile {
+  // soft delete 時間 — DriveFile 既有，但 trash 列表必有
+  deleted_at: string;
+  // deleted_at + 30 day（backend 算）
+  permanent_delete_at: string;
+  // ceil((permanent_delete_at - now) / 86400) — backend compute；< 7 為近期警告 UI
+  days_remaining: number;
+}
+
 export interface DriveFolder {
   id: number;
   owner_id: number;
@@ -298,6 +309,59 @@ export async function thumbUrl(fileId: number): Promise<string> {
 export async function deleteFile(fileId: number): Promise<void> {
   await driveApi.delete(`/drive/files/${fileId}`);
   invalidateSigCache(fileId);
+}
+
+// ───── v3 Trash UI (backend #498) ─────
+
+interface ListTrashOpts {
+  sort?: SortKey;
+  order?: SortOrder;
+  page?: number;
+  size?: number;
+}
+
+export async function listTrash(
+  opts: ListTrashOpts = {}
+): Promise<PagedResp<TrashedFile>> {
+  const params = {
+    sort: opts.sort,
+    order: opts.order,
+    page: opts.page ?? 1,
+    size: opts.size ?? 30,
+  };
+  try {
+    const resp: any = await driveApi.get("/drive/files/trash", { params });
+    const { data, meta } = unwrapDriveBody<{ items: TrashedFile[] }>(resp.data);
+    return { items: data.items, meta };
+  } catch (err) {
+    if (is404(err)) {
+      // backend #498 未實作期間：graceful empty (對齊 listFolders / getQuota pattern)
+      return {
+        items: [],
+        meta: { total: 0, page: 1, size: opts.size ?? 30, total_pages: 0 },
+      };
+    }
+    throw err;
+  }
+}
+
+export async function restoreFile(fileId: number): Promise<DriveFile> {
+  const resp: any = await driveApi.post(`/drive/files/${fileId}/restore`);
+  const { data } = unwrapDriveBody<{ file: DriveFile }>(resp.data);
+  invalidateSigCache(fileId);
+  return data.file;
+}
+
+export async function permanentDeleteFile(
+  fileId: number
+): Promise<{ released_bytes: number }> {
+  // wiki dispatch 兩 URL 形式都列；用 query flag 形式對齊 RESTful DELETE 慣例
+  const resp: any = await driveApi.delete(`/drive/files/${fileId}`, {
+    params: { permanent: 1 },
+  });
+  const { data } = unwrapDriveBody<{ released_bytes: number }>(resp.data);
+  invalidateSigCache(fileId);
+  return data;
 }
 
 export async function createFolder(

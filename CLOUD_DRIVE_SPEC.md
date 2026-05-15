@@ -65,13 +65,14 @@ drive_user_quota  — user_id PK FK, quota_bytes, used_bytes, lazy-create
 
 ---
 
-## 2. Routes 契約（24 個 endpoint）
+## 2. Routes 契約（27 個 endpoint）
 
 完整列見 `CLOUD_DRIVE_BACKEND_SPEC.md` §3。
 
 | 區 | endpoint 範圍 |
 |---|---|
 | **Files** (7) | `GET/POST /api/drive/files` / `{id}` / `{id}/download` / `{id}/thumb` |
+| **Trash (Files)** (3, v3) | `GET /api/drive/files/trash` / `POST /{id}/restore` / `DELETE /{id}?permanent=1` |
 | **Folders** (6) | `GET/POST /api/drive/folders` / `{id}` / `{id}/breadcrumb` |
 | **Shares** (4) | `POST /api/drive/shares` / `incoming` / `outgoing` / `DELETE /{id}` |
 | **Share Links** (3) | `POST /api/drive/share-links` / `outgoing` / `DELETE /{id}` |
@@ -85,7 +86,7 @@ drive_user_quota  — user_id PK FK, quota_bytes, used_bytes, lazy-create
 
 ---
 
-## 3. Error Code 契約（23 個 codes）
+## 3. Error Code 契約（25 個 codes）
 
 完整對照表見 `CLOUD_DRIVE_BACKEND_SPEC.md` §9 + `CLOUD_DRIVE_FRONTEND_SPEC.md` §4。
 
@@ -98,7 +99,10 @@ drive_user_quota  — user_id PK FK, quota_bytes, used_bytes, lazy-create
 | 命名 | `NAME_REQUIRED` (422) / `NAME_TOO_LONG` (422) |
 | 分享 | `SHARE_SELF` (422) / `SHARE_DUPLICATE` (409) |
 | Share Link | `SHARE_LINK_EXPIRED` / `SHARE_LINK_REVOKED` / `SHARE_LINK_USED_UP` (410) / `SHARE_LINK_INVALID` (404) |
+| **Trash (v3)** | `OUTSIDE_RETENTION` (422) / `NOT_TRASHED` (422) |
 | 兜底 | `INTERNAL_ERROR` (500) |
+
+**權限 404 vs 403 convention（v3 沿用 backend 既有 destroy pattern）**：跨 user 試 restore / permanent_delete 一律回 `FILE_NOT_FOUND` (404) **不**回 `FORBIDDEN` (403) — 防 existence-enumeration 攻擊（攻擊者用 ID 掃 file ownership map）。同 `destroy` / `update` 既有行為。
 
 **回應結構**：
 ```jsonc
@@ -109,7 +113,7 @@ drive_user_quota  — user_id PK FK, quota_bytes, used_bytes, lazy-create
 
 ---
 
-## 4. Audit Event 契約（17 條 + 1 既有）
+## 4. Audit Event 契約（20 條 + 1 既有）
 
 完整列見 `CLOUD_DRIVE_BACKEND_SPEC.md` §8。前端 subscribe `audit` log channel + filter prefix `drive.*`。
 
@@ -118,6 +122,7 @@ drive.upload.{success, fail}     drive.download[.public]      drive.delete
 drive.move                        drive.rename                  drive.folder.{create, delete}
 drive.share.{granted, revoked}    drive.share_link.{created, revoked, accessed}
 drive.quota.{warn, deny, recomputed}
+drive.restore                     drive.permanent_delete[.storage_fail]  (v3 D.9)
 + access.denied (既有，含 reason: user_id_mismatch IDOR)
 ```
 
@@ -253,18 +258,28 @@ P0 freeze 後實際做的事，列為三方共識正式紀錄（避免 contract 
 
 🚨 標記項：wiki 監軍漏接 per-feature mailbox round（違反 SOP §3.1）。事後 review 由本次對齊報告補做，紀律 reset 於 2026-05-14。
 
+### 7.6b Post-MVP autonomous overnight 2026-05-15 round（D.4-D.10）
+
+| Task | scope | backend ref | frontend ref | wiki 監軍 status |
+|---|---|---|---|---|
+| **D.4 MIME 黑名單** | config/drive.php `mime_blacklist` 12 entry runtime-verified（4 binary + 7 script + 1 PHP legacy）| §11 v2 done note | （無前端 work）| ✅ ack 2026-05-14 + commit ced32f1 prod-deployed |
+| **D.1 backend prod deploy** | A+B+C 三層 fix + D.4 + signed URL secret 全 prod 化 | DEPLOY_CHECKLIST.md Tier 0 | （無前端 work）| ✅ ack 2026-05-14 6/6 case + prod-deployed |
+| **D.1 frontend prod deploy** | main.9a59f655 build + docker cp 進 container | （無 backend work）| commit `f387203` build artifact | ✅ infra-level done 2026-05-15；browser smoke 7 case 等 user 醒來手動 |
+| **D.5 watcher TTL 24hr** | （無）| （無）| （無）| ✅ ack 2026-05-15 commit cff19af |
+| **D.6 影片 poster frame** | Dockerfile + ffmpeg + DriveThumbnailService video branch | §11 v2 done note | （無前端 work）| ⏸️ code+spec done，image built sha256:4e715b5b，container swap 等 user GO |
+| **D.9 v3 Trash UI (file only)** | 3 routes + 2 error codes + 3 audit events + cascade restore caveat | §3/§8/§9/§11 v3 partial done | service+store+page+sidebar+TrashContextMenu+cascade hint | ✅ scaffold close 2026-05-15；browser smoke 4 case 等 user morning |
+| **D.10 v3 Breadcrumb 截斷** | grantee chain truncate at root-most share entry point | §5.2b + §11 v3 partial done | （response shape 不變，前端透明）| ✅ live 2026-05-15 6/6 case pass（OPcache `kill -USR2 1` 已 reload，不需 image rebuild）|
+
 ### 7.7 目前 backlog（contract 認可，未動工）
+
+_最後校準: 2026-05-15 overnight round spec drift cleanup（已 done 但 spec ❌ 未 strike 的項，從本表移除：Share write permission / Share link max_uses UI / drive_files.image_data_id / 影片 streaming X-Accel 啟用）_
 
 | Tier | item | 觸發後預估 |
 |---|---|---|
-| v2 | MIME 黑名單 | backend ~半天 |
-| v2 | 影片 poster frame (ffmpeg) | backend ~1 天（含裝 ffmpeg） |
-| v3 | Trash / 還原 UI | 前後端 ~2 天 |
-| v3 | Breadcrumb 對 grantee 截斷至 share entry point | backend ~半天（wiki finding H msg #262）|
 | v3 | Image endpoint `{user_id}` 拔除（URL hygiene）| 跨 image module 影響面，前後端 ~1-2 天 |
-| v3 | Share link `max_uses` UI | 前後端 ~半天（schema 已留欄位）|
-| v? | Zip optimize：addFolderToZip recursive CTE | backend ~半天 |
-| v? | Storage GC cron（清 race-fail orphan disk file）| backend ~半天 |
+| v? | Storage GC cron（清 race-fail orphan disk file + 30 day trash hard-delete）| backend ~半天（destructive risk，建議 user oversight）|
+| v? | Folder trash（cascade restore + hard delete 邏輯）| backend ~半天 + 前端 ~1 天 |
+| v? | OOM risk on 10k+ folder zip（in-memory traverse → generator pattern）| backend ~半天（D.11 caveat） |
 | v4 | tus chunked upload (>50MB 解禁)| 前後端 ~3-5 天 |
 | v4 | HLS player wrapper | 前後端 ~2 天 |
 | v4 | FTS 全文搜尋 | 前後端 ~3 天 |

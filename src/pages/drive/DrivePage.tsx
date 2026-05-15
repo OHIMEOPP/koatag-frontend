@@ -32,6 +32,7 @@ import { useUploadScheduler } from "hooks/useUploadScheduler";
 import DriveFilePage from "./DriveFilePage";
 import SharedWithMePage from "./SharedWithMePage";
 import MySharesPage from "./MySharesPage";
+import TrashPage from "./TrashPage";
 
 /**
  * KOATAG Drive 入口頁
@@ -73,6 +74,7 @@ const DrivePage: React.FC = () => {
         <Route path="file/:id" element={<DriveFilePage />} />
         <Route path="shared/in" element={<SharedWithMePage />} />
         <Route path="shared/out" element={<MySharesPage />} />
+        <Route path="trash" element={<TrashPage />} />
       </Routes>
       <UploadProgressList />
     </>

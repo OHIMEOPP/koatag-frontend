@@ -24,6 +24,9 @@ const driveErrorMessages: Record<string, string> = {
   SHARE_LINK_USED_UP: "此分享連結已達使用次數上限",
   SHARE_LINK_INVALID: "分享連結不存在",
   INVALID_IMAGE_DATA: "指定的圖片資料不存在或無權連結",
+  // v3 Trash UI (backend #498)
+  OUTSIDE_RETENTION: "此檔案已超過 30 天保留期，無法還原",
+  NOT_TRASHED: "此檔案不在垃圾桶內",
   INTERNAL_ERROR: "系統錯誤，請稍後再試",
 };
 

@@ -30,6 +30,7 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
       { to: '/main/drive',           label: 'Drive',     icon: 'cloud' },
       { to: '/main/drive/shared/in', label: '共享給我',  icon: 'heart' },
       { to: '/main/drive/shared/out',label: '我的分享',  icon: 'link' },
+      { to: '/main/drive/trash',     label: '垃圾桶',    icon: 'trash' },
       { to: '/main/front_page',      label: '我的最愛',  icon: 'heart',   badge: '184', placeholder: true },
     ],
   },
