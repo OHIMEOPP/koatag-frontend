@@ -31,24 +31,26 @@ D.6 video poster frame 純 backend `thumb_path` 寫入，前端透明消費。
 無強制 action — system 全 in-sync 狀態。
 optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 case）。
 
-## Medium tier backlog（wiki #556 候選）
+## 功能 backlog — E2EE 相關性三色分類（per wiki #568）
 
-並行 autonomous-safe 的兩條（前後端 isolated）：
-- **Zip OOM generator pattern**（backend solo）— 10k+ folder zip 改 streaming generator
-- **2GB upload UX hardening**（frontend solo）— progress bar 順暢驗證 / retry / 中斷恢復選項（per wiki #541 acked caveats）
-
-Sequential（前後端 cascade 設計）：
-- **Folder trash + cascade restore**（v? 留 backlog，1.5 天 effort）
-
-決定權在 user — 並行或 sequential 啟動 next round。
-
-## 結構性 backlog（先 user 提）
-
-- v3 Image URL hygiene 拔 `{user_id}`（跨 image module 1-2 天 effort）
-- v? Storage GC cron（destructive，user oversight 需要）
-- v? tus chunked upload（>2GB 用例）
-- D.11 backend zip OOM — 同 Medium tier 第一條
+### ⚪ E2EE 不相關 — 可單獨做不浪費
+- v3 Image endpoint `{user_id}` 拔除 URL hygiene（跨 image module 1-2 天 effort）
 - 4 CSS class polish（`drive-trash-hint` / `-warn` / `-pager` / `drive-modal-btn-danger`）
+
+### 🟡 Co-design opportunity — E2EE round 一起更省
+- v? 2GB upload UX hardening（D.16 已 land throttle/retry/ETA，剩 chunked resume 連 E2EE resume token + key derivation 一起 design）
+- v? tus chunked upload UI 對應（>2GB 用例；chunk-encrypt 順序前端串接）
+- v? D.9 cascade share rebuild UI（E2EE share = key 共享 → UI 流程跟現行純 ACL revoke 不一樣）
+
+### 🔴 等 E2EE 一起 design — stand-alone 會白工
+- v? Folder trash cascade UI（cascade semantic 跟 key forget batch 對齊）
+- v4 HLS player UI — server-side transcode 對 ciphertext 不可能
+- v4 FTS 全文搜尋 UI — server-side index 跟 E2EE 矛盾
+
+## Active backlog（next round 候選）
+
+⚪ 段兩條（Image URL hygiene / CSS polish），等 user 排或 wiki dispatch。  
+🟡 / 🔴 段 6 條視作「E2EE-aware deferrals」，未來 E2EE design round 一併 review。
 
 ## 三方 status snapshot
 
