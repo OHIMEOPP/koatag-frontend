@@ -3,7 +3,7 @@
 > 三方共識討論產出之一
 > 對應：koatag backend spec（`KOATAG/CLOUD_DRIVE_BACKEND_SPEC.md` 實質 v1.5）+ wiki 8 篇 reference（含 監軍角色SOP）
 > 最終會與 backend spec 彙整成 `CLOUD_DRIVE_SPEC.md`
-> 狀態：v1.5 (post-MVP — D.9 Trash scaffold + D.12 配額 20GB/上傳 2GB + D.14 createFolder UI + D.14b empty area context menu，2026-05-15)
+> 狀態：v1.6 (post-MVP — D.9 Trash + D.12 2GB/20GB + D.14 createFolder UI + D.14b empty area menu + D.16 2GB upload UX hardening，2026-05-15)
 > 對應 wiki 監軍對齊報告：`life_wiki/wiki/output/koatag-drive-alignment-2026-05-14.md`
 
 ---
@@ -132,6 +132,13 @@ interface UploadDropzoneProps {
 - 從 `uploadQueueStore` 讀；佇列空 → 不渲染
 - 列表項：name | progress bar (0-100) | status icon | cancel/retry button
 - 收合：右上 toggle 按鈕，預設展開
+
+**D.16 2GB UX hardening（2026-05-15）**：
+- onUploadProgress 250ms throttle（per-item lastUpdateAt Map in scheduler），避免大檔 100+ fires/sec re-render jank
+- ETA + speed 顯示：`uploading` 且 `file.size >= 1MB` 才顯，computed from `bytesSent / (now - startedAt)`；< 0.5s 不顯（fluctuation）
+- Retry 上限 `MAX_UPLOAD_RETRIES = 3`：超過後 retry button disabled + tooltip 提示 user 手動重選；UploadItem 加 `retryCount` chip 顯
+- `FILE_TOO_LARGE` 永遠 not retryable（client-side reject，沒救）
+- Cancel: `uploading` 走 `abortController.abort()`；`pending` 直接 dequeue（store 內 `cancel()` 動作）
 
 ### 2.7 `SortMenu`
 
@@ -683,11 +690,16 @@ interface UploadItem {
   file: File;
   folderId: number | null;
   status: 'pending' | 'uploading' | 'done' | 'error';
-  progress: number; // 0-100
+  progress: number; // 0-100 (D.16 後 setProgressBytes 同時寫 bytesSent + percent)
   errorCode?: string;
   errorMessage?: string;
   result?: DriveFile;
   abortController?: AbortController;
+  enqueuedAt: number;
+  // D.16: 2GB UX hardening
+  retryCount: number;             // init 0；upper bound MAX_UPLOAD_RETRIES=3
+  bytesSent: number;              // axios onUploadProgress.loaded 累計（throttle 寫）
+  startedAt?: number;             // pending → uploading 時 set；retry 重設
 }
 
 interface UploadQueueStore {
@@ -1047,3 +1059,4 @@ test('lightbox magnifier loupe', async ({ page }) => {
 - v1.3（2026-05-15）：D.9 Trash UI scaffold（§15.2 加 entry）+ D.12 配額 20GB / 單檔上傳 2GB（§2.5 / §5.1 / §3 errorMap / §13 S2 fixture 同步）
 - v1.4（2026-05-15）：D.14 createFolder UI affordance 補做（§2.10b NewFolderDialog 新段；§15.1 T11 done note + 補做說明）— 修 D.13 playwright finding gap
 - v1.5（2026-05-15）：D.14b 空白處右鍵 context menu 補做（§2.10c EmptyAreaContextMenu 新段；新增資料夾 + 上傳檔案 2 actions；§15.1 T11 done note 同步）
+- v1.6（2026-05-15）：D.16 2GB upload UX hardening — onUploadProgress 250ms throttle + retry max 3 / counter chip + ETA/speed 顯示（≥1MB 才顯）+ UploadItem 加 retryCount / bytesSent / startedAt fields（§2.6 + §5.2 spec 同步）

@@ -1,6 +1,13 @@
 import React, { useState } from "react";
-import { useUploadQueueStore, UploadItem } from "stores/uploadQueueStore";
+import {
+  useUploadQueueStore,
+  UploadItem,
+  MAX_UPLOAD_RETRIES,
+} from "stores/uploadQueueStore";
 import { formatBytes } from "./FileGrid";
+
+// D.16: 顯 speed + ETA 的 size 門檻 — 小檔 fluctuation 大，乾脆不顯
+const ETA_MIN_FILE_BYTES = 1024 * 1024;
 
 export const UploadProgressList: React.FC = () => {
   const queue = useUploadQueueStore((s) => s.queue);
@@ -71,15 +78,47 @@ const UploadItemRow: React.FC<UploadItemRowProps> = ({ item, onCancel, onRetry, 
   const isUploading = item.status === "uploading";
   const isPending = item.status === "pending";
   const isRetryable = isError && item.errorCode !== "FILE_TOO_LARGE";
+  const reachedMaxRetry = item.retryCount >= MAX_UPLOAD_RETRIES;
+
+  // D.16: speed + ETA 計算（uploading 且檔 >= 1MB 才顯，避免 fluctuation 太大）
+  const showEta =
+    isUploading &&
+    item.file.size >= ETA_MIN_FILE_BYTES &&
+    item.startedAt != null &&
+    item.bytesSent > 0;
+  let speedLabel: string | null = null;
+  let etaLabel: string | null = null;
+  if (showEta && item.startedAt) {
+    const elapsedSec = (Date.now() - item.startedAt) / 1000;
+    if (elapsedSec > 0.5) {
+      const speedBps = item.bytesSent / elapsedSec;
+      speedLabel = `${formatBytes(Math.round(speedBps))}/s`;
+      const remaining = Math.max(0, item.file.size - item.bytesSent);
+      if (speedBps > 0) {
+        const etaSec = Math.round(remaining / speedBps);
+        etaLabel = formatEta(etaSec);
+      }
+    }
+  }
 
   return (
     <li className={`drive-upload-item drive-upload-item-${item.status}`}>
       <div className="drive-upload-item-info">
         <div className="drive-upload-item-name" title={item.file.name}>
           {item.file.name}
+          {item.retryCount > 0 && (
+            <span
+              className="drive-upload-item-retry-chip"
+              title={`重試次數 ${item.retryCount} / ${MAX_UPLOAD_RETRIES}`}
+            >
+              ↻ {item.retryCount}
+            </span>
+          )}
         </div>
         <div className="drive-upload-item-meta">
           {formatBytes(item.file.size)}
+          {speedLabel && <span> · {speedLabel}</span>}
+          {etaLabel && <span> · 剩 {etaLabel}</span>}
           {isError && item.errorMessage && (
             <span className="drive-upload-item-error"> · {item.errorMessage}</span>
           )}
@@ -107,7 +146,17 @@ const UploadItemRow: React.FC<UploadItemRowProps> = ({ item, onCancel, onRetry, 
           </button>
         )}
         {isRetryable && (
-          <button type="button" onClick={onRetry} className="drive-upload-list-btn">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="drive-upload-list-btn"
+            disabled={reachedMaxRetry}
+            title={
+              reachedMaxRetry
+                ? `已重試 ${MAX_UPLOAD_RETRIES} 次，請手動重新選擇檔案`
+                : `重試（已用 ${item.retryCount} / ${MAX_UPLOAD_RETRIES}）`
+            }
+          >
             重試
           </button>
         )}
@@ -125,3 +174,12 @@ const UploadItemRow: React.FC<UploadItemRowProps> = ({ item, onCancel, onRetry, 
     </li>
   );
 };
+
+function formatEta(sec: number): string {
+  if (sec < 60) return `${sec} 秒`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m < 60) return `${m} 分 ${s} 秒`;
+  const h = Math.floor(m / 60);
+  return `${h} 小時 ${m % 60} 分`;
+}

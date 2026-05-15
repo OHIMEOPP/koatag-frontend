@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useUploadQueueStore } from "stores/uploadQueueStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { uploadFile, DriveServiceError } from "services/drive.service";
 
 const MAX_CONCURRENT = 3;
+// D.16: progress 事件 250ms throttle — 大檔 onUploadProgress 100+ fires/sec
+// 不 throttle 會 jank（store update → React re-render 全 queue）。
+const PROGRESS_THROTTLE_MS = 250;
 
 /**
  * useUploadScheduler — 並行上傳 worker（spec §5.3）
@@ -24,12 +27,17 @@ const MAX_CONCURRENT = 3;
 export function useUploadScheduler(): void {
   const queue = useUploadQueueStore((s) => s.queue);
   const setStatus = useUploadQueueStore((s) => s.setStatus);
-  const setProgress = useUploadQueueStore((s) => s.setProgress);
+  const setProgressBytes = useUploadQueueStore((s) => s.setProgressBytes);
+  const setStarted = useUploadQueueStore((s) => s.setStarted);
   const setResult = useUploadQueueStore((s) => s.setResult);
   const setError = useUploadQueueStore((s) => s.setError);
   const setAbortController = useUploadQueueStore((s) => s.setAbortController);
   const fetchQuota = useDriveQuotaStore((s) => s.fetch);
   const invalidateFolder = useFolderTreeStore((s) => s.invalidate);
+
+  // D.16: per-item lastUpdate timestamp — onUploadProgress throttle
+  // Ref 避免 dep 引爆 effect；scheduler 重新 mount 也乾淨。
+  const lastUpdateRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     const uploading = queue.filter((q) => q.status === "uploading").length;
@@ -42,24 +50,34 @@ export function useUploadScheduler(): void {
     pending.forEach((item) => {
       const ctrl = new AbortController();
       setStatus(item.id, "uploading");
+      setStarted(item.id);
       setAbortController(item.id, ctrl);
+      lastUpdateRef.current.set(item.id, 0);
 
       uploadFile(
         item.file,
         item.folderId,
         (loaded, total) => {
+          const now = Date.now();
+          const last = lastUpdateRef.current.get(item.id) ?? 0;
+          const isFinal = total > 0 && loaded >= total;
+          // D.16 throttle：≥250ms 才寫 store；最後一筆（loaded===total）必 push
+          if (!isFinal && now - last < PROGRESS_THROTTLE_MS) return;
+          lastUpdateRef.current.set(item.id, now);
           const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
-          setProgress(item.id, pct);
+          setProgressBytes(item.id, loaded, pct);
         },
         ctrl.signal,
       )
         .then((file) => {
+          lastUpdateRef.current.delete(item.id);
           setResult(item.id, file);
           // upload success → quota 變動 + folder list 變動，invalidate 兩個 store
           fetchQuota();
           invalidateFolder();
         })
         .catch((err) => {
+          lastUpdateRef.current.delete(item.id);
           // axios CanceledError / AbortError → cancel() 已 set status='error' code='CANCELLED'
           if (err?.name === "CanceledError" || err?.name === "AbortError") {
             return;
@@ -75,7 +93,8 @@ export function useUploadScheduler(): void {
   }, [
     queue,
     setStatus,
-    setProgress,
+    setProgressBytes,
+    setStarted,
     setResult,
     setError,
     setAbortController,
