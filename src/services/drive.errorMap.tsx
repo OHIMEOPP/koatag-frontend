@@ -7,7 +7,7 @@ const driveErrorMessages: Record<string, string> = {
   NOT_FOUND: "資源不存在",
   FILE_NOT_FOUND: "檔案不存在或已刪除",
   FOLDER_NOT_FOUND: "資料夾不存在",
-  FILE_TOO_LARGE: "檔案超過 50MB 限制",
+  FILE_TOO_LARGE: "檔案超過 2GB 限制",
   INVALID_MIME: "不支援的檔案類型",
   QUOTA_EXCEEDED: "您的 Drive 容量已滿，請刪除部分檔案",
   UPLOAD_NO_FILE: "請選擇要上傳的檔案",

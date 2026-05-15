@@ -3,7 +3,7 @@
 > 三方共識討論產出之一
 > 對應：koatag backend spec（`KOATAG/CLOUD_DRIVE_BACKEND_SPEC.md` 實質 v1.5）+ wiki 8 篇 reference（含 監軍角色SOP）
 > 最終會與 backend spec 彙整成 `CLOUD_DRIVE_SPEC.md`
-> 狀態：v1.2 (post-MVP — Phase 1/2A/2B/2C + v3 video onError + v?-zip landing 全 done，2026-05-14)
+> 狀態：v1.3 (post-MVP — D.9 Trash scaffold + D.12 配額 20GB/上傳 2GB，2026-05-15)
 > 對應 wiki 監軍對齊報告：`life_wiki/wiki/output/koatag-drive-alignment-2026-05-14.md`
 
 ---
@@ -123,7 +123,7 @@ interface UploadDropzoneProps {
 ```
 - 基於 `react-dropzone`
 - 行為：onDrop → for each File:
-  1. `file.size > 50 * 1024 * 1024` → enqueue with `status='error', code='FILE_TOO_LARGE'`，不送 server
+  1. `file.size > 2 * 1024 * 1024 * 1024` → enqueue with `status='error', code='FILE_TOO_LARGE'`，不送 server
   2. else → enqueue with `status='pending'`
 - 視覺：drag over 整頁淡藍 overlay + 「拖入以上傳到當前資料夾」
 
@@ -382,9 +382,9 @@ export async function uploadFile(
   folderId: number | null,
   onProgress: (loaded: number, total: number) => void,
 ): Promise<DriveFile> {
-  if (file.size > 50 * 1024 * 1024) {
-    throw new DriveServiceError('FILE_TOO_LARGE', '檔案超過 50MB 限制', {
-      max_bytes: 50 * 1024 * 1024,
+  if (file.size > 2 * 1024 * 1024 * 1024) {
+    throw new DriveServiceError('FILE_TOO_LARGE', '檔案超過 2GB 限制', {
+      max_bytes: 2 * 1024 * 1024 * 1024,
       actual_bytes: file.size,
     });
   }
@@ -560,7 +560,7 @@ const driveErrorMessages: Record<string, string> = {
   FILE_NOT_FOUND: '檔案不存在或已刪除',
   FOLDER_NOT_FOUND: '資料夾不存在',
   // 上傳限制
-  FILE_TOO_LARGE: '檔案超過 50MB 限制',
+  FILE_TOO_LARGE: '檔案超過 2GB 限制',
   INVALID_MIME: '不支援的檔案類型',
   QUOTA_EXCEEDED: '您的 Drive 容量已滿，請刪除部分檔案',
   UPLOAD_NO_FILE: '請選擇要上傳的檔案',
@@ -613,7 +613,7 @@ export function getDriveErrorDetails(err: unknown): {
 
 | code | details fields | UI 用途 |
 |---|---|---|
-| `FILE_TOO_LARGE` | `max_bytes, actual_bytes` | toast「實際 X MB / 上限 50 MB」 |
+| `FILE_TOO_LARGE` | `max_bytes, actual_bytes` | toast「實際 X / 上限 2 GB」（formatBytes 動態換算）|
 | `QUOTA_EXCEEDED` | `quota_bytes, used_bytes, attempted_bytes` | dialog「需要 X MB / 剩餘 Y MB」 |
 | `MOVE_INTO_DESCENDANT` | `folder_id, target_parent_id` | 顯示具體 folder name |
 | `FOLDER_NOT_EMPTY` | `folder_id, child_count` | 「該資料夾還有 N 個項目」 |
@@ -631,8 +631,8 @@ export function getDriveErrorDetails(err: unknown): {
 [idle]
   → user select / drop files
   → for each File:
-    [validate]  ⚠️ 必須在 enqueue 前完成，size > 50MB 直接 reject，禁止送 axios
-      size > 50MB → enqueue { status: 'error', code: 'FILE_TOO_LARGE' }
+    [validate]  ⚠️ 必須在 enqueue 前完成，size > 2GB 直接 reject，禁止送 axios
+      size > 2GB → enqueue { status: 'error', code: 'FILE_TOO_LARGE' }
       else        → enqueue { status: 'pending' }
   → scheduler: 拉 pending → max 3 concurrent → status='uploading'
     → uploadFile + onProgress (每 200ms throttle 更新 store)
@@ -643,7 +643,7 @@ export function getDriveErrorDetails(err: unknown): {
   → 全 done 後保留 5 分鐘自動 cleanup
 ```
 
-**Contract**：50MB guard 是 **client-side 預阻擋**，目的是「不浪費上傳頻寬」。後端仍有 `FILE_TOO_LARGE` 把關（防偽前端），兩層 defense in depth。e2e §13.2 S2 對應驗證「無 axios 請求送出」。
+**Contract**：2GB guard 是 **client-side 預阻擋**（D.12 後從 50MB 升），目的是「不浪費上傳頻寬 + 防 OOM」。後端仍有 `FILE_TOO_LARGE` 把關（防偽前端），兩層 defense in depth。e2e §13.2 S2 對應驗證「無 axios 請求送出」。
 
 ### 5.2 `UploadQueueStore` (zustand)
 
@@ -823,7 +823,7 @@ interface DriveQuotaStore {
 ## 12. MVP Exclusion List（同 koatag）
 
 - ❌ Write permission 共享（v3）
-- ❌ Chunked / resumable upload（v4，目前 50MB 硬拒）
+- ❌ Chunked / resumable upload（v? 留給 >2GB 用例；D.12 後 50MB 硬拒解禁，單檔上限 2GB）
 - ❌ HLS / 多碼率影片（v3）
 - ❌ Video poster frame（v2）
 - ❌ 全文搜尋（v4，MVP 只檔名 LIKE）
@@ -850,14 +850,14 @@ test('upload 1MB image', async ({ page }) => {
 });
 ```
 
-#### S2: 60MB 上傳被前端 reject
+#### S2: 2.5GB 上傳被前端 reject（D.12 升 2GB 後 fixture 同步調整）
 ```ts
-test('reject > 50MB upload', async ({ page }) => {
+test('reject > 2GB upload', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', r => requests.push(r.url()));
   await page.goto('/drive');
-  await page.locator('input[type=file]').setInputFiles('fixtures/60mb.bin');
-  await expect(page.locator('[data-testid=upload-error]')).toContainText('超過 50MB');
+  await page.locator('input[type=file]').setInputFiles('fixtures/2_5gb.bin');
+  await expect(page.locator('[data-testid=upload-error]')).toContainText('超過 2GB');
   expect(requests.filter(u => u.includes('/api/drive/files'))).toHaveLength(0);
 });
 ```
@@ -972,7 +972,7 @@ test('lightbox magnifier loupe', async ({ page }) => {
 - [x] T5: `Breadcrumb` + `FileGrid` + `FileList` + view toggle
 - [x] T6: `FileCard` / `FolderCard`（含 mime icon 邏輯）
 - [x] T7: `SortMenu` + `SearchBar`（debounce 300ms）
-- [x] T8: `UploadDropzone`（react-dropzone overlay）+ 50MB guard
+- [x] T8: `UploadDropzone`（react-dropzone overlay）+ 2GB guard（D.12 升）
 - [x] T9: `UploadProgressList` + `useUploadScheduler`（max 3 並行）
 - [x] T10: `QuotaIndicator`（sidebar 底）
 - [x] T11: `ContextMenu`（rename / move / delete）
@@ -1015,3 +1015,4 @@ test('lightbox magnifier loupe', async ({ page }) => {
 - v1.0（2026-05-09）：細節 spec freeze candidate
 - v1.1（2026-05-09）：對齊 backend spec patch
 - v1.2（2026-05-14）：implement 階段 P0 + v? + v3 全 done；§15 task 同步勾選；標頭引用對齊 contract v1.2 + backend 實質 v1.5
+- v1.3（2026-05-15）：D.9 Trash UI scaffold（§15.2 加 entry）+ D.12 配額 20GB / 單檔上傳 2GB（§2.5 / §5.1 / §3 errorMap / §13 S2 fixture 同步）

@@ -72,7 +72,8 @@ export const SORT_LABELS: Record<SortKey, string> = {
   updated_at: "修改時間",
 };
 
-export const MAX_SYNC_UPLOAD_BYTES = 50 * 1024 * 1024;
+// D.12 (2026-05-15): per user request 單檔上限 50MB → 2GB（配合 quota 20GB）
+export const MAX_SYNC_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024;
 
 /**
  * 暫時 graceful 404 — backend B9 (folders) / B12 (quota) 尚未實作期間，
@@ -176,7 +177,7 @@ export async function uploadFile(
   signal?: AbortSignal,
 ): Promise<DriveFile> {
   if (file.size > MAX_SYNC_UPLOAD_BYTES) {
-    throw new DriveServiceError("FILE_TOO_LARGE", "檔案超過 50MB 限制", {
+    throw new DriveServiceError("FILE_TOO_LARGE", "檔案超過 2GB 限制", {
       max_bytes: MAX_SYNC_UPLOAD_BYTES,
       actual_bytes: file.size,
     });

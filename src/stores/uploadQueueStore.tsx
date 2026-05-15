@@ -54,7 +54,7 @@ export const useUploadQueueStore = create<UploadQueueState & UploadQueueActions>
         status: oversize ? "error" : "pending",
         progress: 0,
         errorCode: oversize ? "FILE_TOO_LARGE" : undefined,
-        errorMessage: oversize ? "檔案超過 50MB 限制" : undefined,
+        errorMessage: oversize ? "檔案超過 2GB 限制" : undefined,
         enqueuedAt: Date.now(),
       };
       set((s) => ({ queue: [...s.queue, item] }));

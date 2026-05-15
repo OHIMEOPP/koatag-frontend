@@ -14,7 +14,7 @@ interface UploadDropzoneProps {
  *
  * - drag over → 全頁 overlay 顯示「拖入以上傳」
  * - drop → 每個 File 進 uploadQueueStore.enqueue()
- *   - 50MB guard 在 store enqueue 內做（spec §5.1）：超過 → 入 queue with status='error', code='FILE_TOO_LARGE'
+ *   - 2GB guard（D.12）在 store enqueue 內做（spec §5.1）：超過 → 入 queue with status='error', code='FILE_TOO_LARGE'
  *   - 後端 size check 是 last resort（spec §5.1 defense in depth）
  * - click 不觸發 file picker（drag-only 模式，避免誤觸；要 picker 走 button）
  *

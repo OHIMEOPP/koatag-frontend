@@ -23,10 +23,10 @@
 | **架構** | module-A：同 backend repo 新增 `app/Modules/Drive/`，DB 同 `my_db`，table 前綴 `drive_*`，user table 完全共用 | koatag spec §0 |
 | **不引 package** | 自行 PSR-4 autoload，不上 `nwidart/laravel-modules` | koatag spec §0 |
 | **storage 抽象** | 沿用 Laravel `Storage` facade，新增 `'drive'` disk（`visibility=private`）。既有 image 用 `'public'` disk，零衝突（verified） | koatag spec §6 |
-| **配額** | 獨立 table `drive_user_quota`，預設 5GB/user（`.env: DRIVE_DEFAULT_QUOTA=5368709120`），不動 users table | koatag spec §2.5 |
+| **配額** | 獨立 table `drive_user_quota`，預設 **20GB/user**（`.env: DRIVE_DEFAULT_QUOTA=21474836480`，2026-05-15 D.12 從 5GB 升），不動 users table | koatag spec §2.5 |
 | **影片串流** | 雙模式：dev 走 Laravel `BinaryFileResponse`（artisan serve）；prod 走 nginx `X-Accel-Redirect` + `internal;` location。靠 `DRIVE_USE_X_ACCEL` env 切，frontend 完全無感 | koatag spec §13.5 |
 | **Image 與 Drive 邊界** | 完全分開，配額只算 Drive，image 不回算。v2 加 `drive_files.image_data_id` nullable FK 才連結 | koatag spec §0 |
-| **上傳大檔** | MVP 50MB 硬拒（HTTP 413 + `FILE_TOO_LARGE`），前端 client-side guard + 後端 defense in depth；v4 才上 tus 分塊 | koatag spec §0, frontend §5.1 |
+| **上傳大檔** | **2GB 硬拒**（HTTP 413 + `FILE_TOO_LARGE`，`.env: DRIVE_MAX_SYNC_UPLOAD=2147483648`，2026-05-15 D.12 從 50MB 升），前端 client-side guard + 後端 defense in depth；tus 分塊保留 v? 給「超 2GB 用例」 | koatag spec §0, frontend §5.1 |
 | **同資料夾重名** | 接受重名，前端顯示後端回的 `name`（後端不去重），不做 `(1)` `(2)` 自動 | koatag spec §0 |
 | **資料夾樹** | adjacency list (`parent_id`) + MySQL 8 recursive CTE 取麵包屑 / ancestor。防迴圈在 service 層 walk | koatag spec §2.2, §5.2 |
 | **分享機制** | `drive_shares` (ACL, 對 user) + `drive_share_links` (Capability, 公開 token URL)，MVP 只 `read` 權限 | koatag spec §2.3, §2.4 |
@@ -136,10 +136,10 @@ drive.restore                     drive.permanent_delete[.storage_fail]  (v3 D.9
 
 | 層 | 動作 |
 |---|---|
-| **PHP** | `upload_max_filesize=50M / post_max_size=55M / memory_limit=256M` (改 docker-compose.yml line 27 sed 從 500M 降回 55M) |
-| **nginx** (prod) | `client_max_body_size 55M` + `location /internal/drive/ { internal; alias /var/www/html/storage/app/drive/; }` |
+| **PHP** | `upload_max_filesize=2G / post_max_size=2100M / memory_limit=512M / max_execution_time=3600 / max_input_time=3600` (2026-05-15 D.12 從 50M/55M 升 2G 配套) |
+| **nginx** (prod) | `client_max_body_size 2100M` + `client_body_timeout 600s` (slow upload tolerance) + `location ^~ /internal/drive/` (Rule 10) |
 | **docker-compose** | 沿用既有 storage volume，dev 走 `php artisan serve` 模式 + `DRIVE_USE_X_ACCEL=false` |
-| **.env** | `DRIVE_MAX_SYNC_UPLOAD=52428800`、`DRIVE_DEFAULT_QUOTA=5368709120`、`DRIVE_CHUNKED_ENABLED=false`、`DRIVE_DISK=drive`、`DRIVE_USE_X_ACCEL=false` (dev) / `true` (prod) |
+| **.env** | `DRIVE_MAX_SYNC_UPLOAD=2147483648` (2GB)、`DRIVE_DEFAULT_QUOTA=21474836480` (20GB)、`DRIVE_CHUNKED_ENABLED=false`、`DRIVE_DISK=drive`、`DRIVE_USE_X_ACCEL=false` (dev) / `true` (prod) |
 | **filesystems.php** | 加 `'drive' => ['driver' => 'local', 'root' => storage_path('app/drive'), 'visibility' => 'private', 'throw' => false]` |
 | **drive.php** (新檔) | `default_quota_bytes / max_sync_upload_bytes / soft_delete_retention_days=30 / quota_warn_threshold=0.80` |
 | **MySQL** | `mysql:8.0`（verified，recursive CTE 支援）|
@@ -153,7 +153,7 @@ deploy 順序：env + config → PHP/nginx config + rebuild → migration → co
 
 | Item | 何時做 |
 |---|---|
-| 上傳 > 50MB | v4 (tus chunked upload) |
+| 上傳 > 2GB | v? (tus chunked upload，2026-05-15 D.12 從原 v4-50MB 升為「超 2GB 才需」)|
 | 影片 HLS / 多解析度 | v4 |
 | 影片 poster frame (ffmpeg) | v2 |
 | 全文搜尋 (FTS) | v4，MVP 只檔名 LIKE |
@@ -280,7 +280,7 @@ _最後校準: 2026-05-15 overnight round spec drift cleanup（已 done 但 spec
 | v? | Storage GC cron（清 race-fail orphan disk file + 30 day trash hard-delete）| backend ~半天（destructive risk，建議 user oversight）|
 | v? | Folder trash（cascade restore + hard delete 邏輯）| backend ~半天 + 前端 ~1 天 |
 | v? | OOM risk on 10k+ folder zip（in-memory traverse → generator pattern）| backend ~半天（D.11 caveat） |
-| v4 | tus chunked upload (>50MB 解禁)| 前後端 ~3-5 天 |
+| v? | tus chunked upload (>2GB 用例，D.12 後不再 v4-tier)| 前後端 ~3-5 天 |
 | v4 | HLS player wrapper | 前後端 ~2 天 |
 | v4 | FTS 全文搜尋 | 前後端 ~3 天 |
 | v5 | S3 / MinIO 切換評估 | architectural decision round |
