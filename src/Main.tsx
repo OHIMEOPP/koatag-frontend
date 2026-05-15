@@ -31,7 +31,7 @@ const Main = () => {
             return;
         };
 
-        fetchIcon('check_img_type', 'backGoundImage', String(user_id))
+        fetchIcon('check_img_type', 'backGoundImage')
             .then(response => {
                 const imgPath = response?.result?.img_path;
                 if (!imgPath) {

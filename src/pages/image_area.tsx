@@ -48,10 +48,8 @@ const Image_area = () => {
     useEffect(() => {
         const fetchImages = async () => {
             try {
-                const user_id = localStorage.getItem('user_id');
-                if (!user_id) return;
-
-                const res = await getImageList(user_id, {
+                // D.17: user_id 不再 client 傳，backend 從 JWT 取
+                const res = await getImageList({
                     tag: tagParam ?? undefined,
                     tag_group: (groupParam as any) ?? undefined,
                     is_public: isPublic ?? undefined,

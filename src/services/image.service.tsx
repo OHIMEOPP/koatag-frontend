@@ -1,14 +1,14 @@
 import api from "api/axios";
 import { ImageResponseType, ResponseType } from "components";
 
-export const fetchIcon = async (check_img_type: string, type: string, user_id: string): Promise<ResponseType> => {
-    const response = await api.get<ResponseType>(`/image/findOneImg/${check_img_type}/${type}/${user_id}`)
-    // console.log(response.data)
+// D.17 (2026-05-15): user_id 從 URL 拔除，backend 從 JWT 取（spec §15.1 T14 IDOR fix 對齊 Drive endpoints）
+
+export const fetchIcon = async (check_img_type: string, type: string): Promise<ResponseType> => {
+    const response = await api.get<ResponseType>(`/image/findOneImg/${check_img_type}/${type}`)
     return response.data
 }
 export const UploadInterfaceImage = async (formData: FormData) => {
-    const user_id = localStorage.getItem('user_id');
-    const response = await api.post<ResponseType>(`/image/InterfaceImage/${user_id}`,
+    const response = await api.post<ResponseType>(`/image/InterfaceImage`,
         formData,
         {
             headers: {
@@ -19,8 +19,7 @@ export const UploadInterfaceImage = async (formData: FormData) => {
     return response
 }
 export const UploadImage = async (formData: FormData) => {
-    const user_id = localStorage.getItem('user_id');
-    const response = await api.post<ResponseType>(`/image/upload/${user_id}`,
+    const response = await api.post<ResponseType>(`/image/upload`,
         formData,
         {
             headers: {
@@ -50,12 +49,11 @@ export interface ImageListParams {
     size?: number;
 }
 
-export const getImageList = async (user_id: string, params: ImageListParams = {}): Promise<ImageResponseType> => {
+export const getImageList = async (params: ImageListParams = {}): Promise<ImageResponseType> => {
     // direct 打 Laravel；axios interceptor 預設把 GET 導 NodeRED，這裡顯式覆寫。
-    const response = await api.get<ImageResponseType>(`/image/list/${user_id}`, {
+    const response = await api.get<ImageResponseType>(`/image/list`, {
         baseURL: process.env.REACT_APP_API_URL,
         params,
     });
     return response.data;
 };
-

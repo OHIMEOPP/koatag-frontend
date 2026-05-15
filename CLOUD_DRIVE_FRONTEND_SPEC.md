@@ -3,7 +3,7 @@
 > 三方共識討論產出之一
 > 對應：koatag backend spec（`KOATAG/CLOUD_DRIVE_BACKEND_SPEC.md` 實質 v1.5）+ wiki 8 篇 reference（含 監軍角色SOP）
 > 最終會與 backend spec 彙整成 `CLOUD_DRIVE_SPEC.md`
-> 狀態：v1.6 (post-MVP — D.9 Trash + D.12 2GB/20GB + D.14 createFolder UI + D.14b empty area menu + D.16 2GB upload UX hardening，2026-05-15)
+> 狀態：v1.7 (post-MVP — 加 D.17 image / tag / pageInfo service URL hygiene，2026-05-15)
 > 對應 wiki 監軍對齊報告：`life_wiki/wiki/output/koatag-drive-alignment-2026-05-14.md`
 
 ---
@@ -1019,7 +1019,7 @@ test('lightbox magnifier loupe', async ({ page }) => {
 - [x] T11: `ContextMenu`（rename / move / delete）+ `NewFolderDialog` D.14 補做（spec §2.10b）+ `EmptyAreaContextMenu` D.14b 補做（spec §2.10c）— 完成 createFolder UI affordance 全 wire（2026-05-15）
 - [x] T12: `VideoPlayer`（preload metadata）
 - [x] T13: `DriveFilePage`（lightbox / video player 整合）
-- [x] T14: IDOR fix — image/tag service 移除 user_id path param + service test
+- [x] T14: IDOR fix — image/tag service 移除 user_id path param + service test（D.17 真實 land 2026-05-15：5 service file rewrite + 4 consumer call site fix；backend #569 同 batch deploy）
 - [x] T15: Playwright e2e setup + S1-S7
 
 ### 15.2 第二批 (P1, v2-v3)
@@ -1060,3 +1060,4 @@ test('lightbox magnifier loupe', async ({ page }) => {
 - v1.4（2026-05-15）：D.14 createFolder UI affordance 補做（§2.10b NewFolderDialog 新段；§15.1 T11 done note + 補做說明）— 修 D.13 playwright finding gap
 - v1.5（2026-05-15）：D.14b 空白處右鍵 context menu 補做（§2.10c EmptyAreaContextMenu 新段；新增資料夾 + 上傳檔案 2 actions；§15.1 T11 done note 同步）
 - v1.6（2026-05-15）：D.16 2GB upload UX hardening — onUploadProgress 250ms throttle + retry max 3 / counter chip + ETA/speed 顯示（≥1MB 才顯）+ UploadItem 加 retryCount / bytesSent / startedAt fields（§2.6 + §5.2 spec 同步）
+- v1.7（2026-05-15）：D.17 image / tag / pageInfo service URL hygiene — 5 service files (image / tag / front_page / image_page / upload_page) 移除 URL `{user_id}` path param + 4 consumer call site fix；backend #569 同 batch；T14 task done note 真實 land

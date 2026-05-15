@@ -1,10 +1,10 @@
 import api from "api/axios";
 import { ResponseType } from "components"
 
+// D.17 (2026-05-15): user_id 從 URL 拔除，backend 從 JWT 取
 export const getImagePageInfo = async (img_id: string) => {
     try {
-        const user_id = localStorage.getItem('user_id');
-        const response = await api.get<ResponseType>(`/pageInfo/getImageForPage/${img_id}/${user_id}`);
+        const response = await api.get<ResponseType>(`/pageInfo/getImageForPage/${img_id}`);
         return response.data;
     } catch (error) {
         console.error("Unexpected Error:", error);
@@ -13,8 +13,7 @@ export const getImagePageInfo = async (img_id: string) => {
 }
 export const update = async (formData: FormData, img_id: string) => {
     try {
-        const user_id = localStorage.getItem('user_id');
-        const response = await api.post<ResponseType>(`/image/updateImageData/${img_id}/${user_id}`,
+        const response = await api.post<ResponseType>(`/image/updateImageData/${img_id}`,
             formData,
             {
                 headers: {
