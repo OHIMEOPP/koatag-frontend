@@ -3,7 +3,7 @@
 > 三方共識討論產出之一
 > 對應：koatag backend spec（`KOATAG/CLOUD_DRIVE_BACKEND_SPEC.md` 實質 v1.5）+ wiki 8 篇 reference（含 監軍角色SOP）
 > 最終會與 backend spec 彙整成 `CLOUD_DRIVE_SPEC.md`
-> 狀態：v1.3 (post-MVP — D.9 Trash scaffold + D.12 配額 20GB/上傳 2GB，2026-05-15)
+> 狀態：v1.4 (post-MVP — D.9 Trash scaffold + D.12 配額 20GB/上傳 2GB + D.14 createFolder UI 補做，2026-05-15)
 > 對應 wiki 監軍對齊報告：`life_wiki/wiki/output/koatag-drive-alignment-2026-05-14.md`
 
 ---
@@ -184,6 +184,20 @@ interface ContextMenuProps {
 ```
 - 觸發：右鍵 / long-press（mobile）
 - 動作差異：folder 沒有 download；MVP 沒有 share（v3 才開）
+
+### 2.10b `NewFolderDialog`（D.14 補做）
+
+```ts
+interface NewFolderDialogProps {
+  parentLabel: string;        // 顯示「在 X 新增資料夾」title context
+  onSubmit: (name: string) => Promise<void>;
+  onClose: () => void;
+}
+```
+- 觸發：DrivePage toolbar「+ 新增資料夾」button（SearchBar / SortMenu 同 row）
+- 對齊 `RenameDialog` 視覺 + 互動 pattern（Enter submit / ESC close / overlay click close / maxLength 255）
+- submit 走 `createFolder(name, currentFolderId)` → 成功後 `invalidateTree()` 刷 grid + breadcrumb
+- empty area 右鍵 menu 「新增資料夾」action（optional D.14b backlog）
 
 ### 2.11 `ImageLightbox` 適配
 
@@ -975,7 +989,7 @@ test('lightbox magnifier loupe', async ({ page }) => {
 - [x] T8: `UploadDropzone`（react-dropzone overlay）+ 2GB guard（D.12 升）
 - [x] T9: `UploadProgressList` + `useUploadScheduler`（max 3 並行）
 - [x] T10: `QuotaIndicator`（sidebar 底）
-- [x] T11: `ContextMenu`（rename / move / delete）
+- [x] T11: `ContextMenu`（rename / move / delete）+ `NewFolderDialog` D.14 補做（2026-05-15，spec §2.10b）
 - [x] T12: `VideoPlayer`（preload metadata）
 - [x] T13: `DriveFilePage`（lightbox / video player 整合）
 - [x] T14: IDOR fix — image/tag service 移除 user_id path param + service test
@@ -1016,3 +1030,4 @@ test('lightbox magnifier loupe', async ({ page }) => {
 - v1.1（2026-05-09）：對齊 backend spec patch
 - v1.2（2026-05-14）：implement 階段 P0 + v? + v3 全 done；§15 task 同步勾選；標頭引用對齊 contract v1.2 + backend 實質 v1.5
 - v1.3（2026-05-15）：D.9 Trash UI scaffold（§15.2 加 entry）+ D.12 配額 20GB / 單檔上傳 2GB（§2.5 / §5.1 / §3 errorMap / §13 S2 fixture 同步）
+- v1.4（2026-05-15）：D.14 createFolder UI affordance 補做（§2.10b NewFolderDialog 新段；§15.1 T11 done note + 補做說明）— 修 D.13 playwright finding gap

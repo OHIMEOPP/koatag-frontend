@@ -16,12 +16,15 @@ import {
   MoveDialog,
   ConfirmDialog,
   ShareDialog,
+  NewFolderDialog,
 } from "components/drive";
+import { Icon } from "components/Icon";
 import {
   DriveFile,
   DriveFolder,
   SortKey,
   SortOrder,
+  createFolder,
   deleteFile,
   deleteFolder,
   renameOrMove,
@@ -115,6 +118,8 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
   const [ctx, setCtx] = useState<{ ctx: CtxItem; pos: { x: number; y: number } } | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // D.14: NewFolderDialog open state（不走 ctx-based ModalState，因為創 folder 沒 source item）
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
 
   useEffect(() => {
     setCurrent(folderId);
@@ -210,6 +215,15 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
             order={viewOpts.order ?? "asc"}
             onChange={handleSortChange}
           />
+          <button
+            type="button"
+            className="drive-modal-btn drive-modal-btn-primary"
+            onClick={() => setNewFolderOpen(true)}
+            title="新增資料夾"
+          >
+            <Icon.plus size={14} />
+            <span>新增資料夾</span>
+          </button>
         </div>
         {actionError && (
           <div className="drive-error" onClick={() => setActionError(null)}>
@@ -278,6 +292,20 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
               await deleteFolder(modal.ctx.item.id);
             }
             await Promise.all([invalidateTree(), invalidateQuota()]);
+          }}
+        />
+      )}
+      {newFolderOpen && (
+        <NewFolderDialog
+          parentLabel={
+            folderId == null
+              ? "Drive"
+              : breadcrumb[breadcrumb.length - 1]?.name ?? "資料夾"
+          }
+          onClose={() => setNewFolderOpen(false)}
+          onSubmit={async (name) => {
+            await createFolder(name, folderId);
+            await invalidateTree();
           }}
         />
       )}
