@@ -11,6 +11,8 @@ interface FileListProps {
     kind: "file" | "folder",
     e: React.MouseEvent,
   ) => void;
+  // D.14b: 列表底下空白處右鍵 — 對齊 FileGrid 行為
+  onEmptyContextMenu?: (e: React.MouseEvent) => void;
 }
 
 function formatDate(iso: string): string {
@@ -24,9 +26,18 @@ export const FileList: React.FC<FileListProps> = ({
   files,
   onItemOpen,
   onItemContextMenu,
+  onEmptyContextMenu,
 }) => {
   return (
-    <table className="drive-list">
+    <table
+      className="drive-list"
+      onContextMenu={(e) => {
+        if (e.target === e.currentTarget && onEmptyContextMenu) {
+          e.preventDefault();
+          onEmptyContextMenu(e);
+        }
+      }}
+    >
       <thead>
         <tr>
           <th aria-label="icon" />

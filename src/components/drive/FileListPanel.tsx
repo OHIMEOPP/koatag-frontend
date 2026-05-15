@@ -15,6 +15,8 @@ interface FileListPanelProps {
     kind: "file" | "folder",
     e: React.MouseEvent,
   ) => void;
+  // D.14b: empty 狀態 + grid/list gap 空白右鍵
+  onEmptyContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export const FileListPanel: React.FC<FileListPanelProps> = (props) => {
@@ -46,7 +48,17 @@ export const FileListPanel: React.FC<FileListPanelProps> = (props) => {
         </div>
       </div>
       {empty ? (
-        <div className="drive-empty">這個資料夾沒有任何檔案或資料夾</div>
+        <div
+          className="drive-empty"
+          onContextMenu={(e) => {
+            if (props.onEmptyContextMenu) {
+              e.preventDefault();
+              props.onEmptyContextMenu(e);
+            }
+          }}
+        >
+          這個資料夾沒有任何檔案或資料夾
+        </div>
       ) : view === "grid" ? (
         <FileGrid {...props} />
       ) : (

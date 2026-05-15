@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { useFolderTreeStore } from "stores/folderTreeStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
 import { useBorrowedSharesStore, borrowedKey } from "stores/borrowedSharesStore";
+import { useUploadQueueStore } from "stores/uploadQueueStore";
+import { useDialogEsc } from "hooks/useDialogEsc";
 import {
   Breadcrumb,
   FileListPanel,
@@ -120,6 +122,10 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
   const [actionError, setActionError] = useState<string | null>(null);
   // D.14: NewFolderDialog open state（不走 ctx-based ModalState，因為創 folder 沒 source item）
   const [newFolderOpen, setNewFolderOpen] = useState(false);
+  // D.14b: empty area right-click context menu state
+  const [emptyCtx, setEmptyCtx] = useState<{ x: number; y: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const enqueue = useUploadQueueStore((s) => s.enqueue);
 
   useEffect(() => {
     setCurrent(folderId);
@@ -240,6 +246,9 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
             files={files}
             onItemOpen={handleOpen}
             onItemContextMenu={handleContextMenu}
+            onEmptyContextMenu={(e) =>
+              setEmptyCtx({ x: e.clientX, y: e.clientY })
+            }
           />
         )}
       </div>
@@ -252,6 +261,36 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
           onClose={() => setCtx(null)}
         />
       )}
+      {emptyCtx && (
+        <EmptyAreaContextMenu
+          position={emptyCtx}
+          onNewFolder={() => {
+            setEmptyCtx(null);
+            setNewFolderOpen(true);
+          }}
+          onUploadFile={() => {
+            setEmptyCtx(null);
+            fileInputRef.current?.click();
+          }}
+          onClose={() => setEmptyCtx(null)}
+        />
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const list = e.target.files;
+          if (list) {
+            for (let i = 0; i < list.length; i++) {
+              enqueue(list[i], folderId);
+            }
+          }
+          // reset 讓同檔重選也能觸發 change
+          e.target.value = "";
+        }}
+      />
       {modal?.type === "rename" && (
         <RenameDialog
           initialName={modal.ctx.item.name}
@@ -356,6 +395,50 @@ const ContextMenuWithPermission: React.FC<{
       onAction={onAction}
       onClose={onClose}
     />
+  );
+};
+
+// D.14b: 空白處右鍵 menu — inline component（沿用 D.9 TrashContextMenu / 既有 .drive-ctxmenu 樣式，不污染既有 item ContextMenu）
+const EmptyAreaContextMenu: React.FC<{
+  position: { x: number; y: number };
+  onNewFolder: () => void;
+  onUploadFile: () => void;
+  onClose: () => void;
+}> = ({ position, onNewFolder, onUploadFile, onClose }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useDialogEsc(onClose);
+  useEffect(() => {
+    const handleDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handleDoc);
+    return () => document.removeEventListener("mousedown", handleDoc);
+  }, [onClose]);
+  const style: React.CSSProperties = {
+    left: Math.min(position.x, window.innerWidth - 200),
+    top: Math.min(position.y, window.innerHeight - 120),
+  };
+  return (
+    <div className="drive-ctxmenu" style={style} ref={ref} role="menu">
+      <button
+        type="button"
+        className="drive-ctxmenu-item"
+        onClick={onNewFolder}
+        role="menuitem"
+      >
+        <Icon.plus size={14} />
+        <span>新增資料夾</span>
+      </button>
+      <button
+        type="button"
+        className="drive-ctxmenu-item"
+        onClick={onUploadFile}
+        role="menuitem"
+      >
+        <Icon.upload size={14} />
+        <span>上傳檔案</span>
+      </button>
+    </div>
   );
 };
 

@@ -12,6 +12,8 @@ interface FileGridProps {
     kind: "file" | "folder",
     e: React.MouseEvent,
   ) => void;
+  // D.14b: 空白處（cards 之間的 gap）右鍵 — 只當 target === currentTarget 時 fire
+  onEmptyContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export function formatBytes(n: number): string {
@@ -35,9 +37,19 @@ export const FileGrid: React.FC<FileGridProps> = ({
   files,
   onItemOpen,
   onItemContextMenu,
+  onEmptyContextMenu,
 }) => {
   return (
-    <div className="drive-grid">
+    <div
+      className="drive-grid"
+      onContextMenu={(e) => {
+        // 只有真在 grid 容器本身的 gap 上右鍵（target 不是 card）才 fire
+        if (e.target === e.currentTarget && onEmptyContextMenu) {
+          e.preventDefault();
+          onEmptyContextMenu(e);
+        }
+      }}
+    >
       {folders.map((folder) => (
         <FolderCard
           key={`folder-${folder.id}`}
