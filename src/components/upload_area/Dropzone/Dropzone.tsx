@@ -2,6 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Btn, Icon } from 'components';
 import { $message } from 'utils';
 
+// D.18 (2026-05-15): 對齊 backend UploadController mime whitelist (#579)。
+// SVG 排除（embedded JS XSS）、BMP/TIFF 排除（polyglot risk）。
+const ALLOWED_IMAGE_MIMES = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+] as const;
+const ACCEPT_ATTR = ALLOWED_IMAGE_MIMES.join(',');
+
 interface DropzoneProps {
     files: File[];
     onFilesChange: (files: File[]) => void;
@@ -65,6 +77,18 @@ const Dropzone: React.FC<DropzoneProps> = ({
             $message('上傳限制尚未載入完成', 'warning');
             return;
         }
+        // D.18: MIME pre-validate — 對齊 backend whitelist 提早 reject 防浪費上傳頻寬
+        // drag-drop 路徑 accept attr 不檢，靠這層擋
+        const badMime = list.find(
+            (f) => !ALLOWED_IMAGE_MIMES.includes(f.type as typeof ALLOWED_IMAGE_MIMES[number]),
+        );
+        if (badMime) {
+            $message(
+                `${badMime.name} 不是支援的圖片格式（JPEG / PNG / GIF / WebP / HEIC / HEIF）`,
+                'warning',
+            );
+            return;
+        }
         const maxSizeBytes = maxSizeMB * 1024 * 1024;
         const totalSizeBytes = totalSizeMB * 1024 * 1024;
 
@@ -115,7 +139,7 @@ const Dropzone: React.FC<DropzoneProps> = ({
             <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={ACCEPT_ATTR}
                 multiple
                 style={{ display: 'none' }}
                 onChange={handleFileChange}

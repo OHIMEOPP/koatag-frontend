@@ -80,8 +80,15 @@ const Upload_area: React.FC = () => {
             } else {
                 $message(response.message ?? '上傳失敗', 'error');
             }
-        } catch (err) {
-            $message(`上傳失敗\n${err}`, 'error');
+        } catch (err: any) {
+            // D.18: backend 415 INVALID_MIME 顯 friendly message（對齊 #579 mime whitelist）
+            const status = err?.response?.status;
+            const code = err?.response?.data?.error?.code;
+            if (status === 415 || code === 'INVALID_MIME') {
+                $message('只接受圖片檔（JPEG / PNG / GIF / WebP / HEIC / HEIF）', 'error');
+            } else {
+                $message(`上傳失敗\n${err}`, 'error');
+            }
         } finally {
             setSubmitting(false);
         }
