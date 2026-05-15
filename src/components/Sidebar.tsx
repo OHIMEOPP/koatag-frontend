@@ -27,11 +27,16 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
       { to: '/main/front_page',  label: '首頁',     icon: 'home' },
       { to: '/main/image_area',  label: '圖庫',     icon: 'gallery', badge: '1,716' },
       { to: '/main/upload_area', label: '上傳',     icon: 'upload' },
+      { to: '/main/front_page',  label: '我的最愛',  icon: 'heart',   badge: '184', placeholder: true },
+    ],
+  },
+  {
+    section: '雲端硬碟',
+    items: [
       { to: '/main/drive',           label: 'Drive',     icon: 'cloud' },
       { to: '/main/drive/shared/in', label: '共享給我',  icon: 'heart' },
       { to: '/main/drive/shared/out',label: '我的分享',  icon: 'link' },
       { to: '/main/drive/trash',     label: '垃圾桶',    icon: 'trash' },
-      { to: '/main/front_page',      label: '我的最愛',  icon: 'heart',   badge: '184', placeholder: true },
     ],
   },
   {
