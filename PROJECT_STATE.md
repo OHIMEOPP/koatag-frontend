@@ -2,23 +2,24 @@
 
 > 新 session 啟動先讀此 + `git status` + `git log -5`。
 > 規則：close 一 round 就更新；過時直接覆寫不保歷史（live state ≠ archive）。
-> 詳細 spec 看 `CLOUD_DRIVE_FRONTEND_SPEC.md` v1.5 / `CLOUD_DRIVE_SPEC.md` v1.2。
+> 詳細 spec 看 `CLOUD_DRIVE_FRONTEND_SPEC.md` v1.7 / `CLOUD_DRIVE_SPEC.md` v1.2。
 
 ---
 
 ## In-flight（等動作）
 
-無 active dispatch — D.13 / D.14 / D.14b 補做 chain 三方 close（per wiki #556）。等 user 跑 browser smoke 或下個 round dispatch（Medium tier backlog 之一）。
+無 active dispatch — D.16 + D.17 三方 close（per wiki #565 / #576）。等 user 排下個 round 或新 dispatch。
 
 ## Live in prod-like container
 
-`koatag_fontend` (docker, port 3000) serving `main.bd8811e5.js` — 2026-05-15 06:08 GMT cp。內含累積：
+`koatag_fontend` (docker, port 3000) serving `main.3efed136.js` — 2026-05-15 07:22 GMT cp。內含累積：
 - D.1 A+B+C share / video onError / v?-zip landing
 - D.9 v3 Trash UI scaffold
 - D.12 上傳 2GB / 配額 20GB
-- D.14 createFolder UI affordance（toolbar button）
-- D.14b empty area right-click context menu
-- Sidebar 雲端硬碟 section 從媒體分出（commit `44fb676`）
+- D.14 / D.14b createFolder UI（toolbar + empty area context menu）
+- D.16 2GB upload UX hardening（throttle / retry max 3 / ETA / speed）
+- D.17 image / tag / pageInfo service URL `{user_id}` 拔除（IDOR fix 真實 land）
+- Sidebar 雲端硬碟 section 從媒體分出
 
 D.6 video poster frame 純 backend `thumb_path` 寫入，前端透明消費。
 
@@ -34,8 +35,9 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 ## 功能 backlog — E2EE 相關性三色分類（per wiki #568）
 
 ### ⚪ E2EE 不相關 — 可單獨做不浪費
-- v3 Image endpoint `{user_id}` 拔除 URL hygiene（跨 image module 1-2 天 effort）
 - 4 CSS class polish（`drive-trash-hint` / `-warn` / `-pager` / `drive-modal-btn-danger`）
+- ✅ D.17 Image endpoint URL hygiene（2026-05-15 三方 close per wiki #576）— done
+- 🟡 D.18 Image upload MIME validation（wiki #576 提 — user 上傳 .txt/.docx 進圖庫 backend 沒擋；等 user 決定是否 dispatch）
 
 ### 🟡 Co-design opportunity — E2EE round 一起更省
 - v? 2GB upload UX hardening（D.16 已 land throttle/retry/ETA，剩 chunked resume 連 E2EE resume token + key derivation 一起 design）
@@ -55,18 +57,21 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 ## 三方 status snapshot
 
 - contract `CLOUD_DRIVE_SPEC.md`：v1.2（committed 5012f2e + wiki D.12 patches in 5893232）
-- backend spec：實質 v1.5（wiki 主導）
-- frontend spec `CLOUD_DRIVE_FRONTEND_SPEC.md`：v1.5（D.14b spec patch committed dd958e1）
-- 最後 mailbox round close：D.14b（wiki #556 ack）
+- backend spec：實質 v1.5+（wiki 主導；D.17 cross-ref 已 patch）
+- frontend spec `CLOUD_DRIVE_FRONTEND_SPEC.md`：v1.7（D.17 spec patch committed a76c490）
+- 最後 mailbox round close：D.17（wiki #576 ack — 三方 full chain 10/10 case pass）
 
 ## Recent commits (this session)
 
 ```
+a76c490 feat(image/tag): D.17 service URL hygiene — remove user_id path param
+3a3b2f9 docs: PROJECT_STATE.md backlog 三色分類 per wiki #568
+f66bcbe feat(drive): D.16 2GB upload UX hardening
+1f140f5 docs: PROJECT_STATE.md sync — D.13/D.14/D.14b chain + sidebar reorg close
 dd958e1 feat(drive): D.14b empty area right-click context menu
 44fb676 feat(sidebar): split 雲端硬碟 section out from 媒體
 d1736e3 chore: remove stale DESIGN_SYSTEM.md + WEBSITE_FEATURES.md
 b96de6b feat(drive): D.14 createFolder UI affordance — fix D.13 playwright gap
-5d3329b docs: PROJECT_STATE.md sync — D.1/D.6/D.9/D.12 round close
 5893232 feat(drive): D.12 single-file upload 50MB->2GB + quota 5GB->20GB
 9337354 feat(drive): D.9 v3 Trash UI scaffold + startup pattern + state board
 ```
