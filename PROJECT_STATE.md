@@ -8,7 +8,9 @@
 
 ## In-flight（等動作）
 
-D.19 frontend 已 land + cp（per wiki #690）— 等 wiki ack + 跟 backend round 收尾互相 reference。
+E2EE Round 1 frontend catalogue 已 land + close（per wiki #703/#704 dispatch → #712 fill → #715 ack → #716 close ack）。等 user Discord DM review 後 Round 2 dispatch（backend-led #1 Key hierarchy + KDF pipeline 起；frontend 可平行起 mock client prototype 但等 user GO 不擅動）。
+
+D.19 frontend ship done（commit `f72fa04` + 容器 cp `main.d625f217.js`）。
 
 ## Live in prod-like container
 
@@ -43,27 +45,31 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 - ✅ D.18 Image upload MIME validation — 整段 done（backend `1ef4dbf` whitelist + fileinfo magic-byte security gate；frontend `e12c93a` 3 optionals UX；三方 close per wiki #659）
 
 ### 🟡 Co-design opportunity — E2EE round 一起更省
-- v? 2GB upload UX hardening（D.16 已 land throttle/retry/ETA，剩 chunked resume 連 E2EE resume token + key derivation 一起 design）
-- v? tus chunked upload UI 對應（>2GB 用例；chunk-encrypt 順序前端串接）
-- v? D.9 cascade share rebuild UI（E2EE share = key 共享 → UI 流程跟現行純 ACL revoke 不一樣）
+- v? 2GB upload UX hardening（D.16 已 land throttle/retry/ETA，剩 chunked resume 連 E2EE resume token + key derivation 一起 design）— Round 2 #3 upload pipeline
+- v? tus chunked upload UI 對應（>2GB 用例；chunk-encrypt 順序前端串接）— Round 2 #3
+- v? D.9 cascade share rebuild UI（E2EE share = key 共享 → UI 流程跟現行純 ACL revoke 不一樣）— Round 2 #4 share flow
 
 ### 🔴 等 E2EE 一起 design — stand-alone 會白工
-- v? Folder trash cascade UI（cascade semantic 跟 key forget batch 對齊）
-- v4 HLS player UI — server-side transcode 對 ciphertext 不可能
-- v4 FTS 全文搜尋 UI — server-side index 跟 E2EE 矛盾
+- v? Folder trash cascade UI（cascade semantic 跟 key forget batch 對齊）— Round 2 #4 share flow
+- v4 HLS player UI — server-side transcode 對 ciphertext 不可能 → Round 2 #7 streaming decrypt 或 defer round N
+- v4 FTS 全文搜尋 UI — server-side index 跟 E2EE 矛盾 → defer round N
+
+### 🟣 E2EE Round 1 額外列入 Round 2 housekeeping batch（#9）
+- inline style CSP cleanup（既有 Dropzone `style={{...}}` 一堆要轉 className 才好設 strict CSP）
+- e2e suite 整套重寫（既有 `tests/e2e/drive.*.spec.ts` plaintext flow assumption）
+- EXIF PII redact（圖庫留 plaintext 仍 leak GPS / 機器型號）
 
 ## Active backlog（next round 候選）
 
-⚪ 段全清完。等 user 排或 wiki dispatch。  
-🟡 / 🔴 段 6 條視作「E2EE-aware deferrals」，未來 E2EE design round 一併 review。
+⚪ 段全清完，🟡 / 🔴 / 🟣 段全列入 E2EE Round 2 9-step（仲裁見 wiki output `koatag-e2ee-alignment-2026-05-17.md` §3.5）。等 user Discord DM 後 Round 2 dispatch。
 
 ## 三方 status snapshot
 
 - contract `CLOUD_DRIVE_SPEC.md`：v1.2（committed 5012f2e + wiki D.12 patches in 5893232）
 - backend spec：實質 v1.5+（wiki 主導；D.17 cross-ref 已 patch）
 - frontend spec `CLOUD_DRIVE_FRONTEND_SPEC.md`：v1.7（D.17 spec patch committed a76c490）
-- 最後 mailbox round close：container cp（wiki #685 ack — main.70b1a2aa.js / main.acc32769.css live）
-- 當前 in-flight：D.19 frontend（wiki #690）— 已 ship + cp，等 wiki ack
+- 最後 mailbox round close：E2EE R1 frontend catalogue（wiki #716 — `koatag-e2ee-alignment-2026-05-17.md` §2.1-2.8 fill 完，跟 backend §1 cross-ref 對齊度高）
+- 當前 in-flight：等 user Discord DM review + Round 2 dispatch（backend-led #1 Key hierarchy；frontend 可平行 mock client 待 user GO）
 
 ## Recent commits (this session)
 
