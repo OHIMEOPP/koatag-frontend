@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Btn, Icon, Data, Dropzone, UploadForm } from 'components';
+import {
+    MAX_IMAGE_BATCH_COUNT,
+    MAX_IMAGE_FILE_BYTES,
+    MAX_IMAGE_BATCH_BYTES,
+} from 'components/upload_area/Dropzone/Dropzone';
 import { getUploadAreaInfo } from 'services/pageInfo/upload_page.service';
 import { UploadImage } from 'services/image.service';
 import { $message } from 'utils';
@@ -28,9 +33,17 @@ const Upload_area: React.FC = () => {
             .catch((e) => console.error('getUploadAreaInfo failed', e));
     }, []);
 
-    const maxFiles = uploadAreaInfo?.max_file_uploads;
-    const maxSizeMB = uploadAreaInfo?.upload_max_filesize_MB;
-    const totalSizeMB = uploadAreaInfo?.post_max_size_MB;
+    // D.19 (2026-05-16): page-sub 顯示 app-level stricter 限制
+    // PHP ini 限制（getUploadAreaInfo）若比 D.19 寬，UI 仍顯 D.19 數值
+    const phpMaxFiles = uploadAreaInfo?.max_file_uploads;
+    const phpMaxSizeMB = uploadAreaInfo?.upload_max_filesize_MB;
+    const phpTotalSizeMB = uploadAreaInfo?.post_max_size_MB;
+    const maxFiles = phpMaxFiles !== undefined
+        ? Math.min(MAX_IMAGE_BATCH_COUNT, phpMaxFiles) : undefined;
+    const maxSizeMB = phpMaxSizeMB !== undefined
+        ? Math.min(MAX_IMAGE_FILE_BYTES / 1024 / 1024, phpMaxSizeMB) : undefined;
+    const totalSizeMB = phpTotalSizeMB !== undefined
+        ? Math.min(MAX_IMAGE_BATCH_BYTES / 1024 / 1024, phpTotalSizeMB) : undefined;
 
     const resetForm = () => {
         setFiles([]);
@@ -81,11 +94,19 @@ const Upload_area: React.FC = () => {
                 $message(response.message ?? '上傳失敗', 'error');
             }
         } catch (err: any) {
-            // D.18: backend 415 INVALID_MIME 顯 friendly message（對齊 #579 mime whitelist）
+            // D.18 / D.19: backend friendly error mapping
             const status = err?.response?.status;
             const code = err?.response?.data?.error?.code;
             if (status === 415 || code === 'INVALID_MIME') {
                 $message('只接受圖片檔（JPEG / PNG / GIF / WebP / HEIC / HEIF）', 'error');
+            } else if (code === 'TOO_MANY_FILES') {
+                $message(`一次最多上傳 ${MAX_IMAGE_BATCH_COUNT} 個圖片`, 'error');
+            } else if (code === 'FILE_TOO_LARGE') {
+                const limitMB = (MAX_IMAGE_FILE_BYTES / 1024 / 1024).toFixed(0);
+                $message(`單檔超過 ${limitMB} MB 上限`, 'error');
+            } else if (code === 'BATCH_TOO_LARGE') {
+                const limitMB = (MAX_IMAGE_BATCH_BYTES / 1024 / 1024).toFixed(0);
+                $message(`批次總和超過 ${limitMB} MB`, 'error');
             } else {
                 $message(`上傳失敗\n${err}`, 'error');
             }

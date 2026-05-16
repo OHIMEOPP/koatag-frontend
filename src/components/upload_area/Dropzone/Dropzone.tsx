@@ -14,6 +14,12 @@ const ALLOWED_IMAGE_MIMES = [
 ] as const;
 const ACCEPT_ATTR = ALLOWED_IMAGE_MIMES.join(',');
 
+// D.19 (2026-05-16): 圖庫應用層上限（跟 backend UploadController 平行 enforce）
+// PHP ini 限制（getUploadAreaInfo）可能比這寬，take stricter
+export const MAX_IMAGE_FILE_BYTES = 50 * 1024 * 1024;       // 50 MB
+export const MAX_IMAGE_BATCH_BYTES = 500 * 1024 * 1024;     // 500 MB
+export const MAX_IMAGE_BATCH_COUNT = 10;
+
 interface DropzoneProps {
     files: File[];
     onFilesChange: (files: File[]) => void;
@@ -89,21 +95,29 @@ const Dropzone: React.FC<DropzoneProps> = ({
             );
             return;
         }
-        const maxSizeBytes = maxSizeMB * 1024 * 1024;
-        const totalSizeBytes = totalSizeMB * 1024 * 1024;
+        // D.19: 應用層 vs PHP ini 取 stricter（min）
+        const effectiveMaxFile = Math.min(MAX_IMAGE_FILE_BYTES, maxSizeMB * 1024 * 1024);
+        const effectiveMaxBatch = Math.min(MAX_IMAGE_BATCH_BYTES, totalSizeMB * 1024 * 1024);
+        const effectiveMaxCount = Math.min(MAX_IMAGE_BATCH_COUNT, maxFiles);
 
-        const tooLarge = list.find((f) => f.size >= maxSizeBytes);
-        if (tooLarge) {
-            $message(`${tooLarge.name} (${(tooLarge.size / 1024 / 1024).toFixed(2)} MB) 大於單檔上限 ${maxSizeMB} MB`, 'warning');
+        // count check 先擋（dispatch verify case 3）
+        const totalCount = files.length + list.length;
+        if (totalCount > effectiveMaxCount) {
+            $message(`一次最多上傳 ${effectiveMaxCount} 個圖片（已選 ${totalCount} 個）`, 'warning');
             return;
         }
-        if (files.length + list.length > maxFiles) {
-            $message(`最多只能上傳 ${maxFiles} 個檔案 (目前 ${files.length} + 新增 ${list.length})`, 'warning');
+        const tooLarge = list.find((f) => f.size > effectiveMaxFile);
+        if (tooLarge) {
+            const limitMB = (effectiveMaxFile / 1024 / 1024).toFixed(0);
+            const sizeMB = (tooLarge.size / 1024 / 1024).toFixed(2);
+            $message(`${tooLarge.name} 超過 ${limitMB} MB 上限（${sizeMB} MB）`, 'warning');
             return;
         }
         const newTotal = [...files, ...list].reduce((s, f) => s + f.size, 0);
-        if (newTotal >= totalSizeBytes) {
-            $message(`總大小 ${(newTotal / 1024 / 1024).toFixed(2)} MB 超過 ${totalSizeMB} MB`, 'warning');
+        if (newTotal > effectiveMaxBatch) {
+            const limitMB = (effectiveMaxBatch / 1024 / 1024).toFixed(0);
+            const totalMB = (newTotal / 1024 / 1024).toFixed(2);
+            $message(`批次總和超過 ${limitMB} MB（${totalMB} MB / ${limitMB} MB）`, 'warning');
             return;
         }
 
