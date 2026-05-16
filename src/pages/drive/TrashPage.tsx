@@ -132,7 +132,7 @@ const TrashPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      className="drive-modal-btn drive-modal-btn-danger"
+                      className="drive-modal-btn drive-modal-btn-destructive"
                       onClick={() => setPending(it)}
                     >
                       永久刪除

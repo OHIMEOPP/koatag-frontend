@@ -821,6 +821,44 @@
   &:hover:not(:disabled) {
     filter: brightness(1.1);
   }
+
+  &:active:not(:disabled) {
+    filter: brightness(0.92);
+  }
+}
+
+// ── Trash page polish ─────────────────────────
+
+.drive-trash-hint {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  line-height: 1.5;
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  background: var(--color-bg-tertiary);
+  border-left: 3px solid var(--color-text-quaternary);
+  border-radius: 6px;
+}
+
+.drive-trash-warn {
+  td {
+    background: rgba(245, 165, 36, 0.08);
+    border-bottom-color: rgba(245, 165, 36, 0.2);
+  }
+
+  td:first-child {
+    box-shadow: inset 3px 0 0 var(--color-warning, #f5a524);
+  }
+}
+
+.drive-trash-pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .drive-modal-message {
