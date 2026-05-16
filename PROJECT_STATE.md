@@ -8,7 +8,7 @@
 
 ## In-flight（等動作）
 
-無 active dispatch — D.16 + D.17 三方 close（per wiki #565 / #576）。等 user 排下個 round 或新 dispatch。
+無 active dispatch — D.16 / D.17 / D.18 / D.6 三方 close（per wiki #565 / #576 / #659）。等 user 排下個 round 或新 dispatch。
 
 ## Live in prod-like container
 
@@ -21,7 +21,9 @@
 - D.17 image / tag / pageInfo service URL `{user_id}` 拔除（IDOR fix 真實 land）
 - Sidebar 雲端硬碟 section 從媒體分出
 
-D.6 video poster frame 純 backend `thumb_path` 寫入，前端透明消費。
+D.6 video poster frame 純 backend `thumb_path` 寫入，前端透明消費（wiki #659：5/15 13:50 起 container live，mp4 smoke pass `Lavc61.19.101`）。
+
+D.18 frontend optional UX（commit `e12c93a` — accept narrow + pre-validate + 415 message）已 commit 但**尚未 container cp**；不影響 security gate（backend `1ef4dbf` whitelist + fileinfo magic-byte 已 enforce）。下次 build/cp 時一起帶。
 
 ## Working tree
 
@@ -37,7 +39,7 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 ### ⚪ E2EE 不相關 — 可單獨做不浪費
 - 4 CSS class polish（`drive-trash-hint` / `-warn` / `-pager` / `drive-modal-btn-danger`）
 - ✅ D.17 Image endpoint URL hygiene（2026-05-15 三方 close per wiki #576）— done
-- 🟡 D.18 Image upload MIME validation（wiki #576 提 — user 上傳 .txt/.docx 進圖庫 backend 沒擋；等 user 決定是否 dispatch）
+- ✅ D.18 Image upload MIME validation — 整段 done（backend `1ef4dbf` whitelist + fileinfo magic-byte security gate；frontend `e12c93a` 3 optionals UX；三方 close per wiki #659）
 
 ### 🟡 Co-design opportunity — E2EE round 一起更省
 - v? 2GB upload UX hardening（D.16 已 land throttle/retry/ETA，剩 chunked resume 連 E2EE resume token + key derivation 一起 design）
@@ -51,7 +53,7 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 
 ## Active backlog（next round 候選）
 
-⚪ 段兩條（Image URL hygiene / CSS polish），等 user 排或 wiki dispatch。  
+⚪ 段剩 1 條：4 CSS class polish（其他都 done）。等 user 排或 wiki dispatch。  
 🟡 / 🔴 段 6 條視作「E2EE-aware deferrals」，未來 E2EE design round 一併 review。
 
 ## 三方 status snapshot
@@ -59,11 +61,13 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 - contract `CLOUD_DRIVE_SPEC.md`：v1.2（committed 5012f2e + wiki D.12 patches in 5893232）
 - backend spec：實質 v1.5+（wiki 主導；D.17 cross-ref 已 patch）
 - frontend spec `CLOUD_DRIVE_FRONTEND_SPEC.md`：v1.7（D.17 spec patch committed a76c490）
-- 最後 mailbox round close：D.17（wiki #576 ack — 三方 full chain 10/10 case pass）
+- 最後 mailbox round close：D.18 + D.6（wiki #659 ack — D.18 backend security gate + frontend UX 整段 done；D.6 mp4 smoke pass 三方 close）
 
 ## Recent commits (this session)
 
 ```
+e12c93a feat(image): D.18 frontend MIME 3 optionals — accept narrow + pre-validate + 415 message
+c8fb69c docs: PROJECT_STATE.md sync — D.16/D.17 round close + D.18 backlog entry
 a76c490 feat(image/tag): D.17 service URL hygiene — remove user_id path param
 3a3b2f9 docs: PROJECT_STATE.md backlog 三色分類 per wiki #568
 f66bcbe feat(drive): D.16 2GB upload UX hardening
@@ -72,8 +76,6 @@ dd958e1 feat(drive): D.14b empty area right-click context menu
 44fb676 feat(sidebar): split 雲端硬碟 section out from 媒體
 d1736e3 chore: remove stale DESIGN_SYSTEM.md + WEBSITE_FEATURES.md
 b96de6b feat(drive): D.14 createFolder UI affordance — fix D.13 playwright gap
-5893232 feat(drive): D.12 single-file upload 50MB->2GB + quota 5GB->20GB
-9337354 feat(drive): D.9 v3 Trash UI scaffold + startup pattern + state board
 ```
 
 ## Mailbox quick-lookup（this session 重要 thread）
