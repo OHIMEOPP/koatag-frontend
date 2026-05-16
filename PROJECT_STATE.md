@@ -8,7 +8,7 @@
 
 ## In-flight（等動作）
 
-無 active dispatch — D.16 / D.17 / D.18 / D.6 三方 close（per wiki #565 / #576 / #659）。等 user 排下個 round 或新 dispatch。
+無 active dispatch — D.16 / D.17 / D.18 / D.6 / 4 CSS class polish 全 close（per wiki #565 / #576 / #659 / #674）。等 user 排下個 round 或新 dispatch。
 
 ## Live in prod-like container
 
@@ -37,7 +37,7 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 ## 功能 backlog — E2EE 相關性三色分類（per wiki #568）
 
 ### ⚪ E2EE 不相關 — 可單獨做不浪費
-- 4 CSS class polish（`drive-trash-hint` / `-warn` / `-pager` / `drive-modal-btn-danger`）
+- ✅ 4 CSS class polish — done（trash-hint / -warn / -pager 三條從未寫；-danger className typo 同步修為 -destructive；commit `137fdbf`，bundle `main.70b1a2aa.js` / `main.acc32769.css` +104B；待 user container cp）
 - ✅ D.17 Image endpoint URL hygiene（2026-05-15 三方 close per wiki #576）— done
 - ✅ D.18 Image upload MIME validation — 整段 done（backend `1ef4dbf` whitelist + fileinfo magic-byte security gate；frontend `e12c93a` 3 optionals UX；三方 close per wiki #659）
 
@@ -53,7 +53,7 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 
 ## Active backlog（next round 候選）
 
-⚪ 段剩 1 條：4 CSS class polish（其他都 done）。等 user 排或 wiki dispatch。  
+⚪ 段全清完。等 user 排或 wiki dispatch。  
 🟡 / 🔴 段 6 條視作「E2EE-aware deferrals」，未來 E2EE design round 一併 review。
 
 ## 三方 status snapshot
@@ -61,11 +61,13 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 - contract `CLOUD_DRIVE_SPEC.md`：v1.2（committed 5012f2e + wiki D.12 patches in 5893232）
 - backend spec：實質 v1.5+（wiki 主導；D.17 cross-ref 已 patch）
 - frontend spec `CLOUD_DRIVE_FRONTEND_SPEC.md`：v1.7（D.17 spec patch committed a76c490）
-- 最後 mailbox round close：D.18 + D.6（wiki #659 ack — D.18 backend security gate + frontend UX 整段 done；D.6 mp4 smoke pass 三方 close）
+- 最後 mailbox round close：4 CSS class polish（wiki #674 ack — trash UI 三條未寫 class + danger→destructive typo fix）
 
 ## Recent commits (this session)
 
 ```
+137fdbf feat(drive): trash UI 4 CSS class polish
+4b7253b docs: PROJECT_STATE.md sync — D.18 + D.6 三方 close per wiki #659
 e12c93a feat(image): D.18 frontend MIME 3 optionals — accept narrow + pre-validate + 415 message
 c8fb69c docs: PROJECT_STATE.md sync — D.16/D.17 round close + D.18 backlog entry
 a76c490 feat(image/tag): D.17 service URL hygiene — remove user_id path param
@@ -74,8 +76,6 @@ f66bcbe feat(drive): D.16 2GB upload UX hardening
 1f140f5 docs: PROJECT_STATE.md sync — D.13/D.14/D.14b chain + sidebar reorg close
 dd958e1 feat(drive): D.14b empty area right-click context menu
 44fb676 feat(sidebar): split 雲端硬碟 section out from 媒體
-d1736e3 chore: remove stale DESIGN_SYSTEM.md + WEBSITE_FEATURES.md
-b96de6b feat(drive): D.14 createFolder UI affordance — fix D.13 playwright gap
 ```
 
 ## Mailbox quick-lookup（this session 重要 thread）
