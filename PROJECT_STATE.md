@@ -12,18 +12,18 @@
 
 ## Live in prod-like container
 
-`koatag_fontend` (docker, port 3000) serving `main.3efed136.js` — 2026-05-15 07:22 GMT cp。內含累積：
+`koatag_fontend` (docker, port 3000) serving `main.70b1a2aa.js` / `main.acc32769.css` — 2026-05-16 cp（per wiki #685）。內含累積：
 - D.1 A+B+C share / video onError / v?-zip landing
 - D.9 v3 Trash UI scaffold
 - D.12 上傳 2GB / 配額 20GB
 - D.14 / D.14b createFolder UI（toolbar + empty area context menu）
 - D.16 2GB upload UX hardening（throttle / retry max 3 / ETA / speed）
 - D.17 image / tag / pageInfo service URL `{user_id}` 拔除（IDOR fix 真實 land）
+- D.18 frontend optional UX（`e12c93a` — accept narrow + pre-validate + 415 message）
+- 4 CSS class polish（`137fdbf` — trash-hint / -warn / -pager + -destructive typo 對齊）
 - Sidebar 雲端硬碟 section 從媒體分出
 
 D.6 video poster frame 純 backend `thumb_path` 寫入，前端透明消費（wiki #659：5/15 13:50 起 container live，mp4 smoke pass `Lavc61.19.101`）。
-
-D.18 frontend optional UX（commit `e12c93a` — accept narrow + pre-validate + 415 message）已 commit 但**尚未 container cp**；不影響 security gate（backend `1ef4dbf` whitelist + fileinfo magic-byte 已 enforce）。下次 build/cp 時一起帶。
 
 ## Working tree
 
