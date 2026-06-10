@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { login, LoginError } from '../services/auth.service';
+import { loginFlow, registerFlow, LoginError, RegisterError } from '../services/auth.service';
+import { useMasterKey } from '../contexts/MasterKeyContext';
 import { deleteCookie, getCookie, setCookie } from 'utils';
 import { Btn, Field, Icon } from 'components';
 
@@ -11,6 +12,7 @@ const Login = () => {
     const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const { setKeys } = useMasterKey();
 
     useEffect(() => {
         const saved = getCookie('rememberAccount');
@@ -32,8 +34,8 @@ const Login = () => {
         }
 
         try {
-            await login(account, password);
-            // login() will redirect on success via window.location.href
+            await loginFlow({ account, password, onKeys: setKeys });
+            // loginFlow() redirects on success via window.location.href
         } catch (err) {
             if (err instanceof LoginError) {
                 setError(err.message);
@@ -45,9 +47,26 @@ const Login = () => {
         }
     };
 
-    const handleRegisterSubmit = (e: React.FormEvent) => {
+    const handleRegisterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        alert('註冊功能尚未開放');
+        setError('');
+        setLoading(true);
+
+        const form = e.currentTarget as HTMLFormElement;
+        const regAccount = (form.elements.namedItem('signAccount') as HTMLInputElement)?.value ?? '';
+        const regPassword = (form.elements.namedItem('signPassword') as HTMLInputElement)?.value ?? '';
+
+        try {
+            await registerFlow({ account: regAccount, password: regPassword, onKeys: setKeys });
+        } catch (err) {
+            if (err instanceof RegisterError) {
+                setError(err.message);
+            } else {
+                setError('註冊時發生錯誤，請稍後再試');
+                console.error(err);
+            }
+            setLoading(false);
+        }
     };
 
     const handleForgotPassword = (e: React.MouseEvent) => {
@@ -77,6 +96,7 @@ const Login = () => {
                     <Field label="帳號">
                         <input
                             className="input"
+                            name="account"
                             value={account}
                             onChange={(e) => setAccount(e.target.value)}
                             placeholder="輸入帳號"
@@ -89,6 +109,7 @@ const Login = () => {
                         <div style={{ position: 'relative' }}>
                             <input
                                 className="input"
+                                name="password"
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -158,7 +179,11 @@ const Login = () => {
 
                     <div style={{ height: 24 }} />
 
-                    <Btn variant="primary" type="submit">註冊</Btn>
+                    {error && <div className="login-error">{error}</div>}
+
+                    <Btn variant="primary" type="submit" disabled={loading}>
+                        {loading ? '註冊中...' : '註冊'}
+                    </Btn>
 
                     <div className="login-foot">
                         已有帳號?{' '}

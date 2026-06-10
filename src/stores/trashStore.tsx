@@ -51,7 +51,13 @@ export const useTrashStore = create<TrashState & TrashActions>((set, get) => {
     try {
       const { items, meta } = await listTrash(merged);
       if (myGen !== generation) return;
-      set({ items, meta, loading: false });
+      // R3 #6 §1.1 — listTrash returns unified file+folder TrashedItem[].
+      // Store filters folder rows for now (TrashPage folder rendering UI
+      // deferred to R3 housekeeping batch per dispatch §1 scope plan).
+      const fileItems = items.filter(
+        (it): it is TrashedFile => (it.resource_type ?? "file") === "file",
+      );
+      set({ items: fileItems, meta, loading: false });
     } catch (err) {
       if (myGen !== generation) return;
       set({ loading: false, error: mapDriveError(err) });

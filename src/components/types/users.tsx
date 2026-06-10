@@ -12,4 +12,8 @@ export interface User {
   name: string | null;
   email: string;
   avatar_url: string | null;
+  // R3 #5 §1.1 — base64 of users.master_pubkey BINARY(32) per R2 #1
+  // schema (set during E2EE register flow). null for legacy non-migrated
+  // users; UI surfaces 「該使用者尚未升級 E2EE 系統」per §1.6 LOCKED.
+  master_pubkey?: string | null;
 }

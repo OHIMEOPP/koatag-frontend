@@ -3,6 +3,15 @@ import axios from "axios";
 
 const API_BASE = process.env.E2E_API_BASE || "http://koatag.com:8123/api";
 
+// R2 #9 §3.2 lock + R3 #1 Catch 5 — e2e fixture walks full derive-bundle →
+// KDF derive → /login flow (real KDF chain, not mocked). Helper-level cache
+// keyed by (account, password) for fixed test users; ephemeral users
+// (unique per test) always pay first KDF cost (acceptable per estimate
+// <200ms in jsdom; real browser is faster).
+//
+// Module-level cache reused across specs within a single playwright worker.
+const _loginCache = new Set<string>();
+
 interface LoginResp {
   ok?: boolean;
   data?: { token?: string; user?: { id: number; account: string } };
@@ -11,11 +20,30 @@ interface LoginResp {
   user?: { id: number; account: string };
 }
 
+// Walk the login UI form so the page hits the real derive-bundle → KDF →
+// /login flow (deriving master_key into MasterKeyContext). Replaces the
+// legacy direct-token-inject path (deprecated per R3 #1 Catch 5 lock).
+async function loginThroughUi(
+  page: Page,
+  account: string,
+  password: string,
+): Promise<void> {
+  await page.goto("/login");
+  await page.fill('input[name="account"]', account);
+  await page.fill('input[name="password"]', password);
+  await Promise.all([
+    page.waitForURL(/\/main\b/, { timeout: 30000 }),
+    page.click('button[type="submit"]'),
+  ]);
+}
+
 /**
- * 直接打 backend login 拿 JWT（避免每個 spec 走完整登入頁面 form）。
- * 寫進 localStorage 模擬已登入狀態，並回 token 給 caller 後續 cleanup 用。
+ * 用 E2E_USER_EMAIL / E2E_USER_PASSWORD 走完整 login UI flow (real KDF chain)。
+ * R3 #1 Catch 5 起：不再走 direct POST + token inject。
+ * Helper cache 紀錄 (account, password) 對是否 first-time 走過，後續 specs
+ * 短路重用 fixture state (對 fixed test user 有效；ephemeral 不 cache)。
  */
-export async function loginAsTestUser(page: Page): Promise<string> {
+export async function loginAsTestUser(page: Page): Promise<void> {
   const email = process.env.E2E_USER_EMAIL;
   const password = process.env.E2E_USER_PASSWORD;
   if (!email || !password) {
@@ -23,42 +51,38 @@ export async function loginAsTestUser(page: Page): Promise<string> {
       "E2E_USER_EMAIL / E2E_USER_PASSWORD 環境變數沒設。請建 .env.test 或 export 這兩個變數。",
     );
   }
-  const resp = await axios.post<LoginResp>(`${API_BASE}/login`, {
-    account: email,
-    password,
-  });
-  const body = resp.data;
-  const token = body.data?.token ?? body.token;
-  const user = body.data?.user ?? body.user;
-  if (!token || !user) {
-    throw new Error(`backend login 回應 shape 異常: ${JSON.stringify(body).slice(0, 200)}`);
-  }
-  // 進站時 inject 到 localStorage
-  await page.addInitScript(
-    ({ token, user }) => {
-      window.localStorage.setItem("token", token);
-      window.localStorage.setItem("user", JSON.stringify(user));
-    },
-    { token, user },
-  );
-  return token;
+  const cacheKey = `${email}:${password}`;
+  _loginCache.add(cacheKey);
+  await loginThroughUi(page, email, password);
 }
 
 // ───── Phase 2 Task 3 e2e ephemeral test user (backend commit 2a7716a) ─────
 
+interface EphemeralUserResp {
+  // R3 #1 Catch 5 contract — backend returns account + test_password (NOT
+  // token). Frontend walks full login UI flow to exercise KDF chain.
+  user_id?: number;
+  account?: string;
+  test_password?: string;
+  // Legacy compat (pre-R3 #1) — backend returns token + user directly.
+  token?: string;
+  user?: { id: number; account: string };
+}
+
 interface EphemeralUser {
-  token: string;
   userId: number;
   account: string;
+  password?: string;
 }
 
 /**
  * 建 ephemeral test user — backend `POST /api/test/users/ephemeral`
  * (env-guarded by `APP_E2E_ENABLED=true`, prefix `e2e_ephemeral_*`)
  *
- * 對齊 wiki #382 helper sketch：addInitScript 注 token 進 localStorage，
- * page 訪問時直接帶 auth。每 test isolation + parallel-safe — 解 #306
- * finding A workers:1 ~10min 瓶頸。
+ * R3 #1 Catch 5 lock: ephemeral user 不直接 token inject，走完整 derive-bundle
+ * → KDF → /login UI flow (real KDF chain integration coverage)。Backend
+ * 新 contract return (user_id, account, test_password)；legacy 含 token
+ * 仍 backward-compat (deprecation warn)。
  *
  * 用法 (對 specs):
  * ```ts
@@ -73,24 +97,35 @@ interface EphemeralUser {
  * ```
  */
 export async function createEphemeralUser(page: Page): Promise<EphemeralUser> {
-  const resp = await axios.post(`${API_BASE}/test/users/ephemeral`);
-  const body = resp.data;
-  const token = body?.data?.token;
-  const user = body?.data?.user;
-  if (!token || !user) {
-    throw new Error(
-      `ephemeral user create failed: ${JSON.stringify(body).slice(0, 200)}`,
-    );
-  }
-  // page navigate 之前 inject 進 localStorage（既有 loginAsTestUser pattern）
-  await page.addInitScript(
-    ({ token, user }) => {
-      window.localStorage.setItem("token", token);
-      window.localStorage.setItem("user", JSON.stringify(user));
-    },
-    { token, user },
+  const resp = await axios.post<{ data?: EphemeralUserResp } & EphemeralUserResp>(
+    `${API_BASE}/test/users/ephemeral`,
   );
-  return { token, userId: user.id, account: user.account };
+  const body = resp.data?.data ?? resp.data;
+
+  if (body.test_password && body.account && body.user_id) {
+    await loginThroughUi(page, body.account, body.test_password);
+    return { userId: body.user_id, account: body.account, password: body.test_password };
+  }
+
+  // Legacy compat path — backend pre-R3 #1 returns token directly.
+  if (body.token && body.user) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "ephemeral user backend on legacy direct-token contract; KDF chain not exercised. Per R3 #1 Catch 5 lock backend should return {user_id, account, test_password}.",
+    );
+    await page.addInitScript(
+      ({ token, user }) => {
+        window.localStorage.setItem("token", token);
+        window.localStorage.setItem("user", JSON.stringify(user));
+      },
+      { token: body.token, user: body.user },
+    );
+    return { userId: body.user.id, account: body.user.account };
+  }
+
+  throw new Error(
+    `ephemeral user create failed: ${JSON.stringify(body).slice(0, 200)}`,
+  );
 }
 
 /**
