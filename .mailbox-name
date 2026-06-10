@@ -1,0 +1,2 @@
+# agent-mailbox plugin 用此檔決定本專案 mailbox 身分（first non-empty non-# line）
+koatag-frontend
