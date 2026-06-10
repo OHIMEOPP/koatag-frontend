@@ -8,6 +8,7 @@ export { SortMenu } from "./SortMenu";
 export { SearchBar } from "./SearchBar";
 export { UploadDropzone } from "./UploadDropzone";
 export { UploadProgressList } from "./UploadProgressList";
+export { UploadTrustDisclosure } from "./UploadTrustDisclosure";
 export { QuotaIndicator } from "./QuotaIndicator";
 export { ContextMenu } from "./ContextMenu";
 export type { ContextMenuAction } from "./ContextMenu";

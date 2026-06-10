@@ -9,6 +9,11 @@ const driveErrorMessages: Record<string, string> = {
   FOLDER_NOT_FOUND: "資料夾不存在",
   FILE_TOO_LARGE: "檔案超過 2GB 限制",
   INVALID_MIME: "不支援的檔案類型",
+  // R3 #7 §2.2.2 — client-side magic-byte gate (E2EE era). UNSUPPORTED_MIME is
+  // a strict block (whitelist violation); POLYGLOT_WARN is a non-blocking
+  // advisory (claimed ≠ detected — still uploads, per §3 #3 LOCKED).
+  UNSUPPORTED_MIME: "不支援的檔案類型，已略過",
+  POLYGLOT_WARN: "⚠ 副檔名與內容類型不符，仍會上傳",
   QUOTA_EXCEEDED: "您的 Drive 容量已滿，請刪除部分檔案",
   UPLOAD_NO_FILE: "請選擇要上傳的檔案",
   UPLOAD_FAILED: "上傳失敗，請稍後再試",
@@ -29,6 +34,13 @@ const driveErrorMessages: Record<string, string> = {
   NOT_TRASHED: "此檔案不在垃圾桶內",
   INTERNAL_ERROR: "系統錯誤，請稍後再試",
 };
+
+// R3 #7 §2.2.2 — map a bare drive error code to its display string. Used by the
+// upload queue when it sets a client-side reject/warn (UNSUPPORTED_MIME /
+// POLYGLOT_WARN) without a thrown DriveServiceError.
+export function messageForCode(code: string): string {
+  return driveErrorMessages[code] ?? code;
+}
 
 export function mapDriveError(err: unknown): string {
   if (err instanceof DriveServiceError) {

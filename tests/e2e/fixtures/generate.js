@@ -19,3 +19,12 @@ const dst2 = path.join(FIXTURES_DIR, "60mb.bin");
 const SIZE = 60 * 1024 * 1024;
 fs.writeFileSync(dst2, Buffer.alloc(SIZE));
 console.log(`✓ ${dst2} (${fs.statSync(dst2).size} bytes)`);
+
+// TODO (R3 #7 §2.2.6 — deferred to R2 #9 e2e housekeeping batch, per前 step 紀律):
+// add MIME-gate fixtures + smoke specs for the §2.2.2 pre-encrypt check —
+//   - legit.jpg     真 JPG valid magic → upload happy path
+//   - polyglot.jpg  JPG header + 嵌入 ZIP → §3.3 warn-but-allow (POLYGLOT_WARN)
+//   - disguised.exe .txt ext + EXE magic → whitelist mismatch → reject (UNSUPPORTED_MIME)
+//   - unknown.xyz   random binary 無 magic → reject
+// wire into drive.smoke.spec.ts (S8 mime smoke) + drive.onerror.spec.ts.
+// NOT generated here yet — whole e2e suite is being redesigned in R2 #9.

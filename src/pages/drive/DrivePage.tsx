@@ -12,6 +12,7 @@ import {
   SearchBar,
   UploadDropzone,
   UploadProgressList,
+  UploadTrustDisclosure,
   ContextMenu,
   ContextMenuAction,
   RenameDialog,
@@ -33,6 +34,7 @@ import {
   downloadUrl,
 } from "services/drive.service";
 import { mapDriveError } from "services/drive.errorMap";
+import { enqueueWithMimeCheck } from "services/upload/enqueueClassified";
 import { useUploadScheduler } from "hooks/useUploadScheduler";
 import DriveFilePage from "./DriveFilePage";
 import SharedWithMePage from "./SharedWithMePage";
@@ -214,6 +216,8 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
     <UploadDropzone folderId={folderId} disabled={quota ? quota.ratio >= 1 : false}>
       <div className="drive-page">
         <Breadcrumb ancestors={breadcrumb} onNavigate={handleBreadcrumbNavigate} />
+        {/* R3 #7 §2.2.5 — E2EE upload trust disclosure (info icon + one-time banner) */}
+        <UploadTrustDisclosure />
         <div className="drive-toolbar">
           <SearchBar query={viewOpts.q ?? ""} onQueryChange={handleQueryChange} />
           <SortMenu
@@ -283,8 +287,9 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
         onChange={(e) => {
           const list = e.target.files;
           if (list) {
+            // R3 #7 §2.2.2 — same pre-encrypt magic-byte gate as drag-drop.
             for (let i = 0; i < list.length; i++) {
-              enqueue(list[i], folderId);
+              void enqueueWithMimeCheck(list[i], folderId, enqueue);
             }
           }
           // reset 讓同檔重選也能觸發 change

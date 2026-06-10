@@ -8,6 +8,7 @@ import sodium from 'libsodium-wrappers';
 import {
   _decryptDriveFile,
   _decryptDriveFolder,
+  _parseNamePayload,
   _placeholders,
   _sortAndFilterEncrypted,
   DriveFile,
@@ -26,15 +27,26 @@ function utf8ToBytes(s: string): Uint8Array {
 }
 
 // Build a fully-formed encrypted DriveFile + cleartext recipient key bundle.
+// R3 #7 §2.2.4 — the encrypted name field now wraps a JSON {name, mime} payload
+// (set `rawName` to encrypt a bare string instead, to exercise the legacy /
+// parse-fail fallback path).
 function buildEncryptedFile(opts: {
   name: string;
+  payloadMime?: string;
   mime_claimed?: string;
+  rawName?: boolean;
   recipientPubkey: Uint8Array;
 }): DriveFile {
   const fileKey = sodium.randombytes_buf(32);
   const iv = sodium.randombytes_buf(24);
+  const plaintext = opts.rawName
+    ? opts.name
+    : JSON.stringify({
+        name: opts.name,
+        mime: opts.payloadMime ?? 'application/octet-stream',
+      });
   const nameCiphertext = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
-    utf8ToBytes(opts.name),
+    utf8ToBytes(plaintext),
     null,
     null,
     iv,
@@ -131,16 +143,19 @@ describe('_decryptDriveFile (R3 #2 §1.2 + §1.5)', () => {
     expect(result.name).toBe(_placeholders.decrypt);
   });
 
-  it('decrypts name + populates mime from mime_claimed on success', async () => {
+  it('decrypts name + mime from ciphertext JSON payload, ignoring mime_claimed', async () => {
     const recipient = sodium.crypto_box_keypair();
     setKeyBundleRef({
       masterKey: new Uint8Array(32),
       masterPrivkey: recipient.privateKey,
       masterPubkey: recipient.publicKey,
     });
+    // R3 #7 §2.2.4 — decoy mime_claimed proves the UI uses the payload mime, not
+    // the low-trust audit column.
     const enc = buildEncryptedFile({
       name: '家族旅遊 2026.jpg',
-      mime_claimed: 'image/jpeg',
+      payloadMime: 'image/jpeg',
+      mime_claimed: 'application/x-decoy',
       recipientPubkey: recipient.publicKey,
     });
     const result = await _decryptDriveFile(enc);
@@ -148,7 +163,7 @@ describe('_decryptDriveFile (R3 #2 §1.2 + §1.5)', () => {
     expect(result.mime).toBe('image/jpeg');
   });
 
-  it('falls back to server mime when mime_claimed null', async () => {
+  it('legacy/parse-fail: bare-string name → raw name + octet-stream mime', async () => {
     const recipient = sodium.crypto_box_keypair();
     setKeyBundleRef({
       masterKey: new Uint8Array(32),
@@ -157,10 +172,43 @@ describe('_decryptDriveFile (R3 #2 §1.2 + §1.5)', () => {
     });
     const enc = buildEncryptedFile({
       name: 'x.txt',
+      rawName: true, // not JSON — exercises the §2.3.5 #5 fallback
+      mime_claimed: 'image/jpeg',
       recipientPubkey: recipient.publicKey,
     });
     const result = await _decryptDriveFile(enc);
+    expect(result.name).toBe('x.txt');
     expect(result.mime).toBe('application/octet-stream');
+  });
+});
+
+describe('_parseNamePayload (R3 #7 §2.2.4 + §2.3.5 #5)', () => {
+  it('parses a well-formed JSON {name, mime} payload', () => {
+    expect(_parseNamePayload('{"name":"a.png","mime":"image/png"}')).toEqual({
+      name: 'a.png',
+      mime: 'image/png',
+    });
+  });
+
+  it('defaults mime to octet-stream when payload omits it', () => {
+    expect(_parseNamePayload('{"name":"a.bin"}')).toEqual({
+      name: 'a.bin',
+      mime: 'application/octet-stream',
+    });
+  });
+
+  it('falls back to the raw string when not JSON (legacy bare name)', () => {
+    expect(_parseNamePayload('家族旅遊.jpg')).toEqual({
+      name: '家族旅遊.jpg',
+      mime: 'application/octet-stream',
+    });
+  });
+
+  it('falls back when JSON parses to a non-object (e.g. a numeric filename)', () => {
+    expect(_parseNamePayload('123')).toEqual({
+      name: '123',
+      mime: 'application/octet-stream',
+    });
   });
 });
 

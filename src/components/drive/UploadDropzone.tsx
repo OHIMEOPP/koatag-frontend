@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { useUploadQueueStore } from "stores/uploadQueueStore";
+import { enqueueWithMimeCheck } from "services/upload/enqueueClassified";
 
 interface UploadDropzoneProps {
   folderId: number | null;
@@ -29,7 +30,11 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      acceptedFiles.forEach((file) => enqueue(file, folderId));
+      // R3 #7 §2.2.2 — pre-encrypt magic-byte gate runs per file before the
+      // item enters the queue. Async; fire all checks in parallel.
+      acceptedFiles.forEach((file) => {
+        void enqueueWithMimeCheck(file, folderId, enqueue);
+      });
     },
     [enqueue, folderId],
   );

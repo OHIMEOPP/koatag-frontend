@@ -179,22 +179,44 @@ export async function _decryptDriveFile(item: DriveFile): Promise<DriveFile> {
       masterPubkey,
       masterPrivkey,
     );
-    const name = await decryptName(
+    const decrypted = await decryptName(
       _base64ToBytes(item.name_encrypted),
       _base64ToBytes(item.name_iv),
       fileKey,
     );
-    return {
-      ...item,
-      name,
-      // mime_claimed is the client-hinted mime stored alongside ciphertext;
-      // server returns application/octet-stream for encrypted rows. Surface
-      // the hint here so UI consumers (icon picker etc.) work transparently.
-      mime: item.mime_claimed || item.mime,
-    };
+    // R3 #7 §2.2.4 — the decrypted name field is a JSON {name, mime} payload.
+    // The true mime lives INSIDE the ciphertext; we deliberately ignore the
+    // plaintext mime_claimed column (low trust — server-side audit hint only,
+    // per R2 #2 §3.13). UI never reads mime_claimed.
+    const { name, mime } = _parseNamePayload(decrypted);
+    return { ...item, name, mime };
   } catch (err) {
     return { ...item, name: DECRYPT_PLACEHOLDER };
   }
+}
+
+/**
+ * R3 #7 §2.2.4 + §2.3.5 #5 — parse the decrypted name field. Expected shape is
+ * JSON `{name, mime}`. Fallback (decrypt OK but payload not the expected JSON
+ * object — e.g. a legacy bare-string name, or a filename that happens to parse
+ * as a non-object JSON value): treat the whole decrypted string as the name
+ * and fall back to octet-stream so the row still renders.
+ */
+export function _parseNamePayload(decrypted: string): { name: string; mime: string } {
+  try {
+    const parsed = JSON.parse(decrypted);
+    if (parsed && typeof parsed === "object" && typeof parsed.name === "string") {
+      return {
+        name: parsed.name,
+        mime: typeof parsed.mime === "string" && parsed.mime
+          ? parsed.mime
+          : "application/octet-stream",
+      };
+    }
+  } catch {
+    // not JSON — fall through to bare-string fallback
+  }
+  return { name: decrypted, mime: "application/octet-stream" };
 }
 
 export async function _decryptDriveFolder(item: DriveFolder): Promise<DriveFolder> {
@@ -368,6 +390,27 @@ export async function uploadFile(
   return data.file;
 }
 
+// ───── R3 #7 §2.2.3: ciphertext name payload — JSON {name, mime} ─────
+
+/**
+ * R3 #7 §2.2.3 — the encrypted name field wraps a JSON `{name, mime}` payload
+ * (not the bare filename) so the true content type travels inside the
+ * ciphertext, opaque to the server. `mime` is the magic-byte-*detected* mime
+ * from the pre-encrypt gate (§2.3.5 #1 — never file.type, which is forgeable
+ * via the extension). Falls back to file.type then octet-stream when the gate
+ * produced nothing (e.g. checker failed open).
+ *
+ * The same `mime` is also sent as the plaintext `mime_claimed` field — a low-
+ * trust audit hint only (per R2 #2 §3.13); UI never reads it (see §2.2.4).
+ */
+function _buildEncryptedNamePayload(
+  file: File,
+  detectedMime?: string,
+): { payload: string; mime: string } {
+  const mime = detectedMime || file.type || "application/octet-stream";
+  return { payload: JSON.stringify({ name: file.name, mime }), mime };
+}
+
 // ───── R3 #3 §1.2: Path B — single-blob encrypted upload (< 50MB) ─────
 
 /**
@@ -390,10 +433,12 @@ export async function uploadFile(
 export async function uploadFileEncryptedSingle(args: {
   file: File;
   folderId: number | null;
+  // R3 #7 §2.2.3 — magic-byte-detected mime from the pre-encrypt gate.
+  detectedMime?: string;
   onProgress?: (loaded: number, total: number) => void;
   signal?: AbortSignal;
 }): Promise<DriveFile> {
-  const { file, folderId, onProgress, signal } = args;
+  const { file, folderId, detectedMime, onProgress, signal } = args;
 
   const { masterPubkey } = getKeyBundleRef();
   if (!masterPubkey) {
@@ -409,7 +454,12 @@ export async function uploadFileEncryptedSingle(args: {
   const fileKey = await generateFileKey();
   const plainBytes = new Uint8Array(await file.arrayBuffer());
   const { ciphertext: blobCiphertext, iv: blobIv } = await encryptBlob(plainBytes, fileKey);
-  const { ciphertext: nameCiphertext, iv: nameIv } = await encryptName(file.name, fileKey);
+  // R3 #7 §2.2.3 — encrypt JSON {name, mime} (not the bare name).
+  const { payload: namePayload, mime: claimedMime } = _buildEncryptedNamePayload(
+    file,
+    detectedMime,
+  );
+  const { ciphertext: nameCiphertext, iv: nameIv } = await encryptName(namePayload, fileKey);
   const keyWrap = await wrapFileKey(fileKey, masterPubkey);
 
   const fd = new FormData();
@@ -422,7 +472,8 @@ export async function uploadFileEncryptedSingle(args: {
   fd.append("name_encrypted", bytesToBase64Helper(nameCiphertext));
   fd.append("name_iv", bytesToBase64Helper(nameIv));
   fd.append("key_wrap", bytesToBase64Helper(keyWrap));
-  fd.append("mime_claimed", file.type || "application/octet-stream");
+  // §2.2.3 — mime_claimed = detected mime (audit hint only); never file.type.
+  fd.append("mime_claimed", claimedMime);
   fd.append("is_encrypted", "1");
   if (folderId != null) fd.append("folder_id", String(folderId));
 
@@ -463,6 +514,8 @@ interface InitiateResponse {
 interface ChunkUploadOpts {
   file: File;
   folderId: number | null;
+  // R3 #7 §2.2.3 — magic-byte-detected mime from the pre-encrypt gate.
+  detectedMime?: string;
   onProgress?: (phase: "encrypt" | "upload" | "finalize", loaded: number, total: number) => void;
   signal?: AbortSignal;
 }
@@ -489,7 +542,7 @@ interface ChunkUploadOpts {
  * in-flight session_id across tab refresh.
  */
 export async function uploadFileEncryptedChunked(opts: ChunkUploadOpts): Promise<DriveFile> {
-  const { file, folderId, onProgress, signal } = opts;
+  const { file, folderId, detectedMime, onProgress, signal } = opts;
 
   const { masterPubkey } = getKeyBundleRef();
   if (!masterPubkey) {
@@ -507,7 +560,12 @@ export async function uploadFileEncryptedChunked(opts: ChunkUploadOpts): Promise
   }
 
   const fileKey = await generateFileKey();
-  const { ciphertext: nameCiphertext, iv: nameIv } = await encryptName(file.name, fileKey);
+  // R3 #7 §2.2.3 — encrypt JSON {name, mime}; mime_claimed = detected mime.
+  const { payload: namePayload, mime: claimedMime } = _buildEncryptedNamePayload(
+    file,
+    detectedMime,
+  );
+  const { ciphertext: nameCiphertext, iv: nameIv } = await encryptName(namePayload, fileKey);
   const keyWrap = await wrapFileKey(fileKey, masterPubkey);
 
   // Step 1: initiate
@@ -519,7 +577,7 @@ export async function uploadFileEncryptedChunked(opts: ChunkUploadOpts): Promise
       name_encrypted: bytesToBase64Helper(nameCiphertext),
       name_iv: bytesToBase64Helper(nameIv),
       key_wrap: bytesToBase64Helper(keyWrap),
-      mime_claimed: file.type || "application/octet-stream",
+      mime_claimed: claimedMime,
       folder_id: folderId,
     },
     { signal },
@@ -685,6 +743,9 @@ export function installUploadBeforeUnloadGuard(): () => void {
 export async function uploadFileSmart(opts: {
   file: File;
   folderId: number | null;
+  // R3 #7 §2.2.3 — magic-byte-detected mime from the pre-encrypt gate, threaded
+  // into the ciphertext {name, mime} payload + mime_claimed audit hint.
+  detectedMime?: string;
   onProgress?: (loaded: number, total: number) => void;
   onPhaseProgress?: (
     phase: "encrypt" | "upload" | "finalize",
@@ -694,17 +755,24 @@ export async function uploadFileSmart(opts: {
   signal?: AbortSignal;
   forcePlaintext?: boolean; // Migration window — caller can opt out
 }): Promise<DriveFile> {
-  const { file, folderId, onProgress, onPhaseProgress, signal, forcePlaintext } = opts;
+  const { file, folderId, detectedMime, onProgress, onPhaseProgress, signal, forcePlaintext } = opts;
   const { masterPubkey } = getKeyBundleRef();
   if (forcePlaintext || !masterPubkey) {
     return uploadFile(file, folderId, onProgress, signal);
   }
   if (file.size >= CHUNKED_UPLOAD_THRESHOLD_BYTES) {
-    return uploadFileEncryptedChunked({ file, folderId, onProgress: onPhaseProgress, signal });
+    return uploadFileEncryptedChunked({
+      file,
+      folderId,
+      detectedMime,
+      onProgress: onPhaseProgress,
+      signal,
+    });
   }
   return uploadFileEncryptedSingle({
     file,
     folderId,
+    detectedMime,
     onProgress,
     signal,
   });

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { DriveFile, MAX_SYNC_UPLOAD_BYTES } from "services/drive.service";
+import { messageForCode } from "services/drive.errorMap";
 
 export type UploadStatus = "pending" | "uploading" | "done" | "error";
 
@@ -19,6 +20,23 @@ export interface UploadItem {
   retryCount: number;             // 重試次數（init 0；upper bound MAX_RETRIES）
   bytesSent: number;              // axios onUploadProgress 累計 loaded（throttle 寫 store）
   startedAt?: number;             // scheduler pending → uploading 時 set，retry 重設
+  // R3 #7 §2.2.2/§2.2.3 — magic-byte-detected mime from the pre-encrypt gate.
+  // Persisted as mime_claimed + inside the ciphertext {name, mime} payload when
+  // the encrypt upload path consumes this item (scheduler cutover — see note).
+  detectedMime?: string;
+  // R3 #7 §2.2.2 — non-blocking advisory (POLYGLOT_WARN). Item still uploads;
+  // UploadProgressList surfaces the warning text.
+  warnCode?: string;
+  warnMessage?: string;
+}
+
+// R3 #7 §2.2.2 — options the dropzone passes after the pre-encrypt mime check.
+export interface EnqueueOpts {
+  detectedMime?: string;
+  /** Strict block (e.g. UNSUPPORTED_MIME) — item enters the queue as an error. */
+  rejectCode?: string;
+  /** Loose advisory (e.g. POLYGLOT_WARN) — item uploads but shows a warning. */
+  warnCode?: string;
 }
 
 export const MAX_UPLOAD_RETRIES = 3;
@@ -28,7 +46,7 @@ interface UploadQueueState {
 }
 
 interface UploadQueueActions {
-  enqueue: (file: File, folderId: number | null) => string;
+  enqueue: (file: File, folderId: number | null, opts?: EnqueueOpts) => string;
   setStatus: (id: string, status: UploadStatus) => void;
   setProgress: (id: string, progress: number) => void;
   setProgressBytes: (id: string, bytesSent: number, percent: number) => void;
@@ -52,20 +70,28 @@ export const useUploadQueueStore = create<UploadQueueState & UploadQueueActions>
   (set, get) => ({
     queue: [],
 
-    enqueue: (file, folderId) => {
+    enqueue: (file, folderId, opts) => {
       const id = genId();
       const oversize = file.size > MAX_SYNC_UPLOAD_BYTES;
+      // R3 #7 §2.2.2 — a client-side reject (UNSUPPORTED_MIME) takes precedence,
+      // entering the queue as an error so the user sees why it was skipped.
+      // Oversize keeps its existing FILE_TOO_LARGE precedence.
+      const rejectCode = oversize ? "FILE_TOO_LARGE" : opts?.rejectCode;
       const item: UploadItem = {
         id,
         file,
         folderId,
-        status: oversize ? "error" : "pending",
+        status: rejectCode ? "error" : "pending",
         progress: 0,
-        errorCode: oversize ? "FILE_TOO_LARGE" : undefined,
-        errorMessage: oversize ? "檔案超過 2GB 限制" : undefined,
+        errorCode: rejectCode,
+        errorMessage: rejectCode ? messageForCode(rejectCode) : undefined,
         enqueuedAt: Date.now(),
         retryCount: 0,
         bytesSent: 0,
+        detectedMime: opts?.detectedMime,
+        warnCode: rejectCode ? undefined : opts?.warnCode,
+        warnMessage:
+          !rejectCode && opts?.warnCode ? messageForCode(opts.warnCode) : undefined,
       };
       set((s) => ({ queue: [...s.queue, item] }));
       return id;

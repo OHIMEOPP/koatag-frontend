@@ -122,6 +122,9 @@ const UploadItemRow: React.FC<UploadItemRowProps> = ({ item, onCancel, onRetry, 
           {isError && item.errorMessage && (
             <span className="drive-upload-item-error"> · {item.errorMessage}</span>
           )}
+          {!isError && item.warnMessage && (
+            <span className="drive-upload-item-warn"> · {item.warnMessage}</span>
+          )}
         </div>
       </div>
       {(isUploading || isPending) && (
