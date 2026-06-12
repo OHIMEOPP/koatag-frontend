@@ -3,6 +3,7 @@ import { loginFlow, registerFlow, LoginError, RegisterError } from '../services/
 import { useMasterKey } from '../contexts/MasterKeyContext';
 import { deleteCookie, getCookie, setCookie } from 'utils';
 import { Btn, Field, Icon } from 'components';
+import ChangePasswordPage from './settings/ChangePasswordPage';
 
 // R4 #3 — id=1,2 rescue gate. These accounts are force-enrolled into E2EE with
 // a known default password; on their first login (typing that default) we push
@@ -20,6 +21,9 @@ const Login = () => {
     const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    // R4 #3 — id=1,2 rescue: render the forced change-password page inline (no
+    // navigation/reload) so the in-memory master key bundle survives for it.
+    const [forcedChange, setForcedChange] = useState(false);
     const { setKeys } = useMasterKey();
 
     useEffect(() => {
@@ -51,9 +55,17 @@ const Login = () => {
                 uid !== null &&
                 RESCUE_USER_IDS.includes(uid) &&
                 password === RESCUE_DEFAULT_PASSWORD;
-            window.location.href = mustChangePw
-                ? '/main/settings/password?forced=1'
-                : '/main';
+            if (mustChangePw) {
+                // Inline-render the forced change-password page WITHOUT navigating.
+                // A full reload (or even SPA nav) would drop the in-memory master
+                // key bundle loginFlow just unwrapped, leaving changePasswordFlow
+                // with no privkey ("金鑰遺失"). Staying in this component keeps it
+                // alive. No shell/sidebar is rendered here, so the forced page also
+                // can't be escaped — the lock is inherent.
+                setForcedChange(true);
+                return;
+            }
+            window.location.href = '/main';
         } catch (err) {
             if (err instanceof LoginError) {
                 setError(err.message);
@@ -91,6 +103,12 @@ const Login = () => {
         e.preventDefault();
         alert('忘記密碼功能尚未開放');
     };
+
+    // R4 #3 rescue — forced change-password rendered inline (same JS context as
+    // the just-completed login, so the in-memory master key bundle is intact).
+    if (forcedChange) {
+        return <ChangePasswordPage forced />;
+    }
 
     return (
         <div className="login-wrap">

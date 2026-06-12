@@ -11,9 +11,10 @@ import { Btn, Field, Icon } from 'components';
 //     leave. Per Round 4 §3.3 the form takes only new + confirm (no old password).
 const MIN_LEN = 8;
 
-const ChangePasswordPage: React.FC = () => {
+const ChangePasswordPage: React.FC<{ forced?: boolean }> = ({ forced: forcedProp }) => {
     const [searchParams] = useSearchParams();
-    const forced = searchParams.get('forced') === '1';
+    // Forced via prop (rescue inline render in Login) or query (?forced=1).
+    const forced = forcedProp === true || searchParams.get('forced') === '1';
     const navigate = useNavigate();
 
     const [newPassword, setNewPassword] = useState('');
@@ -40,8 +41,8 @@ const ChangePasswordPage: React.FC = () => {
             await changePasswordFlow({ newPassword });
             $message('密碼已更新');
             if (forced) {
-                // Full reload so the gate re-evaluates with the new password
-                // (which no longer matches the default → no re-trigger).
+                // Password changed — now enter the app normally. Full reload is
+                // fine here (we no longer need the old in-memory privkey).
                 window.location.href = '/main';
             } else {
                 navigate('/main/front_page');
