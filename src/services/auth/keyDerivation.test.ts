@@ -50,7 +50,7 @@ describe('deriveAuthBundle', () => {
     expect(result.auth_password_hash[0]).not.toBe(result.master_key[0]);
   });
 
-  it('passes Argon2id baseline cost params (m=64MB, t=3, p=2, dkLen=32)', async () => {
+  it('passes Argon2id baseline cost params (m=64MB, t=3, p=1, dkLen=32)', async () => {
     const salt = bytesToBase64(new Uint8Array(16));
     await deriveAuthBundle('pw', { auth_kdf_salt: salt, master_key_kdf_salt: salt });
 
@@ -58,7 +58,8 @@ describe('deriveAuthBundle', () => {
     const opts = firstCall[2];
     expect(opts.m).toBe(65536);
     expect(opts.t).toBe(3);
-    expect(opts.p).toBe(2);
+    // R4 (#2046/#2048) — p realigned 2→1 to match backend libsodium enroll wrap.
+    expect(opts.p).toBe(1);
     expect(opts.dkLen).toBe(32);
   });
 });
@@ -66,7 +67,7 @@ describe('deriveAuthBundle', () => {
 describe('assertKdfParams', () => {
   it('accepts the locked Argon2id baseline params', () => {
     expect(() =>
-      assertKdfParams({ m: 65536, t: 3, p: 2, algorithm: 'argon2id' }),
+      assertKdfParams({ m: 65536, t: 3, p: 1, algorithm: 'argon2id' }),
     ).not.toThrow();
   });
 
@@ -76,9 +77,15 @@ describe('assertKdfParams', () => {
     ).toThrow(/kdf_params mismatch/);
   });
 
+  it('rejects mismatched parallelism (now p=1; server still declaring p=2)', () => {
+    expect(() =>
+      assertKdfParams({ m: 65536, t: 3, p: 2, algorithm: 'argon2id' }),
+    ).toThrow(/kdf_params mismatch/);
+  });
+
   it('rejects wrong algorithm', () => {
     expect(() =>
-      assertKdfParams({ m: 65536, t: 3, p: 2, algorithm: 'pbkdf2' as 'argon2id' }),
+      assertKdfParams({ m: 65536, t: 3, p: 1, algorithm: 'pbkdf2' as 'argon2id' }),
     ).toThrow(/kdf_params mismatch/);
   });
 });

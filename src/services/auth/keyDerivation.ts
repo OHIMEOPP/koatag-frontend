@@ -2,8 +2,14 @@
 // (per node_modules/@noble/hashes/package.json `exports` field).
 import { argon2idAsync } from '@noble/hashes/argon2.js';
 
-// R3 #1 §2.2 — Argon2id KDF params locked to Round 1 baseline B
-// (m=64MB, t=3, p=2) per [[E2EE/subtopics/Argon2id-KDF-parameters]].
+// Argon2id KDF params. Round 1 baseline B was m=64MB t=3 p=2, but R4 (mailbox
+// #2046/#2048) realigned parallelism to p=1: backend server-side enroll wraps
+// master_privkey using libsodium crypto_pwhash, which hard-locks parallelism=1
+// and cannot do p=2. Since no real p=2 wrap exists in the system (0 real
+// frontend-registered users per #2015; ephemeral test users carry clear
+// privkeys; id=1,2 enrolled at p=1), the whole system aligns to p=1 — verified
+// by decrypting id=1's real wrap (p=1 ✓, p=2 ✗). Security-equivalent: p is
+// lanes, p=1 is the common default (Bitcoin/MetaMask); m/t unchanged.
 //
 // Lib choice: @noble/hashes/argon2 (pure JS) instead of argon2-browser (WASM).
 // argon2-browser main entry requires Node's `path` module which webpack 5
@@ -14,7 +20,7 @@ import { argon2idAsync } from '@noble/hashes/argon2.js';
 const KDF_PARAMS = {
   t: 3,
   m: 65536,
-  p: 2,
+  p: 1,
   dkLen: 32,
   asyncTick: 10,
 } as const;

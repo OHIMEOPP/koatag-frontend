@@ -137,8 +137,16 @@ function base64ToBytes(b64: string): Uint8Array {
 // R3 #1 Design A FINAL (wiki #1492) — login flow. 4-step atomic:
 //   1. /login/derive-bundle → salts + kdf_params
 //   2. KDF derive { auth_password_hash, master_key } from password
-//   3. POST /login with auth_password_hash → token + master_pubkey + master_privkey_wrap
+//   3. POST /login with raw password (+ auth_password_hash) → token +
+//      master_pubkey + master_privkey_wrap
 //   4. aeadUnwrap master_privkey using master_key
+//
+// R4 hotfix (mailbox #2043): backend /login authenticates via JWTAuth::attempt
+// (standard Laravel bcrypt provider reads $credentials['password']). The E2EE
+// path must send the raw password — auth_password_hash is vestigial for auth
+// (never verified server-side; bcrypt is the real layer, same as register's
+// dual-mode and legacy login). Omitting password threw "Undefined array key
+// 'password'" 500 on the first real enrolled-account login (id=1,2 rescue).
 // master_key is NOT unwrapped from a stored blob — it is re-derived from
 // password each login (the salt determines stability). No password_KEK
 // intermediate (that was Design B, retracted by wiki #1492).
@@ -166,6 +174,7 @@ export const loginFlow = async (args: {
 
     const loginResp = await api.post<E2eeLoginResponse>(`/login`, {
         account,
+        password,
         auth_password_hash: bytesToBase64(auth_password_hash),
     });
     const data = loginResp.data;
