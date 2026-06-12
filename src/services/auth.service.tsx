@@ -334,7 +334,7 @@ export const changePasswordFlow = async (args: { newPassword: string }): Promise
         throw new ChangePasswordError('登入狀態金鑰遺失，請重新登入後再改密碼');
     }
 
-    const bundleResp = await api.post<ChangePwDeriveBundleResponse>(`/change-password/derive-bundle`, {});
+    const bundleResp = await api.post<ChangePwDeriveBundleResponse>(`/auth/change-password/derive-bundle`, {});
     const bundle = bundleResp.data;
     if (bundle.status !== 'ok') {
         throw new ChangePasswordError(bundle.massage || '取得 salt 失敗');
@@ -356,7 +356,7 @@ export const changePasswordFlow = async (args: { newPassword: string }): Promise
     // convention (registerFlow also posts raw password), so no new plaintext
     // exposure surface. new_auth_password_hash is base64(raw 32B), same encoding
     // as register (NOT a PHC string — confirmed via re-grep #2015).
-    const resp = await api.post<ChangePwSubmitResponse>(`/change-password`, {
+    const resp = await api.post<ChangePwSubmitResponse>(`/auth/change-password`, {
         new_password: newPassword,
         new_auth_password_hash: bytesToBase64(auth_password_hash),
         new_auth_kdf_salt: bundle.new_auth_kdf_salt,
