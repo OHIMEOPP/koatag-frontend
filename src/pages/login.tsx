@@ -4,6 +4,14 @@ import { useMasterKey } from '../contexts/MasterKeyContext';
 import { deleteCookie, getCookie, setCookie } from 'utils';
 import { Btn, Field, Icon } from 'components';
 
+// R4 #3 — id=1,2 rescue gate. These accounts are force-enrolled into E2EE with
+// a known default password; on their first login (typing that default) we push
+// them to set their own password before entering. Pure client-side, zero schema:
+// self-clearing because once the password is changed it no longer matches the
+// default, so the gate never fires again. Removable once both are confirmed done.
+const RESCUE_USER_IDS = ['1', '2'];
+const RESCUE_DEFAULT_PASSWORD = 'e2ee12345';
+
 const Login = () => {
     const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
@@ -35,7 +43,17 @@ const Login = () => {
 
         try {
             await loginFlow({ account, password, onKeys: setKeys });
-            // loginFlow() redirects on success via window.location.href
+            // R4 #3 — loginFlow no longer redirects; caller picks the destination.
+            // Route id=1,2 rescue accounts (still on the default password) to the
+            // forced change-password gate; everyone else goes to the app.
+            const uid = localStorage.getItem('user_id');
+            const mustChangePw =
+                uid !== null &&
+                RESCUE_USER_IDS.includes(uid) &&
+                password === RESCUE_DEFAULT_PASSWORD;
+            window.location.href = mustChangePw
+                ? '/main/settings/password?forced=1'
+                : '/main';
         } catch (err) {
             if (err instanceof LoginError) {
                 setError(err.message);

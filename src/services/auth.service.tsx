@@ -15,7 +15,7 @@ import {
     unpackWrap,
     userIdToAad,
 } from "./auth/keypair";
-import { setKeyBundleRef, KeyBundle } from "../contexts/MasterKeyContext";
+import { setKeyBundleRef, getKeyBundleRef, KeyBundle } from "../contexts/MasterKeyContext";
 
 // Backend POST /login response shape (per koatag 2026-05-02 contract):
 // success → HTTP 200 + { status: 'success', massage, 'user_id(nosession)', token, expires_in }
@@ -200,7 +200,9 @@ export const loginFlow = async (args: {
     onKeys?.(keys);
 
     await getUser();
-    window.location.href = '/main';
+    // R4 #3 — redirect decoupled from the flow. Caller (login.tsx handleLogin)
+    // decides the post-login destination so it can route id=1,2 rescue accounts
+    // (still on the default password) to the forced change-password gate.
 };
 
 // R3 #1 Design A FINAL (wiki #1492) — register flow. 6-step atomic:
@@ -269,6 +271,96 @@ export const registerFlow = async (args: {
 
     await getUser();
     window.location.href = '/main';
+};
+
+// R4 (Round 4 #3) — change-password flow. The X25519 master keypair is
+// password-INDEPENDENT: file/folder/share keys are sealed-box'd to master_pubkey,
+// and only master_privkey is wrapped under the password-derived master_key. So
+// changing password = re-derive a new master_key from the new password and
+// re-wrap the SAME master_privkey under it. master_pubkey is unchanged → every
+// drive_files/folders/shares key_wrap stays valid, zero re-wrap.
+//
+// Per Round 4 §3.3 (USER LOCKED, override #1990): the old password is NOT
+// required — auth is the existing JWT session. The form collects only the new
+// password. derive-bundle returns freshly server-gen'd salts (§3.2 server-gen).
+interface ChangePwDeriveBundleSuccess {
+    status: 'ok';
+    new_auth_kdf_salt: string;       // base64(16)
+    new_master_key_kdf_salt: string; // base64(16)
+    kdf_params: KdfParams;
+}
+type ChangePwDeriveBundleResponse = ChangePwDeriveBundleSuccess | DeriveBundleFail;
+
+// Backend (mailbox #2015): success → 200 { status: 'ok' }; validation fail →
+// 422 { status: 'error', reason: 'missing_fields'|'invalid_binary_length'|... }.
+interface ChangePwSubmitResponse {
+    status: string;
+    reason?: string;
+    massage?: string;
+}
+
+export class ChangePasswordError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'ChangePasswordError';
+    }
+}
+
+export const changePasswordFlow = async (args: { newPassword: string }): Promise<void> => {
+    const { newPassword } = args;
+
+    // AAD source = authenticated account from the profile getUser() cached at
+    // login. It MUST equal the account used when master_privkey was wrapped, or
+    // the next login's aeadUnwrap tag verify fails. Never re-prompt for it.
+    const userRaw = localStorage.getItem('user');
+    const account: string | undefined = userRaw ? JSON.parse(userRaw)?.account : undefined;
+    if (!account) {
+        throw new ChangePasswordError('找不到帳號資訊，請重新登入後再試');
+    }
+
+    // master_privkey is already unwrapped in memory (set at login). We re-wrap
+    // this exact key under the new master_key — never regenerate the keypair.
+    const { masterPrivkey } = getKeyBundleRef();
+    if (!masterPrivkey) {
+        throw new ChangePasswordError('登入狀態金鑰遺失，請重新登入後再改密碼');
+    }
+
+    const bundleResp = await api.post<ChangePwDeriveBundleResponse>(`/change-password/derive-bundle`, {});
+    const bundle = bundleResp.data;
+    if (bundle.status !== 'ok') {
+        throw new ChangePasswordError(bundle.massage || '取得 salt 失敗');
+    }
+    assertKdfParams(bundle.kdf_params);
+
+    const { auth_password_hash, master_key: newMasterKey } = await deriveAuthBundle(newPassword, {
+        auth_kdf_salt: bundle.new_auth_kdf_salt,
+        master_key_kdf_salt: bundle.new_master_key_kdf_salt,
+    });
+
+    const aad = userIdToAad(account);
+    const newPrivkeyWrap = await aeadWrap(masterPrivkey, newMasterKey, aad);
+
+    // Body frozen with backend (mailbox #2015): 5 fields, JWT-authed, no old
+    // password (§3.3). new_password is the raw password — backend Hash::make's it
+    // to update the legacy bcrypt column that login actually verifies (the bcrypt
+    // gap koatag caught in #2002). This reuses register's existing dual-mode
+    // convention (registerFlow also posts raw password), so no new plaintext
+    // exposure surface. new_auth_password_hash is base64(raw 32B), same encoding
+    // as register (NOT a PHC string — confirmed via re-grep #2015).
+    const resp = await api.post<ChangePwSubmitResponse>(`/change-password`, {
+        new_password: newPassword,
+        new_auth_password_hash: bytesToBase64(auth_password_hash),
+        new_auth_kdf_salt: bundle.new_auth_kdf_salt,
+        new_master_key_kdf_salt: bundle.new_master_key_kdf_salt,
+        new_master_privkey_wrap_by_master_key: bytesToBase64(packWrap(newPrivkeyWrap)),
+    });
+    if (resp.data.status !== 'ok') {
+        throw new ChangePasswordError(resp.data.reason || resp.data.massage || '改密碼失敗');
+    }
+
+    // Sync in-memory master_key (privkey/pubkey unchanged). Drive ops use
+    // privkey/pubkey only, so this is consistency housekeeping for the session.
+    setKeyBundleRef({ ...getKeyBundleRef(), masterKey: newMasterKey });
 };
 
 export const logout = async () => {

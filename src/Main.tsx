@@ -17,6 +17,8 @@ import { fetchIcon } from 'services/image.service';
 
 // Drive 走 lazy load — feature 較大且不是每個 user 必進入
 const DrivePage = lazy(() => import('pages/drive/DrivePage'));
+// R4 #3 — change-password 頁（自願改 + id=1,2 首登強制 gate 共用）
+const ChangePasswordPage = lazy(() => import('pages/settings/ChangePasswordPage'));
 
 const userRaw = localStorage.getItem('user');
 const user = userRaw ? JSON.parse(userRaw) : null;
@@ -69,6 +71,11 @@ const Main = () => {
                         <Route path="drive/*"     element={
                           <Suspense fallback={<div className="drive-loading">載入中…</div>}>
                             <DrivePage />
+                          </Suspense>
+                        } />
+                        <Route path="settings/password" element={
+                          <Suspense fallback={<div className="drive-loading">載入中…</div>}>
+                            <ChangePasswordPage />
                           </Suspense>
                         } />
                         <Route path=""            element={<Navigate to="front_page" replace />} />
