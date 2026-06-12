@@ -14,20 +14,19 @@
 
 **遺留（next round 候選，非 #7 scope）**：`useUploadScheduler` 仍走 plaintext `uploadFile`，encrypt 路徑(`uploadFileSmart`)尚未接進 UI scheduler；detectedMime/ciphertext payload 已 ready，等 scheduler cutover step。
 
-**E2EE Round 4（救援改密碼 + id=1,2 遷移）— R3 #3 frontend code 完成 + 本地 playwright 過，commit `9d20ad8` 未 push**（2026-06-12）。spec doc `life_wiki/.../koatag-e2ee-round4-rescue-2026-06-12.md`。scope 極小（縮自原 #8，BIP39 整套 DROP）：
-- Step 1 force-enroll id=1,2（password `e2ee12345`）= **backend-only**，前端零改動（enroll 後走既有 loginFlow）。
-- Step 2 change-password（通用）已實作：[M] `auth.service.changePasswordFlow({newPassword})`（複用 R3#1 積木，privkey/pubkey/aad 不變 → drive key_wrap 零變動）+ [A] `src/pages/settings/ChangePasswordPage.tsx`（雙模式，無舊密碼欄位 per §3.3 user override）+ [M] `Main.tsx` route `settings/password` + [M] login.tsx/loginFlow redirect 解耦做 id=1,2 首登強制 gate（純前端 hardcode {1,2}+預設密碼比對，self-clearing 零 schema）。
-- **body schema FROZEN（mailbox #2015）5 欄**：`{ new_password(raw,給 bcrypt), new_auth_password_hash(base64 raw 32B 同 register), new_auth_kdf_salt, new_master_key_kdf_salt, new_master_privkey_wrap_by_master_key }`；success `{status:'ok'}`。2 個 cross-side catch（bcrypt login 缺口 + auth_password_hash PHC vs base64 格式）已由 frontend 抓出 + backend 採納。
-- **本地 playwright 過**（dev server :3001，真瀏覽器）：強制/一般雙模式渲染 + client 驗證（太短/不一致不發 API）+ gate 決策 self-clearing。截圖 `r4-changepw-forced.png` / `r4-changepw-normal.png`（未 commit）。verify：tsc + jest 82/82。
-- ⚠ **未測（硬依賴）**：①live 登入→forced 導頁 ②submit→新密碼重登。需 backend R3#2 endpoint 上線 + id=1,2 enroll（prod-touching）。
-- 🚦 **push + docker cp deploy 各需 user 逐次 GO**（協定 §5 prod-touching gate），尚未授權。backend R4 亦全 commit 未 push（enroll `da037a6` / change-password `5a839b5`）。
-- backlog（非本輪）：register 端 `auth_password_hash` PHC preg 與前端 base64 不相容（同源 latent，koatag flag wiki 另立 task）。
+**E2EE Round 4（救援改密碼 + id=1,2 遷移）— ✅ LANDED + live e2e 成功 + pushed**（2026-06-12）。spec doc `life_wiki/.../koatag-e2ee-round4-rescue-2026-06-12.md`。scope 極小（縮自原 #8，BIP39 整套 DROP）。
+- **id=1 cool901215 改密碼 live 成功、資料 100% 無損**（backend post-change 讀回：master_pubkey 不變 / salt 換新 / privkey re-wrap / 13 檔 168 folder 未動）。id=2 KUROMU = user 選擇留 e2ee12345 不改。
+- frontend commit 鏈（全 push `feat/redesign-v3` HEAD=`06f9b8b`）：`9d20ad8`(change-password UI+gate) → `253231d`(login 送 raw password + KDF **p=1** 對齊 enroll) → `4e6591e`(**解法 A**：forced 改密碼頁 inline 渲染在 Login，不 reload→保住 in-memory privkey、附帶無 sidebar=forced-lock 內建) → `5ab0d12`+`06f9b8b`(route /auth/ thrash pair，net=no-/auth/)。
+- deployed bundle `main.5cc072ce.js`（容器 cp）。change-password 路徑 = **`/api/change-password*`（NO /auth/）**，跟 backend `a7ebb8b` 鎖死對齊。
+- changePasswordFlow body 5 欄 frozen（#2015）：`{ new_password(raw→bcrypt), new_auth_password_hash(base64 raw 32B), new_auth_kdf_salt, new_master_key_kdf_salt, new_master_privkey_wrap_by_master_key }`；success `{status:'ok'}`。
+- **本輪 7 層 latent bug（真人 E2EE login 史上第一次跑）全清**：①stale-log 誤判 ②login 缺 raw password(bcrypt) ③KDF p=2→p=1 對齊 libsodium enroll ④login response 缺 master_pubkey+wrap(序列化) ⑤forced 導頁 reload 洗 in-memory privkey(→解法 A inline) ⑥change-password path 缺前綴 ⑦兩 agent route /auth/ thrash（freeze no-/auth/ 收斂）。
+- backlog（非本輪，wiki 記）：(a) register `auth_password_hash` PHC preg vs 前端 base64 不相容（同源 latent）(b) normal /main login 也 full-reload 洗 privkey → 全 app navigate()+App gate render-time 保 privkey（latent，drive 多 plaintext）(c) route convention 統一（login 無 /auth/ vs change-password 無 /auth/ 現已一致；cosmetic）。
 
 D.19 frontend ship done（commit `f72fa04` + 容器 cp `main.d625f217.js`）。
 
 ## Live in prod-like container
 
-`koatag_fontend` (docker, port 3000) serving `main.d625f217.js` / `main.acc32769.css` — 2026-05-16 cp（per wiki #690 D.19）。內含累積：
+`koatag_fontend` (docker, port 3000) serving **`main.5cc072ce.js`** / `main.4e660bde.css` — 2026-06-12 cp（E2EE R3 #1-7 foundation + R4 救援改密碼）。內含累積（D.x plaintext era + E2EE）：
 - D.1 A+B+C share / video onError / v?-zip landing
 - D.9 v3 Trash UI scaffold
 - D.12 上傳 2GB / 配額 20GB
