@@ -8,7 +8,20 @@
 
 ## In-flight（等動作）
 
-E2EE Round 1 frontend catalogue 已 land + close（per wiki #703/#704 dispatch → #712 fill → #715 ack → #716 close ack）。等 user Discord DM review 後 Round 2 dispatch（backend-led #1 Key hierarchy + KDF pipeline 起；frontend 可平行起 mock client prototype 但等 user GO 不擅動）。
+**E2EE Round 3 — 7 步全 close + pushed**（多輪規劃協定 R3 dispatch round 收尾）。`feat/redesign-v3` HEAD == origin（`edfd2a9`，ahead 0，2026-06-11 push per wiki #1899 user Discord GO）：
+- `b429452` R3 #1-6 frontend foundation（key hierarchy/KDF、AEAD encrypt+decrypt pipeline、share grant、download、4 stores、MasterKeyContext）— verify：tsc clean + jest 78/78。
+- `edfd2a9` R3 #7 D.18 MIME trust model（encrypted era）— mimeCheck(file-type/core magic-byte)、pre-encrypt whitelist/polyglot gate、ciphertext {name,mime} payload、listFiles parse、UploadTrustDisclosure UI。verify：tsc + build + jest 82/82 + playwright §2.2.5。wiki ratify（#1892，4 catch 全收）。backend R3 #7 `09e4ef2` wiki 同步 push OHIMEOPP/koatag main。
+
+**遺留（next round 候選，非 #7 scope）**：`useUploadScheduler` 仍走 plaintext `uploadFile`，encrypt 路徑(`uploadFileSmart`)尚未接進 UI scheduler；detectedMime/ciphertext payload 已 ready，等 scheduler cutover step。
+
+**E2EE Round 4（救援改密碼 + id=1,2 遷移）— R3 #3 frontend code 完成 + 本地 playwright 過，commit `9d20ad8` 未 push**（2026-06-12）。spec doc `life_wiki/.../koatag-e2ee-round4-rescue-2026-06-12.md`。scope 極小（縮自原 #8，BIP39 整套 DROP）：
+- Step 1 force-enroll id=1,2（password `e2ee12345`）= **backend-only**，前端零改動（enroll 後走既有 loginFlow）。
+- Step 2 change-password（通用）已實作：[M] `auth.service.changePasswordFlow({newPassword})`（複用 R3#1 積木，privkey/pubkey/aad 不變 → drive key_wrap 零變動）+ [A] `src/pages/settings/ChangePasswordPage.tsx`（雙模式，無舊密碼欄位 per §3.3 user override）+ [M] `Main.tsx` route `settings/password` + [M] login.tsx/loginFlow redirect 解耦做 id=1,2 首登強制 gate（純前端 hardcode {1,2}+預設密碼比對，self-clearing 零 schema）。
+- **body schema FROZEN（mailbox #2015）5 欄**：`{ new_password(raw,給 bcrypt), new_auth_password_hash(base64 raw 32B 同 register), new_auth_kdf_salt, new_master_key_kdf_salt, new_master_privkey_wrap_by_master_key }`；success `{status:'ok'}`。2 個 cross-side catch（bcrypt login 缺口 + auth_password_hash PHC vs base64 格式）已由 frontend 抓出 + backend 採納。
+- **本地 playwright 過**（dev server :3001，真瀏覽器）：強制/一般雙模式渲染 + client 驗證（太短/不一致不發 API）+ gate 決策 self-clearing。截圖 `r4-changepw-forced.png` / `r4-changepw-normal.png`（未 commit）。verify：tsc + jest 82/82。
+- ⚠ **未測（硬依賴）**：①live 登入→forced 導頁 ②submit→新密碼重登。需 backend R3#2 endpoint 上線 + id=1,2 enroll（prod-touching）。
+- 🚦 **push + docker cp deploy 各需 user 逐次 GO**（協定 §5 prod-touching gate），尚未授權。backend R4 亦全 commit 未 push（enroll `da037a6` / change-password `5a839b5`）。
+- backlog（非本輪）：register 端 `auth_password_hash` PHC preg 與前端 base64 不相容（同源 latent，koatag flag wiki 另立 task）。
 
 D.19 frontend ship done（commit `f72fa04` + 容器 cp `main.d625f217.js`）。
 
@@ -30,12 +43,11 @@ D.6 video poster frame 純 backend `thumb_path` 寫入，前端透明消費（wi
 
 ## Working tree
 
-完全乾淨。
+乾淨（唯一 untracked = 既有 stray `phase3-smoke-login-cors-blocked.png`，非本輪產物，不 commit）。R3 #1-6 + #7 已 local commit、**未 push**。
 
 ## 待 user 動作
 
-無強制 action — system 全 in-sync 狀態。
-optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 case）。
+無強制 action。R3 #1-6 + #7 local commits 未 push（等 wiki review / round close 再決定 push）。等 wiki #1891 reply（scheduler cutover + self-catch ratify）。
 
 ## 功能 backlog — E2EE 相關性三色分類（per wiki #568）
 
@@ -74,6 +86,8 @@ optional：跑 manual browser smoke（D.1 7 / D.9 6 / D.12 2 / D.14 2 / D.14b 3 
 ## Recent commits (this session)
 
 ```
+edfd2a9 feat(drive): R3 #7 D.18 MIME trust model (encrypted era) — frontend
+b429452 feat(e2ee): R3 #1-6 frontend foundation — key hierarchy, AEAD pipeline, share, download
 f72fa04 feat(image): D.19 圖庫上傳 50MB/10筆/500MB 限制
 438bc3a docs: PROJECT_STATE.md sync — container cp per wiki #685
 9a98fb2 docs: PROJECT_STATE.md sync — 4 CSS class polish close per wiki #674
