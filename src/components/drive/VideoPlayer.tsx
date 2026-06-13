@@ -1,8 +1,9 @@
 import React, { useRef, useState } from "react";
-import { useDriveStreamUrl } from "hooks/useDriveStreamUrl";
+import { DriveFile } from "services/drive.service";
+import { useDecryptedAssetUrl } from "hooks/useDecryptedAssetUrl";
 
 interface VideoPlayerProps {
-  fileId: number;
+  file: DriveFile;
   name: string;
 }
 
@@ -11,7 +12,8 @@ const MAX_AUTO_REFRESH = 1;
 /**
  * Drive video 播放（spec §2.12 / §6 + v3 onError refresh）。
  *
- * - 用 `useDriveStreamUrl(fileId, 'stream')` 拿 signed URL（POST /stream-url 取 sig+exp）
+ * - 用 `useDecryptedAssetUrl(file, 'stream')` 取 src：明文檔走 signed URL
+ *   （POST /stream-url 取 sig+exp）；加密檔走整檔解密→blob object URL（本地播放 degrade）
  * - `<video preload="metadata">`：只下 header，user 按 play 才實 stream
  * - 瀏覽器 native Range request 直接打 backend，dev `BinaryFileResponse` /
  *   prod `X-Accel-Redirect` 走 nginx；frontend 行為一致
@@ -25,16 +27,17 @@ const MAX_AUTO_REFRESH = 1;
  *
  * v2 才加 poster `poster={posterUrl(id)}`（backend poster endpoint 還沒）。
  */
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ fileId, name }) => {
-  const { url, loading, error, refresh } = useDriveStreamUrl(fileId, "stream");
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ file, name }) => {
+  // 加密檔走整檔解密 → blob object URL（本地播放 degrade）；明文檔沿用 signed URL。
+  const { url, loading, error, refresh } = useDecryptedAssetUrl(file, "stream");
   const refreshCountRef = useRef(0);
   const [persistentError, setPersistentError] = useState<string | null>(null);
 
-  // fileId 換時 reset refresh count（不同 video 各自 1 次重試額度）
+  // file 換時 reset refresh count（不同 video 各自 1 次重試額度）
   React.useEffect(() => {
     refreshCountRef.current = 0;
     setPersistentError(null);
-  }, [fileId]);
+  }, [file.id]);
 
   const handleVideoError = () => {
     if (refreshCountRef.current < MAX_AUTO_REFRESH) {

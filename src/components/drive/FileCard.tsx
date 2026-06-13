@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { DriveFile } from "services/drive.service";
-import { useDriveStreamUrl } from "hooks/useDriveStreamUrl";
+import { useDecryptedAssetUrl } from "hooks/useDecryptedAssetUrl";
 import { formatBytes, getMimeIconText } from "./FileGrid";
 
 interface FileCardProps {
@@ -11,10 +11,11 @@ interface FileCardProps {
 
 export const FileCard: React.FC<FileCardProps> = ({ file, onOpen, onContextMenu }) => {
   const isImage = file.mime.startsWith("image/");
-  const hasThumb = isImage && !!file.thumb_path;
-  const { url: thumbUrl, error } = useDriveStreamUrl(hasThumb ? file.id : null, "thumb");
+  // 明文檔需 server thumb_path；加密檔無伺服器縮圖，改走整檔解密當縮圖。
+  const canThumb = isImage && (!!file.is_encrypted || !!file.thumb_path);
+  const { url: thumbUrl, error } = useDecryptedAssetUrl(canThumb ? file : null, "thumb");
   const [imgError, setImgError] = useState(false);
-  const showThumb = hasThumb && thumbUrl && !error && !imgError;
+  const showThumb = canThumb && thumbUrl && !error && !imgError;
 
   return (
     <div

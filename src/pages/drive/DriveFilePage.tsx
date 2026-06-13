@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getFile, DriveFile } from "services/drive.service";
 import { downloadFileSmart } from "services/drive.download";
 import { mapDriveError } from "services/drive.errorMap";
-import { useDriveStreamUrl } from "hooks/useDriveStreamUrl";
+import { useDecryptedAssetUrl } from "hooks/useDecryptedAssetUrl";
 import { formatBytes, getMimeIconText, VideoPlayer } from "components/drive";
 import { FullscreenViewer } from "components/FullscreenViewer/FullscreenViewer";
 import { Icon } from "components/Icon";
@@ -120,7 +120,7 @@ const DriveFilePage: React.FC = () => {
             <ImagePreview file={file} onClickToFullscreen={() => setFsOpen(true)} />
           ) : isVideo ? (
             <div className="drive-video-container">
-              <VideoPlayer fileId={file.id} name={file.name} />
+              <VideoPlayer file={file} name={file.name} />
             </div>
           ) : (
             <GenericPreview file={file} />
@@ -133,7 +133,7 @@ const DriveFilePage: React.FC = () => {
       </div>
       {isImage && (
         <ImageFullscreen
-          fileId={file.id}
+          file={file}
           name={file.name}
           open={fsOpen}
           onClose={() => setFsOpen(false)}
@@ -162,9 +162,10 @@ const ImagePreview: React.FC<{
   file: DriveFile;
   onClickToFullscreen: () => void;
 }> = ({ file, onClickToFullscreen }) => {
-  const hasThumb = !!file.thumb_path;
-  const { url: thumbUrl } = useDriveStreamUrl(hasThumb ? file.id : null, "thumb");
-  const { url: streamUrl, loading, error } = useDriveStreamUrl(file.id, "stream");
+  // 加密檔無伺服器縮圖（progressive thumb→stream 對加密檔自然塌縮成單一解密 URL）。
+  const hasThumb = !!file.thumb_path && !file.is_encrypted;
+  const { url: thumbUrl } = useDecryptedAssetUrl(hasThumb ? file : null, "thumb");
+  const { url: streamUrl, loading, error } = useDecryptedAssetUrl(file, "stream");
   const [streamReady, setStreamReady] = useState(false);
 
   const displayUrl = streamReady && streamUrl ? streamUrl : (thumbUrl ?? streamUrl);
@@ -269,13 +270,13 @@ const ImageDataTagBlock: React.FC<{ data: ImageData }> = ({ data }) => {
 };
 
 const ImageFullscreen: React.FC<{
-  fileId: number;
+  file: DriveFile;
   name: string;
   open: boolean;
   onClose: () => void;
-}> = ({ fileId, name, open, onClose }) => {
-  // 只在 open 時才簽 sig 避免閒置 POST（v2 bulk-sign 範圍另議）
-  const { url } = useDriveStreamUrl(open ? fileId : null, "stream");
+}> = ({ file, name, open, onClose }) => {
+  // 只在 open 時才簽 sig / 解密避免閒置 POST（v2 bulk-sign 範圍另議）
+  const { url } = useDecryptedAssetUrl(open ? file : null, "stream");
   if (!open || !url) return null;
   return (
     <FullscreenViewer
