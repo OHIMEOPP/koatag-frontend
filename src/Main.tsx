@@ -12,6 +12,7 @@ import './style/v3/index.scss';
 
 
 import { AppShell, MetaHead } from 'components';
+import { RequireKeys } from 'components/drive';
 import { getFilePath } from 'utils';
 import { fetchIcon } from 'services/image.service';
 
@@ -70,7 +71,12 @@ const Main = () => {
                         <Route path="history"     element={<History />} />
                         <Route path="drive/*"     element={
                           <Suspense fallback={<div className="drive-loading">載入中…</div>}>
-                            <DrivePage />
+                            {/* R2 #4 cutover — force-re-login gate at the Drive
+                                boundary: refresh washes in-memory E2EE keys, so
+                                guard every encrypted write/decrypt with a re-login. */}
+                            <RequireKeys>
+                              <DrivePage />
+                            </RequireKeys>
                           </Suspense>
                         } />
                         <Route path="settings/password" element={

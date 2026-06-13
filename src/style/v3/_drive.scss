@@ -777,6 +777,19 @@
   font-size: 12px;
 }
 
+// R2 #4 cutover — force-re-login gate (RequireKeys) modal copy.
+.drive-relogin-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.drive-relogin-account {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
 .drive-modal-actions {
   display: flex;
   justify-content: flex-end;

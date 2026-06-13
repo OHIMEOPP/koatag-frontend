@@ -1,5 +1,5 @@
 import { ScrollTop, ScrollToTop } from 'components';
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import './App.css';
 import Main from './Main';
 import { Login } from 'pages';
@@ -12,27 +12,51 @@ const ShareLinkLandingPage = lazy(
   () => import('pages/drive/ShareLinkLandingPage'),
 );
 
-const token = localStorage.getItem('token');
-const user_id = getUserId();
-
 declare global {
   interface Window {
     user_id: string;
   }
 }
-localStorage.setItem('user_id', user_id);
-window.user_id = user_id;
 
-// console.log(token, user_id) //正常執行一次
+// Initial mirror for any legacy global reader (set once at load). The route
+// guards below read auth state FRESH per render — not from this snapshot.
+window.user_id = getUserId();
+localStorage.setItem('user_id', window.user_id);
+
+// R2 #4 cutover (backlog b) — login.tsx now navigates instead of full-reloading,
+// so the in-memory E2EE key bundle survives login (the cutover's whole premise:
+// encrypted upload needs masterPubkey alive after login). For routing to pick up
+// the freshly-written token — instead of a stale module-load snapshot that would
+// bounce a just-logged-in user back to /login — the guards read localStorage on
+// every render via wrapper components, which <Routes> re-renders on each location
+// change. A full reload (logout, change-password) still works: a fresh load reads
+// fresh too.
+function isAuthed(): boolean {
+  return !!localStorage.getItem('token') && !!getUserId();
+}
+
+const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+  isAuthed() ? <>{children}</> : <Navigate to="/login" replace />;
+
+const RedirectIfAuthed: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+  isAuthed() ? <Navigate to="/main/front_page" replace /> : <>{children}</>;
+
+const RootRedirect: React.FC = () => (
+  <Navigate to={isAuthed() ? '/main/front_page' : '/login'} replace />
+);
+
 function App() {
-  // console.log(token, user_id) // 異常執行兩次
   return (
     <BrowserRouter>
       <ScrollTop />
       <Routes>
         <Route
           path="/login"
-          element={!token || !user_id ? <Login /> : <Navigate to="/main/front_page" replace />}
+          element={
+            <RedirectIfAuthed>
+              <Login />
+            </RedirectIfAuthed>
+          }
         />
         <Route
           path="/main/drive/share/:token"
@@ -44,12 +68,13 @@ function App() {
         />
         <Route
           path="/main/*"
-          element={token && user_id ? <Main /> : <Navigate to="/login" replace />}
+          element={
+            <RequireAuth>
+              <Main />
+            </RequireAuth>
+          }
         />
-        <Route
-          path="/"
-          element={<Navigate to={token && user_id ? "/main/front_page" : "/login"} replace />}
-        />
+        <Route path="/" element={<RootRedirect />} />
         <Route
           path="/test"
           element={<Test

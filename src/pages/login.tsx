@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loginFlow, registerFlow, LoginError, RegisterError } from '../services/auth.service';
 import { useMasterKey } from '../contexts/MasterKeyContext';
 import { deleteCookie, getCookie, setCookie } from 'utils';
@@ -25,6 +26,7 @@ const Login = () => {
     // navigation/reload) so the in-memory master key bundle survives for it.
     const [forcedChange, setForcedChange] = useState(false);
     const { setKeys } = useMasterKey();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const saved = getCookie('rememberAccount');
@@ -65,7 +67,13 @@ const Login = () => {
                 setForcedChange(true);
                 return;
             }
-            window.location.href = '/main';
+            // R2 #4 cutover (backlog b) — SPA navigate, NOT window.location.href.
+            // A full reload would drop the in-memory master key bundle loginFlow
+            // just derived (washing masterPubkey → encrypted upload would fall
+            // back / hit the force-re-login gate). Navigating keeps the Context
+            // bundle alive; App.tsx reads the token reactively so /main resolves
+            // without bouncing back to /login.
+            navigate('/main/front_page');
         } catch (err) {
             if (err instanceof LoginError) {
                 setError(err.message);

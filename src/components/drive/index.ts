@@ -17,5 +17,6 @@ export { NewFolderDialog } from "./NewFolderDialog";
 export { MoveDialog } from "./MoveDialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { ShareDialog } from "./ShareDialog";
+export { RequireKeys } from "./RequireKeys";
 export { UserSearchAutocomplete } from "./UserSearchAutocomplete";
 export { VideoPlayer } from "./VideoPlayer";
