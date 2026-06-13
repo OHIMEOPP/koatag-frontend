@@ -14,6 +14,9 @@ const driveErrorMessages: Record<string, string> = {
   // advisory (claimed ≠ detected — still uploads, per §3 #3 LOCKED).
   UNSUPPORTED_MIME: "不支援的檔案類型，已略過",
   POLYGLOT_WARN: "⚠ 副檔名與內容類型不符，仍會上傳",
+  // Security follow-up — 類型檢查本身失敗（檔案無法讀取等）時 fail-closed 擋下，
+  // 不靜默放行未驗證的上傳（加密路徑後端無法驗內容，client gate 是唯一防線）。
+  MIME_CHECK_FAILED: "檔案類型檢查失敗，已擋下；請重試或更換檔案",
   // R2 #4 cutover（fe-cutover §2.2.3 / enforce-safety §2.2）— E2EE enforce era.
   // KEYS_MISSING：encrypt 路徑在 refresh-window（JWT 在、in-memory 金鑰 reset null）
   //   丟出；force-re-login gate（RequireKeys）為主防線，此文案是繞過 gate 時的後備。

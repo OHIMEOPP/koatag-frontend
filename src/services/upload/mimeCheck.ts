@@ -19,10 +19,25 @@
 // file.type) — file.type is trivially forgeable via extension, the magic-byte
 // result is harder to fake (§2.3.5 #1).
 
+import { Buffer as BufferShim } from "buffer";
 import {
   isWhitelistedDetectedMime,
   isWhitelistedTextClaim,
 } from "./driveMimeWhitelist";
+
+// R3 #7 follow-up (security) — CRA/webpack 5 removes the Node `Buffer` global,
+// but file-type@16 (via token-types) references `Buffer` at magic-byte parse
+// time. In the browser this threw `ReferenceError: Buffer is not defined`, the
+// classify() call rejected, and enqueueWithMimeCheck silently fail-opened — so
+// after DRIVE_ENFORCE_ENCRYPTED_UPLOAD=true EVERY upload bypassed the only
+// content-MIME / polyglot defense (the server cannot inspect ciphertext, so this
+// client gate is the sole line — confirmed against DriveFileController encrypted
+// path which skips server magic + blacklist). Tests never caught it: jest runs
+// in Node where `Buffer` is a native global, so detection worked there but not in
+// the browser bundle. Provide the browser `buffer` shim once before any detection.
+if (typeof (globalThis as { Buffer?: unknown }).Buffer === "undefined") {
+  (globalThis as { Buffer?: unknown }).Buffer = BufferShim;
+}
 
 const MAGIC_BYTE_READ_LEN = 4096;
 
