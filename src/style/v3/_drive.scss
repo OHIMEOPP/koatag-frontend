@@ -790,6 +790,19 @@
   color: var(--color-text-primary);
 }
 
+// R2 #4 cutover — force-re-login gate presentation. Scoped to the Drive
+// content area only: RequireKeys wraps DrivePage *inside* AppShell/LayOut, so
+// this stays in-flow (NO position:fixed/inset:0) and the global sidebar/home/
+// image nav remain clickable. (The shared .drive-modal-overlay is a true
+// full-screen backdrop reused by the 5 real dialogs — must not be reused here.)
+.drive-relogin-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 24px;
+}
+
 .drive-modal-actions {
   display: flex;
   justify-content: flex-end;

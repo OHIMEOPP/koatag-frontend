@@ -80,7 +80,7 @@ const ReloginGate: React.FC<{ onKeys: ReturnType<typeof useMasterKey>["setKeys"]
   };
 
   return (
-    <div className="drive-modal-overlay" role="dialog" aria-modal="true">
+    <div className="drive-relogin-gate" role="dialog" aria-modal="true">
       <div className="drive-modal" onClick={(e) => e.stopPropagation()}>
         <div className="drive-modal-title">需要重新登入</div>
         <p className="drive-relogin-hint">
