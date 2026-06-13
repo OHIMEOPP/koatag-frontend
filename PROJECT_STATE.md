@@ -8,7 +8,14 @@
 
 ## In-flight（等動作）
 
-**E2EE enforce flag live 後續 — P0 inline 顯示接加密解密 — ✅ LANDED + 部署 live + 真人 5 項 smoke 全綠；等 wiki close**（2026-06-13）：
+**Security MIME-gate 修復（D.18/R3#7 client gate 形同虛設）— ✅ LANDED + push + 部署 live + browser 三項 verify 全綠 + wiki #2237 CLOSE**（2026-06-13）：
+- **背景**：P0 smoke 揪到 console `[mimeCheck] classify failed: Buffer is not defined` → CRA/webpack5 拔 Node `Buffer` global，file-type@16 magic 解析引用 Buffer 即 throw → classify reject → 靜默 fail-open。enforce=true 後，加密路徑 server 結構上不驗內容（`DriveFileController:151` `$runServerMagic=!isEncrypted`、`:256` 對密文無 verify means）→ **這道 client gate 是內容型 MIME/polyglot 唯一防線，卻從沒在 browser 跑過**。
+- **修法**（commit `f497fc9`）：Fix1 `import {Buffer} from "buffer"`(6.0.3 直接 dep)+ guard shim 不覆寫 Node 原生（jest 不受影響）；Fix2 catch 從「無 gate enqueue」改 `rejectCode:'MIME_CHECK_FAILED'`（fail-open→**fail-closed**）；errorMap +1 + test +4（含 fail-closed 斷言）。6 檔 100+/7-。
+- **部署 live**：bundle **`main.a15d2fbc.js`** 已 `docker cp` 進 `koatag_fontend`（md5 `aeaef2f8…` 容器==本地 build 一致、index.html 指向、mtime 18:17）。**已 push**（origin==HEAD==`f497fc9`，0/0）。
+- **browser 三項 verify 全綠**（localhost:3000 容器 live bundle + 真人 cool901215）：①正常 64×64 PNG→gate accept→`POST /drive/files 201`(id242)→blob 解密縮圖 64×64 ②偽裝檔（MZ 執行檔頭偽裝 .png）→偵測 `application/x-msdownload` 不在白名單→「不支援的檔案類型，已略過/1 失敗」+ **network 無 POST**（真沒上傳，非只看 UI）+ grid 無→**gate 真跑 + fail-closed 雙證實** ③明文 grandfather(http signed) 與加密(blob) per-file branch 並存零變動。console 0 warning（`[mimeCheck] classify failed` 消失）。測試檔 id242 已永久刪、本地 fixture 清。
+- wiki #2237 獨立驗（push 0/0 + build md5==容器 md5 + browser 方法論認可）→ **CLOSE**。**旁註**：grid 殘留 `.tmp_smoke.mp4`/`sample.mp4`（非本輪、非我上傳）wiki 指示先不動，之後 dev residue sweep 一起掃。
+
+**E2EE enforce flag live 後續 — P0 inline 顯示接加密解密 — ✅ LANDED + 部署 live + 真人 5 項 smoke 全綠；wiki #2231 已 close**（2026-06-13）：
 - **背景**：koatag 翻 `DRIVE_ENFORCE_ENCRYPTED_UPLOAD=true` 並 push live（#2226）→ 所有新上傳一律加密。user 撞到「上傳圖只看到檔名、內容空白」（wiki #2227 P0）。根因 = 4 個顯示元件（FileCard 縮圖 / ImagePreview / ImageFullscreen / VideoPlayer）仍把 raw signed URL（密文/409）餵 `<img>/<video>`，顯示層從沒接解密。
 - **修法**：抽共用 hook `useDecryptedAssetUrl(file, kind)` — 明文走既有 signed URL（零行為變動）；加密走 `downloadEncryptedFile`→`decryptedAssetStore` LRU→object URL。thumb/full 統一 cache 在單一 `full` key（清單+詳情+全螢幕共用一次解密）。影片加密檔走整檔解密→blob→`<video>` degrade（MSE streaming 留 polish）。
 - **commit `ffb0c70`** on feat/redesign-v3（hook+test+4 元件，263+/21-）。**未 push**（push 時機聽 wiki）。
@@ -53,7 +60,7 @@ D.19 frontend ship done（commit `f72fa04` + 容器 cp `main.d625f217.js`）。
 
 ## Live in prod-like container
 
-`koatag_fontend` (docker, port 3000) serving **`main.5ab4f12d.js`** / `main.6e8248fd.css` — 2026-06-13 cp（E2EE R2#4 cutover full + enforce flag live + **P0 inline 顯示解密**）。內含累積（D.x plaintext era + E2EE）：
+`koatag_fontend` (docker, port 3000) serving **`main.a15d2fbc.js`** / `main.6e8248fd.css` — 2026-06-13 cp（E2EE R2#4 cutover full + enforce flag live + P0 inline 顯示解密 + **security MIME-gate 修復 Buffer polyfill/fail-closed**）。內含累積（D.x plaintext era + E2EE）：
 - D.1 A+B+C share / video onError / v?-zip landing
 - D.9 v3 Trash UI scaffold
 - D.12 上傳 2GB / 配額 20GB
