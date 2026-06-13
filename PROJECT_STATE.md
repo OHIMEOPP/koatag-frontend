@@ -8,7 +8,17 @@
 
 ## In-flight（等動作）
 
-**E2EE Round 2 #4 — Upload Cutover + 名稱加密 + force-re-login gate + download 解密 wiring + chunked 契約（多輪規劃協定 R3 impl）— ✅ FE LANDED + STEP 1 bundle LIVE + STEP 2 smoke 全綠；等 BE/koatag STEP 3 翻 flag**（2026-06-13）：
+**E2EE enforce flag live 後續 — P0 inline 顯示接加密解密 — ✅ LANDED + 部署 live + 真人 5 項 smoke 全綠；等 wiki close**（2026-06-13）：
+- **背景**：koatag 翻 `DRIVE_ENFORCE_ENCRYPTED_UPLOAD=true` 並 push live（#2226）→ 所有新上傳一律加密。user 撞到「上傳圖只看到檔名、內容空白」（wiki #2227 P0）。根因 = 4 個顯示元件（FileCard 縮圖 / ImagePreview / ImageFullscreen / VideoPlayer）仍把 raw signed URL（密文/409）餵 `<img>/<video>`，顯示層從沒接解密。
+- **修法**：抽共用 hook `useDecryptedAssetUrl(file, kind)` — 明文走既有 signed URL（零行為變動）；加密走 `downloadEncryptedFile`→`decryptedAssetStore` LRU→object URL。thumb/full 統一 cache 在單一 `full` key（清單+詳情+全螢幕共用一次解密）。影片加密檔走整檔解密→blob→`<video>` degrade（MSE streaming 留 polish）。
+- **commit `ffb0c70`** on feat/redesign-v3（hook+test+4 元件，263+/21-）。**未 push**（push 時機聽 wiki）。
+- **部署 live**：bundle **`main.5ab4f12d.js`** `docker cp` 進 `koatag_fontend`（user 本 CLI 直接授權）。
+- **真人 smoke 全綠**（cool901215 localhost:3000）：①加密圖清單縮圖 blob naturalW=640 吻合 ②詳情頁預覽 ③全螢幕 ④明文 grandfather 同 grid 並存 http(signed)+blob(decrypt) per-file branch 正確 ⑤加密影片 blob readyState=4 duration=5.06s。console 0 error。test 殘留全清（2 test 檔永久刪除）。wiki #2230 附 4 截圖待 close。
+- **⚠️ 另案 latent bug（非本 P0 scope，丟 wiki triage）**：console warning `[mimeCheck] classify failed: Buffer is not defined`（file-type fromBuffer）→ D.18/R3#7 上傳前 MIME polyglot/whitelist 安全 gate 在 browser 實際沒跑（缺 Buffer polyfill，fallback 直接放行）。security-relevant，建議獨立排一輪。
+- **polish backlog（wiki #2229 非 blocker #2）**：加密圖無伺服器縮圖，清單 grid mount 即每張整檔下載+解密（無 viewport gating）。50 張圖資料夾 = 開即 ~50 次整檔解密。正解 = upload 時生 client-encrypted thumbnail（小圖）。
+- ───── 以下為前序 cutover history（可摺疊）─────
+
+**E2EE Round 2 #4 — Upload Cutover + 名稱加密 + force-re-login gate + download 解密 wiring + chunked 契約（多輪規劃協定 R3 impl）— ✅ FE LANDED + STEP 1 bundle LIVE + STEP 2 smoke 全綠 + STEP 3 koatag 翻 enforce flag live（#2226）**（2026-06-13）：
 - **STEP 1 DONE**：bundle `main.f50ca41e.js` 已 `docker cp` 進 `koatag_fontend` 容器（user CLI 直接授權「部署」；harness prod-touching gate 要 user 本 session 直接授權、wiki relay 不夠）。
 - **STEP 2 smoke 全綠（prod bundle localhost:3000 真實 origin）**：①chunked ≥50MB roundtrip **byte-equal**（initiate 201 + 12 chunk PUT 200 + finalize 201 + download sha256 match）②single-blob roundtrip byte-equal ③加密 folder create 解密 ④明文 grandfather download 真 JPEG。test 殘留全清。
 - **chunked Path C 第一次真跑揪 2 契約 bug（commit `a7eaa57`）**：initiate `total_size_plaintext`→`total_size_ciphertext`（422 INVALID_TOTAL_SIZE）+ response 讀 `session_id`→`upload_session_id`（undefined session）。wiki BE grep 確認只此 2 處 drift、chunk PUT/finalize 已對齊。
@@ -43,7 +53,7 @@ D.19 frontend ship done（commit `f72fa04` + 容器 cp `main.d625f217.js`）。
 
 ## Live in prod-like container
 
-`koatag_fontend` (docker, port 3000) serving **`main.5cc072ce.js`** / `main.4e660bde.css` — 2026-06-12 cp（E2EE R3 #1-7 foundation + R4 救援改密碼）。內含累積（D.x plaintext era + E2EE）：
+`koatag_fontend` (docker, port 3000) serving **`main.5ab4f12d.js`** / `main.6e8248fd.css` — 2026-06-13 cp（E2EE R2#4 cutover full + enforce flag live + **P0 inline 顯示解密**）。內含累積（D.x plaintext era + E2EE）：
 - D.1 A+B+C share / video onError / v?-zip landing
 - D.9 v3 Trash UI scaffold
 - D.12 上傳 2GB / 配額 20GB
