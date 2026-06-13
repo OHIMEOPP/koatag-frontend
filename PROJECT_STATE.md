@@ -8,7 +8,13 @@
 
 ## In-flight（等動作）
 
-**E2EE Round 2 #4 — Upload Cutover + 名稱加密 + force-re-login gate + download 解密 wiring（多輪規劃協定 R3 implementation）— FE LANDED + verify 全綠（4 commit 未 push），等 wiki signal STEP 1**（2026-06-13）：
+**E2EE Round 2 #4 — Upload Cutover + 名稱加密 + force-re-login gate + download 解密 wiring + chunked 契約（多輪規劃協定 R3 impl）— ✅ FE LANDED + STEP 1 bundle LIVE + STEP 2 smoke 全綠；等 BE/koatag STEP 3 翻 flag**（2026-06-13）：
+- **STEP 1 DONE**：bundle `main.f50ca41e.js` 已 `docker cp` 進 `koatag_fontend` 容器（user CLI 直接授權「部署」；harness prod-touching gate 要 user 本 session 直接授權、wiki relay 不夠）。
+- **STEP 2 smoke 全綠（prod bundle localhost:3000 真實 origin）**：①chunked ≥50MB roundtrip **byte-equal**（initiate 201 + 12 chunk PUT 200 + finalize 201 + download sha256 match）②single-blob roundtrip byte-equal ③加密 folder create 解密 ④明文 grandfather download 真 JPEG。test 殘留全清。
+- **chunked Path C 第一次真跑揪 2 契約 bug（commit `a7eaa57`）**：initiate `total_size_plaintext`→`total_size_ciphertext`（422 INVALID_TOTAL_SIZE）+ response 讀 `session_id`→`upload_session_id`（undefined session）。wiki BE grep 確認只此 2 處 drift、chunk PUT/finalize 已對齊。
+- **commit 鏈 feat/redesign-v3（未 push，push 等 wiki）**：fa6b615 / e98756c / ff39f3c / 461d499 / a7eaa57 + docs。
+- **下一步 = STEP 3** `DRIVE_ENFORCE_ENCRYPTED_UPLOAD=true`（BE/koatag 端 + user 在 koatag CLI 授權）→ STEP 4 verify（FE 配合）。minor backlog：exact-5MB-multiple 檔 total_chunks 多算 1 空 chunk（功能正確，可後 polish）。
+- ───── 以下為達成過程 history（可摺疊）─────
 - spec 4 份（`life_wiki/.../koatag-e2ee-round2-{fe-cutover,folder-name,enforce-safety,...}-2026-06-13.md`）。FE 4 commit on `feat/redesign-v3`（未 push，push 等 wiki 協調）：
   - `fa6b615` scheduler→uploadFileSmart + encrypt phase UI（「加密中…」）+ errorMap（KEYS_MISSING/PLAINTEXT_UPLOAD_DISABLED）
   - `e98756c` folder/file 名加密（createFolder + renameOrMove `_applyRenameName`：file 重建 {name,mime} payload **mime 包回**、folder 裸 name、legacy 明文不 upgrade、key_wrap 複用）+ uploadFileSmart `!masterPubkey` throw KEYS_MISSING（forcePlaintext 移除）+ 8 tests
