@@ -9,8 +9,10 @@ import {
   _decryptDriveFile,
   _decryptDriveFolder,
   _parseNamePayload,
+  _applyRenameName,
   _placeholders,
   _sortAndFilterEncrypted,
+  uploadFileSmart,
   DriveFile,
   DriveFolder,
 } from './drive.service';
@@ -353,6 +355,176 @@ describe('_sortAndFilterEncrypted (R3 #2 §1.4 dual-mode)', () => {
     const items = [f(1, 'b.txt', true), f(2, 'a.txt', true)];
     const out = _sortAndFilterEncrypted(items, 'created_at', 'asc', undefined);
     expect(out).toBe(items); // unchanged — server authoritative for created_at
+  });
+});
+
+describe('_applyRenameName (R2 #4 cutover §2.2.7 — encrypted rename)', () => {
+  function b64ToBytes(b64: string): Uint8Array {
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  // Unwrap key_wrap → decrypt the rename body's name_encrypted, the same path the
+  // server-returned row would take on the next listing decrypt.
+  function decryptRenamed(
+    body: Record<string, unknown>,
+    keyWrapB64: string,
+    recipient: { publicKey: Uint8Array; privateKey: Uint8Array },
+  ): string {
+    const key = sodium.crypto_box_seal_open(
+      b64ToBytes(keyWrapB64),
+      recipient.publicKey,
+      recipient.privateKey,
+    );
+    const bytes = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
+      null,
+      b64ToBytes(body.name_encrypted as string),
+      null,
+      b64ToBytes(body.name_iv as string),
+      key,
+    );
+    return new TextDecoder().decode(bytes);
+  }
+
+  it('Catch 1 — file rename re-encrypts {name, mime}, PRESERVING the existing mime', async () => {
+    const recipient = sodium.crypto_box_keypair();
+    setKeyBundleRef({
+      masterKey: new Uint8Array(32),
+      masterPrivkey: recipient.privateKey,
+      masterPubkey: recipient.publicKey,
+    });
+    const enc = buildEncryptedFile({
+      name: 'old.jpg',
+      payloadMime: 'image/jpeg',
+      recipientPubkey: recipient.publicKey,
+    });
+    // Simulate the in-memory decrypted row the rename modal hands us.
+    enc.mime = 'image/jpeg';
+    const body: Record<string, unknown> = {};
+    await _applyRenameName(body, {
+      resourceType: 'file',
+      resourceId: 1,
+      newName: 'new.jpg',
+      item: enc,
+    });
+    // plaintext name not sent; key_wrap not re-sent (reused unchanged)
+    expect(body.name).toBeUndefined();
+    expect(body.key_wrap).toBeUndefined();
+    expect(body.name_encrypted).toBeDefined();
+    const decrypted = decryptRenamed(body, enc.key_wrap as string, recipient);
+    expect(JSON.parse(decrypted)).toEqual({ name: 'new.jpg', mime: 'image/jpeg' });
+  });
+
+  it('file rename with no in-memory mime falls back to octet-stream in the payload', async () => {
+    const recipient = sodium.crypto_box_keypair();
+    setKeyBundleRef({
+      masterKey: new Uint8Array(32),
+      masterPrivkey: recipient.privateKey,
+      masterPubkey: recipient.publicKey,
+    });
+    const enc = buildEncryptedFile({ name: 'old.bin', recipientPubkey: recipient.publicKey });
+    enc.mime = ''; // no decrypted mime in hand
+    const body: Record<string, unknown> = {};
+    await _applyRenameName(body, {
+      resourceType: 'file',
+      resourceId: 1,
+      newName: 'new.bin',
+      item: enc,
+    });
+    const decrypted = decryptRenamed(body, enc.key_wrap as string, recipient);
+    expect(JSON.parse(decrypted)).toEqual({ name: 'new.bin', mime: 'application/octet-stream' });
+  });
+
+  it('folder rename encrypts a BARE name (not a JSON payload)', async () => {
+    const recipient = sodium.crypto_box_keypair();
+    setKeyBundleRef({
+      masterKey: new Uint8Array(32),
+      masterPrivkey: recipient.privateKey,
+      masterPubkey: recipient.publicKey,
+    });
+    // A folder row carrying a key_wrap (reused for the rename).
+    const folderKey = sodium.randombytes_buf(32);
+    const keyWrap = sodium.crypto_box_seal(folderKey, recipient.publicKey);
+    const folder: DriveFolder = {
+      id: 1,
+      owner_id: 1,
+      parent_id: null,
+      name: '舊資料夾',
+      created_at: '',
+      updated_at: '',
+      deleted_at: null,
+      name_encrypted: 'x',
+      name_iv: 'x',
+      key_wrap: bytesToB64(keyWrap),
+      is_encrypted: true,
+    };
+    const body: Record<string, unknown> = {};
+    await _applyRenameName(body, {
+      resourceType: 'folder',
+      resourceId: 1,
+      newName: '新資料夾',
+      item: folder,
+    });
+    const decrypted = decryptRenamed(body, folder.key_wrap as string, recipient);
+    expect(decrypted).toBe('新資料夾'); // bare string, not JSON
+  });
+
+  it('Catch 2 — legacy plaintext file is NOT upgraded: sends plaintext name', async () => {
+    const recipient = sodium.crypto_box_keypair();
+    setKeyBundleRef({
+      masterKey: new Uint8Array(32),
+      masterPrivkey: recipient.privateKey,
+      masterPubkey: recipient.publicKey,
+    });
+    const plain: DriveFile = {
+      id: 1,
+      owner_id: 1,
+      folder_id: null,
+      name: 'legacy.txt',
+      mime: 'text/plain',
+      size_bytes: 0,
+      checksum_sha1: '',
+      thumb_path: null,
+      image_data_id: null,
+      created_at: '',
+      updated_at: '',
+      deleted_at: null,
+      is_encrypted: false,
+    };
+    const body: Record<string, unknown> = {};
+    await _applyRenameName(body, {
+      resourceType: 'file',
+      resourceId: 1,
+      newName: 'renamed.txt',
+      item: plain,
+    });
+    expect(body.name).toBe('renamed.txt');
+    expect(body.name_encrypted).toBeUndefined();
+  });
+
+  it('no item ctx → plaintext name (back-compat caller)', async () => {
+    const body: Record<string, unknown> = {};
+    await _applyRenameName(body, { resourceType: 'file', resourceId: 1, newName: 'x.txt' });
+    expect(body.name).toBe('x.txt');
+  });
+
+  it('encrypted row but keys missing → throws KEYS_MISSING', async () => {
+    const recipient = sodium.crypto_box_keypair();
+    // beforeEach reset leaves bundle empty (no privkey)
+    const enc = buildEncryptedFile({ name: 'x.jpg', recipientPubkey: recipient.publicKey });
+    enc.mime = 'image/jpeg';
+    await expect(
+      _applyRenameName({}, { resourceType: 'file', resourceId: 1, newName: 'y.jpg', item: enc }),
+    ).rejects.toThrow(/KEYS_MISSING|金鑰/);
+  });
+});
+
+describe('uploadFileSmart (R2 #4 cutover §2.2.2 — fallback split backstop)', () => {
+  it('throws KEYS_MISSING when masterPubkey absent (no silent plaintext)', async () => {
+    // beforeEach reset → bundle empty. The throw happens before any axios call.
+    const file = new File([new Uint8Array([1, 2, 3])], 'x.txt', { type: 'text/plain' });
+    await expect(uploadFileSmart({ file, folderId: null })).rejects.toThrow(/KEYS_MISSING|金鑰/);
   });
 });
 

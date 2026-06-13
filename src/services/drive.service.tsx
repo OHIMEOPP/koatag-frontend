@@ -753,12 +753,16 @@ export async function uploadFileSmart(opts: {
     total: number,
   ) => void;
   signal?: AbortSignal;
-  forcePlaintext?: boolean; // Migration window — caller can opt out
 }): Promise<DriveFile> {
-  const { file, folderId, detectedMime, onProgress, onPhaseProgress, signal, forcePlaintext } = opts;
+  const { file, folderId, detectedMime, onProgress, onPhaseProgress, signal } = opts;
   const { masterPubkey } = getKeyBundleRef();
-  if (forcePlaintext || !masterPubkey) {
-    return uploadFile(file, folderId, onProgress, signal);
+  // R2 #4 enforce-safety §2.2.2 — keys=null no longer silently falls back to
+  // plaintext upload. The RequireKeys gate is the primary defense (re-login
+  // before any encrypted op); this throw is the defense-in-depth backstop for a
+  // direct service call that bypasses the gate. uploadFile (the plaintext path)
+  // stays defined but is no longer reachable from the smart dispatcher.
+  if (!masterPubkey) {
+    throw new DriveServiceError("KEYS_MISSING", "尚未登入或金鑰已失效，請重新登入");
   }
   if (file.size >= CHUNKED_UPLOAD_THRESHOLD_BYTES) {
     return uploadFileEncryptedChunked({
@@ -1052,12 +1056,28 @@ export async function createFolder(
   name: string,
   parentId: number | null
 ): Promise<DriveFolder> {
+  const { masterPubkey } = getKeyBundleRef();
+  if (!masterPubkey) {
+    throw new DriveServiceError("KEYS_MISSING", "尚未登入或金鑰已失效，請重新登入");
+  }
+  // R2 #4 folder-name §2.2.1 — encrypt the folder name. Unlike files, the folder
+  // name is a BARE string (not a {name,mime} JSON payload) — _decryptDriveFolder
+  // decrypts straight to name. Per-folder key sealed-box wrapped to masterPubkey,
+  // same primitive as file upload (aead.ts).
+  const folderKey = await generateFileKey();
+  const { ciphertext: nameCiphertext, iv: nameIv } = await encryptName(name, folderKey);
+  const keyWrap = await wrapFileKey(folderKey, masterPubkey);
   const resp: any = await driveApi.post("/drive/folders", {
-    name,
+    name_encrypted: bytesToBase64Helper(nameCiphertext),
+    name_iv: bytesToBase64Helper(nameIv),
+    key_wrap: bytesToBase64Helper(keyWrap),
+    is_encrypted: 1,
     parent_id: parentId,
   });
   const { data } = unwrapDriveBody<{ folder: DriveFolder }>(resp.data);
-  return data.folder;
+  // Backend returns the row with name_encrypted but not plaintext name — decrypt
+  // now so the caller gets a ready-to-render DriveFolder.
+  return _decryptDriveFolder(data.folder);
 }
 
 export async function deleteFolder(folderId: number): Promise<void> {
@@ -1069,16 +1089,69 @@ interface RenameOrMoveOpts {
   resourceId: number;
   newName?: string;
   targetFolderId?: number | null;
+  // R2 #4 cutover（fe-cutover §2.2.7 / folder-name §2.2.1b）— the source row. When
+  // newName is set on an encrypted resource we re-encrypt the name under the row's
+  // EXISTING per-resource key (unwrap key_wrap → encryptName → name_encrypted/name_iv;
+  // key_wrap unchanged). Needs key_wrap (+ mime for files, to repack the {name,mime}
+  // payload). Plaintext rows / no item ctx keep sending plaintext body.name.
+  item?: DriveFile | DriveFolder;
 }
 
 export async function renameOrMove(opts: RenameOrMoveOpts): Promise<void> {
   const base = opts.resourceType === "file" ? "/drive/files" : "/drive/folders";
   const body: Record<string, unknown> = {};
-  if (opts.newName !== undefined) body.name = opts.newName;
+  if (opts.newName !== undefined) await _applyRenameName(body, opts);
   if (opts.targetFolderId !== undefined) {
     body[opts.resourceType === "file" ? "folder_id" : "parent_id"] = opts.targetFolderId;
   }
   await driveApi.patch(`${base}/${opts.resourceId}`, body);
+}
+
+/**
+ * R2 #4 cutover — fill the rename body with the (possibly encrypted) new name.
+ *
+ * Encrypted rows re-encrypt under their existing per-resource key (key_wrap
+ * unchanged — server update accepts name_encrypted/name_iv only). File vs folder
+ * asymmetry, the two FE-specific catches behind D5:
+ *   - Catch 1: a file name is a JSON {name,mime} payload (see
+ *     _buildEncryptedNamePayload). We MUST repack the existing mime, else the
+ *     renamed row loses it and _parseNamePayload falls back to octet-stream.
+ *     A folder name is a bare string.
+ *   - Catch 2: legacy plaintext files are NOT opportunistically upgraded on
+ *     rename. A file has an encrypted blob; a name-only upgrade would yield an
+ *     inconsistent row (name_encrypted + plaintext blob). Folders have no blob so
+ *     the folder spec upgrades them; files stay plaintext until re-uploaded.
+ */
+export async function _applyRenameName(
+  body: Record<string, unknown>,
+  opts: RenameOrMoveOpts,
+): Promise<void> {
+  const newName = opts.newName as string;
+  const item = opts.item;
+  if (!item || !item.is_encrypted || !item.key_wrap) {
+    // Plaintext / legacy row (or no item ctx) → plaintext name, no upgrade.
+    body.name = newName;
+    return;
+  }
+  const { masterPrivkey, masterPubkey } = getKeyBundleRef();
+  if (!masterPrivkey || !masterPubkey) {
+    throw new DriveServiceError("KEYS_MISSING", "尚未登入或金鑰已失效，請重新登入");
+  }
+  const resourceKey = await unwrapKey(
+    _base64ToBytes(item.key_wrap),
+    masterPubkey,
+    masterPrivkey,
+  );
+  const plaintext =
+    opts.resourceType === "file"
+      ? JSON.stringify({
+          name: newName,
+          mime: (item as DriveFile).mime || "application/octet-stream",
+        })
+      : newName;
+  const { ciphertext, iv } = await encryptName(plaintext, resourceKey);
+  body.name_encrypted = bytesToBase64Helper(ciphertext);
+  body.name_iv = bytesToBase64Helper(iv);
 }
 
 export async function getQuota(): Promise<DriveQuota | null> {

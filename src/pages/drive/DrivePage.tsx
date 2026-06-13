@@ -305,6 +305,10 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
               resourceType: modal.ctx.kind,
               resourceId: modal.ctx.item.id,
               newName,
+              // R2 #4 §2.2.7 — pass the source row so the service can re-encrypt
+              // the name under its existing key (encrypted rows) / repack mime
+              // (files). Already in hand, no extra round-trip.
+              item: modal.ctx.item,
             });
             await invalidateTree();
           }}
