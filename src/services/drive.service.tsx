@@ -504,10 +504,15 @@ export const CHUNKED_UPLOAD_THRESHOLD_BYTES = 50 * 1024 * 1024;
 export const DEFAULT_CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
 
 interface InitiateResponse {
-  session_id: number;
+  // BE ChunkedUploadController::initiate returns `upload_session_id` (not
+  // session_id — drift caught on the first real chunked run post-cutover).
+  upload_session_id: number;
   chunk_size: number;
   total_chunks: number;
-  // Optional resume info if session pre-existed for same content_hash
+  expires_at?: string;
+  // Resume info is NOT returned by initiate (a fresh session has none); it lives
+  // on GET /drive/uploads/{id}/status. Kept optional/defaulted so fresh uploads
+  // simply upload every chunk.
   received_chunks?: number[];
 }
 
@@ -568,11 +573,18 @@ export async function uploadFileEncryptedChunked(opts: ChunkUploadOpts): Promise
   const { ciphertext: nameCiphertext, iv: nameIv } = await encryptName(namePayload, fileKey);
   const keyWrap = await wrapFileKey(fileKey, masterPubkey);
 
-  // Step 1: initiate
+  // Step 1: initiate. Spec §2.1 L154 locks the field as `total_size_ciphertext`
+  // (BE pre-flight check vs 2GB + quota). Each chunk's stored ciphertext is its
+  // plaintext + a 16-byte XChaCha20-Poly1305 tag (the 24-byte IV travels in the
+  // X-Chunk-Iv header, not the blob), so the ciphertext total = file size +
+  // total_chunks * 16. (FE previously sent total_size_plaintext — wrong field,
+  // surfaced as INVALID_TOTAL_SIZE on the first real chunked run post-cutover.)
+  const initiateChunks = Math.ceil(file.size / DEFAULT_CHUNK_SIZE_BYTES);
+  const totalSizeCiphertext = file.size + initiateChunks * 16;
   const initiateResp: any = await driveApi.post(
     "/drive/uploads/initiate",
     {
-      total_size_plaintext: file.size,
+      total_size_ciphertext: totalSizeCiphertext,
       chunk_size: DEFAULT_CHUNK_SIZE_BYTES,
       name_encrypted: bytesToBase64Helper(nameCiphertext),
       name_iv: bytesToBase64Helper(nameIv),
@@ -583,7 +595,7 @@ export async function uploadFileEncryptedChunked(opts: ChunkUploadOpts): Promise
     { signal },
   );
   const { data: initData } = unwrapDriveBody<InitiateResponse>(initiateResp.data);
-  const { session_id, chunk_size, total_chunks, received_chunks = [] } = initData;
+  const { upload_session_id: session_id, chunk_size, total_chunks, received_chunks = [] } = initData;
   const receivedSet = new Set(received_chunks);
 
   // Persist session_id for resume (R3 #3 §1.4)
