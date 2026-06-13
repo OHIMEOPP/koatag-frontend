@@ -31,8 +31,8 @@ import {
   deleteFile,
   deleteFolder,
   renameOrMove,
-  downloadUrl,
 } from "services/drive.service";
+import { downloadFileSmart } from "services/drive.download";
 import { mapDriveError } from "services/drive.errorMap";
 import { enqueueWithMimeCheck } from "services/upload/enqueueClassified";
 import { useUploadScheduler } from "hooks/useUploadScheduler";
@@ -184,8 +184,9 @@ const DriveContentView: React.FC<{ folderId: number | null }> = ({ folderId }) =
           handleOpen(item, kind);
         } else if (action === "download") {
           if (kind !== "file") return;
-          const url = await downloadUrl(item.id);
-          window.open(url, "_blank", "noopener");
+          // R2 #4 cutover — encrypted files decrypt client-side then save;
+          // plaintext keep the signed-URL window.open path (inside the dispatcher).
+          await downloadFileSmart(item as DriveFile);
         } else if (action === "rename") {
           setModal({ type: "rename", ctx: target });
         } else if (action === "move") {

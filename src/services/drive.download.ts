@@ -4,9 +4,10 @@ import {
   unwrapFileKey,
   chunkAad,
   sha256,
+  decryptBlob,
 } from "./crypto/aead";
 import { decryptChunkCapped } from "./crypto/decryptClient";
-import type { DriveFile } from "./drive.service";
+import { downloadUrl, type DriveFile } from "./drive.service";
 
 // R3 #4 §1.2 — encrypted file download pipeline.
 //
@@ -32,21 +33,30 @@ import type { DriveFile } from "./drive.service";
 //   - MANIFEST_FAIL  = manifest fetch error
 //   - FETCH_FAIL     = chunk fetch error (network)
 
+// R2 #4 cutover — manifest schema aligned to the live backend response. The
+// previous shape (chunk_index/chunk_iv/chunk_sig/chunk_hash_sha256) was written
+// against an assumed schema and never ran — encrypted download was dead code
+// until the cutover, so the drift went uncaught. Real backend shape:
+//   { file_id, total_chunks, total_size_ciphertext, mime_claimed,
+//     chunks: [{ index, size_ciphertext, iv, hash, url }] }
+// A single-blob (Path B) file is a 1-chunk manifest with hash:null (no per-chunk
+// integrity hash) and the blob encrypted with AAD=null (encryptBlob, aead.ts);
+// chunked (Path C) files carry a per-chunk sha256 hash + AAD=chunkAad(account,
+// index). We branch per chunk on hash presence.
 interface ManifestChunk {
-  chunk_index: number;
-  chunk_iv: string;       // base64
-  chunk_sig: string;
-  chunk_exp: number;
-  chunk_hash_sha256: string; // base64
-  chunk_size?: number;
+  index: number;
+  size_ciphertext: number;
+  iv: string;            // base64 (24-byte XChaCha20 nonce)
+  hash: string | null;   // base64 sha256; null for single-blob (Path B)
+  url: string;           // backend-provided fetch path (root-relative /api/...)
 }
 
 interface ManifestResponse {
-  chunks: ManifestChunk[];
-  total_size_plaintext: number;
+  file_id: number;
+  total_chunks: number;
   total_size_ciphertext: number;
-  // Optional refresh hint per §3.16 LOCKED — manifest_exp - 30s prefetch refresh
-  manifest_exp?: number;
+  mime_claimed?: string;
+  chunks: ManifestChunk[];
 }
 
 interface DownloadOpts {
@@ -78,9 +88,14 @@ function getCurrentAccount(): string {
   }
 }
 
-function chunkFetchUrl(fileId: number, chunkIndex: number, sig: string, exp: number): string {
-  const base = process.env.REACT_APP_API_URL || "/api";
-  return `${base}/drive/files/${fileId}/chunks/${chunkIndex}?sig=${encodeURIComponent(sig)}&exp=${exp}`;
+// The manifest gives each chunk a backend-provided, signed, root-relative URL
+// (e.g. /api/drive/chunks/{id}/{index}?sig=&exp=). Resolve it against the API
+// origin: REACT_APP_API_URL minus its trailing /api (so we don't double it).
+// Dev (REACT_APP_API_URL="/api") → origin "" → same-origin fetch.
+function resolveChunkUrl(rawUrl: string): string {
+  const api = process.env.REACT_APP_API_URL || "/api";
+  const origin = api.replace(/\/api\/?$/, "");
+  return origin + rawUrl;
 }
 
 /**
@@ -151,20 +166,21 @@ export async function downloadEncryptedFile(
     throw new DriveServiceError("MANIFEST_FAIL", "無法取得 chunk manifest");
   }
 
-  const { chunks, total_size_plaintext } = manifest;
-  const sorted = [...chunks].sort((a, b) => a.chunk_index - b.chunk_index);
+  const sorted = [...manifest.chunks].sort((a, b) => a.index - b.index);
+  const totalCiphertext = manifest.total_size_ciphertext || 0;
 
-  // Step 3 + 4: parallel fetch + cap-bounded decrypt.
+  // Step 3 + 4: parallel fetch + cap-bounded decrypt. Each chunk branches on
+  // its `hash` field: present → chunked (Path C, verify + AAD=chunkAad); null →
+  // single-blob (Path B, decryptBlob with AAD=null, no integrity hash).
   let bytesDecrypted = 0;
   const plaintextChunks: Uint8Array[] = new Array(sorted.length);
 
   await Promise.all(
     sorted.map(async (m) => {
-      // Fetch ciphertext from chunk endpoint. fetch unlimited per §3.15.
+      // Fetch ciphertext from the backend-provided signed chunk URL.
       let ciphertext: Uint8Array;
       try {
-        const url = chunkFetchUrl(file.id, m.chunk_index, m.chunk_sig, m.chunk_exp);
-        const response = await fetch(url, { signal });
+        const response = await fetch(resolveChunkUrl(m.url), { signal });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -175,43 +191,90 @@ export async function downloadEncryptedFile(
         }
         throw new DriveServiceError(
           "FETCH_FAIL",
-          `Chunk ${m.chunk_index} 下載失敗 (網路中斷)`,
+          `Chunk ${m.index} 下載失敗 (網路中斷)`,
         );
       }
 
-      // Verify SHA-256 vs manifest (per backend §3.14 default verify).
-      const computed = await sha256(ciphertext);
-      if (bytesToBase64(computed) !== m.chunk_hash_sha256) {
-        throw new DriveServiceError(
-          "CHUNK_HASH",
-          `Chunk ${m.chunk_index} 完整性檢查失敗 — 資料損毀`,
-          { chunk_index: m.chunk_index },
-        );
-      }
-
-      // Decrypt with concurrency cap (§3.15 LOCKED via decryptChunkCapped).
+      const iv = base64ToBytes(m.iv);
       let plaintext: Uint8Array;
-      try {
-        const iv = base64ToBytes(m.chunk_iv);
-        const aad = chunkAad(account, m.chunk_index);
-        plaintext = await decryptChunkCapped(ciphertext, iv, fileKey, aad);
-      } catch {
-        throw new DriveServiceError(
-          "CHUNK_DECRYPT",
-          `Chunk ${m.chunk_index} 解密失敗 — 金鑰/AAD/篡改 (per §3.8)`,
-          { chunk_index: m.chunk_index },
-        );
+      if (m.hash == null) {
+        // Path B single-blob: AAD=null (encryptBlob), no per-chunk hash.
+        try {
+          plaintext = await decryptBlob(ciphertext, iv, fileKey);
+        } catch {
+          throw new DriveServiceError(
+            "CHUNK_DECRYPT",
+            "解密失敗 — 金鑰或資料異常 (per §3.8)",
+          );
+        }
+      } else {
+        // Path C chunked: verify SHA-256 then decrypt with AAD=chunkAad.
+        const computed = await sha256(ciphertext);
+        if (bytesToBase64(computed) !== m.hash) {
+          throw new DriveServiceError(
+            "CHUNK_HASH",
+            `Chunk ${m.index} 完整性檢查失敗 — 資料損毀`,
+            { chunk_index: m.index },
+          );
+        }
+        try {
+          const aad = chunkAad(account, m.index);
+          plaintext = await decryptChunkCapped(ciphertext, iv, fileKey, aad);
+        } catch {
+          throw new DriveServiceError(
+            "CHUNK_DECRYPT",
+            `Chunk ${m.index} 解密失敗 — 金鑰/AAD/篡改 (per §3.8)`,
+            { chunk_index: m.index },
+          );
+        }
       }
 
-      plaintextChunks[m.chunk_index] = plaintext;
-      bytesDecrypted += plaintext.length;
-      onProgress?.(bytesDecrypted, total_size_plaintext);
+      plaintextChunks[m.index] = plaintext;
+      bytesDecrypted += ciphertext.length;
+      onProgress?.(bytesDecrypted, totalCiphertext);
     }),
   );
 
   // Step 5: assemble Blob.
   const mime = file.mime_claimed || file.mime || "application/octet-stream";
   return new Blob(plaintextChunks, { type: mime });
+}
+
+/**
+ * Save a decrypted Blob to disk via a transient object-URL anchor download.
+ * `filename` is the plaintext name (the listing already decrypted it).
+ */
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename || "download";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Revoke after a tick so the browser has initiated the download.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * R2 #4 cutover — single entry the UI calls to download a file. Plaintext
+ * (grandfathered) files keep the signed-URL window.open path the backend serves
+ * directly. Encrypted files are fetched as ciphertext, decrypted client-side
+ * (single-blob or chunked, transparently) and saved as the plaintext Blob — the
+ * raw download endpoint rejects encrypted files with 409 USE_CHUNK_MANIFEST, so
+ * window.open would only hand the user an error page.
+ */
+export async function downloadFileSmart(
+  file: DriveFile,
+  opts: DownloadOpts = {},
+): Promise<void> {
+  if (!file.is_encrypted) {
+    const url = await downloadUrl(file.id);
+    window.open(url, "_blank", "noopener");
+    return;
+  }
+  const blob = await downloadEncryptedFile(file, opts);
+  saveBlob(blob, file.name);
 }
 
 /**

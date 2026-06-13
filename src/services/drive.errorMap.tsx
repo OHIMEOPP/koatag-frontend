@@ -21,6 +21,13 @@ const driveErrorMessages: Record<string, string> = {
   // PLAINTEXT_UPLOAD_DISABLED：部署縫隙後備（舊 bundle session 在 flag 翻 true 後仍
   //   送明文 → server 回 422）。server message 未必中文/未必引導 reload，FE 端定文案。
   PLAINTEXT_UPLOAD_DISABLED: "系統已更新為強制加密上傳，請重新整理頁面後再試",
+  // R2 #4 cutover — encrypted-download 4-layer fail differentiation (drive.download.ts).
+  WRAP_DECRYPT: "金鑰解封失敗，請重新登入後再試",
+  MANIFEST_FAIL: "無法取得檔案下載資訊，請稍後再試",
+  FETCH_FAIL: "下載中斷，請檢查網路後重試",
+  CHUNK_HASH: "檔案完整性檢查失敗，資料可能已損毀",
+  CHUNK_DECRYPT: "檔案解密失敗，金鑰異常或資料已被竄改",
+  DOWNLOAD_ABORTED: "下載已取消",
   QUOTA_EXCEEDED: "您的 Drive 容量已滿，請刪除部分檔案",
   UPLOAD_NO_FILE: "請選擇要上傳的檔案",
   UPLOAD_FAILED: "上傳失敗，請稍後再試",

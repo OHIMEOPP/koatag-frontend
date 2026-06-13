@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getFile, downloadUrl, DriveFile } from "services/drive.service";
+import { getFile, DriveFile } from "services/drive.service";
+import { downloadFileSmart } from "services/drive.download";
 import { mapDriveError } from "services/drive.errorMap";
 import { useDriveStreamUrl } from "hooks/useDriveStreamUrl";
 import { formatBytes, getMimeIconText, VideoPlayer } from "components/drive";
@@ -68,8 +69,9 @@ const DriveFilePage: React.FC = () => {
   const handleDownload = useCallback(async () => {
     if (!file) return;
     try {
-      const url = await downloadUrl(file.id);
-      window.open(url, "_blank", "noopener");
+      // R2 #4 cutover — encrypted files decrypt client-side then save;
+      // plaintext keep window.open (inside the dispatcher).
+      await downloadFileSmart(file);
     } catch (e) {
       setError(mapDriveError(e));
     }
