@@ -8,6 +8,17 @@
 
 ## In-flight（等動作）
 
+**E2EE Round 2 #4 — Upload Cutover + 名稱加密 + force-re-login gate + download 解密 wiring（多輪規劃協定 R3 implementation）— FE LANDED + verify 全綠（4 commit 未 push），等 wiki signal STEP 1**（2026-06-13）：
+- spec 4 份（`life_wiki/.../koatag-e2ee-round2-{fe-cutover,folder-name,enforce-safety,...}-2026-06-13.md`）。FE 4 commit on `feat/redesign-v3`（未 push，push 等 wiki 協調）：
+  - `fa6b615` scheduler→uploadFileSmart + encrypt phase UI（「加密中…」）+ errorMap（KEYS_MISSING/PLAINTEXT_UPLOAD_DISABLED）
+  - `e98756c` folder/file 名加密（createFolder + renameOrMove `_applyRenameName`：file 重建 {name,mime} payload **mime 包回**、folder 裸 name、legacy 明文不 upgrade、key_wrap 複用）+ uploadFileSmart `!masterPubkey` throw KEYS_MISSING（forcePlaintext 移除）+ 8 tests
+  - `ff39f3c` RequireKeys gate（Drive 邊界 inline re-derive modal）+ **login.tsx navigate 不 reload + App.tsx token reactive**（backlog b — 金鑰登入後存活）
+  - `461d499` **download 解密 wiring**（user 解除 B0 download exclusion）：downloadFileSmart dispatcher（明文→window.open / 加密→decrypt+saveBlob）+ DrivePage/DriveFilePage 兩 call-site rewire + drive.download.ts 對齊真實 manifest schema（index/iv/hash/url）+ single-blob(Path B, decryptBlob AAD=null) / chunked(Path C) 雙路徑 + errorMap 4-layer fail codes
+- **verify FE 全綠**（真實 login cool901215，dev-server proxy 繞 CORS — prod backend CORS 拒 localhost origin）：tsc/jest 90/90/build；登入→Drive 金鑰存活無 gate；F5→gate→inline re-derive→放行；logout→/login 無 loop；**加密 upload roundtrip 201+is_encrypted+解密**（BE `6906952` 修後）；**加密 download roundtrip byte-equal**（context-menu + 詳情頁兩 call-site，解密內容==原檔+檔名解密）；明文 download regression（真 JPEG）。
+- 連帶修的 latent bug（cutover 真跑才爆，非不驗不知）：①BE upload Path B `DriveFileController:115` 無條件讀 `file`（FE `binary` spec-correct，BE `6906952` 修）②download UI 從沒接解密（兩 call-site 走 raw 路徑撞 409 USE_CHUNK_MANIFEST）③drive.download manifest schema 與真實 backend drift（dead code 從沒跑）。
+- **STEP 1 bundle live：等 wiki cross-check verify → signal**（user 部署 GO 已在 Discord #2191/#2203）。序：wiki signal → 我 container swap（bundle live）→ BE STEP 2 smoke → STEP 3 翻 enforce flag（兩 prod-touching 各需 user GO）。**未 push**（push 時機 wiki 協調）。
+- chunked(Path C) download 已對齊 schema 但**無 chunked fixture 未現驗**（標記）。test residue 已全清（folder + file id=234 + dev proxy config 還原）。
+
 **E2EE Round 3 — 7 步全 close + pushed**（多輪規劃協定 R3 dispatch round 收尾）。`feat/redesign-v3` HEAD == origin（`edfd2a9`，ahead 0，2026-06-11 push per wiki #1899 user Discord GO）：
 - `b429452` R3 #1-6 frontend foundation（key hierarchy/KDF、AEAD encrypt+decrypt pipeline、share grant、download、4 stores、MasterKeyContext）— verify：tsc clean + jest 78/78。
 - `edfd2a9` R3 #7 D.18 MIME trust model（encrypted era）— mimeCheck(file-type/core magic-byte)、pre-encrypt whitelist/polyglot gate、ciphertext {name,mime} payload、listFiles parse、UploadTrustDisclosure UI。verify：tsc + build + jest 82/82 + playwright §2.2.5。wiki ratify（#1892，4 catch 全收）。backend R3 #7 `09e4ef2` wiki 同步 push OHIMEOPP/koatag main。
