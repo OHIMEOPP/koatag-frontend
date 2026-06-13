@@ -14,6 +14,13 @@ const driveErrorMessages: Record<string, string> = {
   // advisory (claimed ≠ detected — still uploads, per §3 #3 LOCKED).
   UNSUPPORTED_MIME: "不支援的檔案類型，已略過",
   POLYGLOT_WARN: "⚠ 副檔名與內容類型不符，仍會上傳",
+  // R2 #4 cutover（fe-cutover §2.2.3 / enforce-safety §2.2）— E2EE enforce era.
+  // KEYS_MISSING：encrypt 路徑在 refresh-window（JWT 在、in-memory 金鑰 reset null）
+  //   丟出；force-re-login gate（RequireKeys）為主防線，此文案是繞過 gate 時的後備。
+  KEYS_MISSING: "尚未登入或金鑰已失效，請重新登入",
+  // PLAINTEXT_UPLOAD_DISABLED：部署縫隙後備（舊 bundle session 在 flag 翻 true 後仍
+  //   送明文 → server 回 422）。server message 未必中文/未必引導 reload，FE 端定文案。
+  PLAINTEXT_UPLOAD_DISABLED: "系統已更新為強制加密上傳，請重新整理頁面後再試",
   QUOTA_EXCEEDED: "您的 Drive 容量已滿，請刪除部分檔案",
   UPLOAD_NO_FILE: "請選擇要上傳的檔案",
   UPLOAD_FAILED: "上傳失敗，請稍後再試",

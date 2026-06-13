@@ -4,6 +4,12 @@ import { messageForCode } from "services/drive.errorMap";
 
 export type UploadStatus = "pending" | "uploading" | "done" | "error";
 
+// R2 #4 cutover（fe-cutover §2.2.2）— sub-phase within the "uploading" status for
+// the encrypt upload path. chunked path reports encrypt→upload→finalize via
+// onPhaseProgress; single(<50MB) encrypt is one sync await (no encrypt phase) and
+// plaintext fallback never sets a phase. UI shows「加密中…」only while phase==='encrypt'.
+export type UploadPhase = "encrypt" | "upload" | "finalize";
+
 export interface UploadItem {
   id: string;
   file: File;
@@ -20,6 +26,9 @@ export interface UploadItem {
   retryCount: number;             // 重試次數（init 0；upper bound MAX_RETRIES）
   bytesSent: number;              // axios onUploadProgress 累計 loaded（throttle 寫 store）
   startedAt?: number;             // scheduler pending → uploading 時 set，retry 重設
+  // R2 #4 cutover（fe-cutover §2.2.2）— encrypt 上傳子階段；onPhaseProgress 寫入。
+  // undefined = 明文 fallback / single 加密（無 encrypt 分段）/ 尚未開始。
+  phase?: UploadPhase;
   // R3 #7 §2.2.2/§2.2.3 — magic-byte-detected mime from the pre-encrypt gate.
   // Persisted as mime_claimed + inside the ciphertext {name, mime} payload when
   // the encrypt upload path consumes this item (scheduler cutover — see note).
@@ -50,6 +59,7 @@ interface UploadQueueActions {
   setStatus: (id: string, status: UploadStatus) => void;
   setProgress: (id: string, progress: number) => void;
   setProgressBytes: (id: string, bytesSent: number, percent: number) => void;
+  setPhase: (id: string, phase: UploadPhase) => void;
   setStarted: (id: string) => void;
   setResult: (id: string, result: DriveFile) => void;
   setError: (id: string, code: string, message: string) => void;
@@ -114,10 +124,15 @@ export const useUploadQueueStore = create<UploadQueueState & UploadQueueActions>
         ),
       })),
 
+    setPhase: (id, phase) =>
+      set((s) => ({
+        queue: s.queue.map((q) => (q.id === id ? { ...q, phase } : q)),
+      })),
+
     setStarted: (id) =>
       set((s) => ({
         queue: s.queue.map((q) =>
-          q.id === id ? { ...q, startedAt: Date.now(), bytesSent: 0 } : q,
+          q.id === id ? { ...q, startedAt: Date.now(), bytesSent: 0, phase: undefined } : q,
         ),
       })),
 
@@ -185,6 +200,7 @@ export const useUploadQueueStore = create<UploadQueueState & UploadQueueActions>
             progress: 0,
             bytesSent: 0,
             startedAt: undefined,
+            phase: undefined,
             errorCode: undefined,
             errorMessage: undefined,
             abortController: undefined,

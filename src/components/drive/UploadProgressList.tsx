@@ -81,8 +81,10 @@ const UploadItemRow: React.FC<UploadItemRowProps> = ({ item, onCancel, onRetry, 
   const reachedMaxRetry = item.retryCount >= MAX_UPLOAD_RETRIES;
 
   // D.16: speed + ETA 計算（uploading 且檔 >= 1MB 才顯，避免 fluctuation 太大）
+  // R2 #4 cutover — encrypt 階段 bytesSent 是加密進度非上傳速度，不顯 speed/ETA。
   const showEta =
     isUploading &&
+    item.phase !== "encrypt" &&
     item.file.size >= ETA_MIN_FILE_BYTES &&
     item.startedAt != null &&
     item.bytesSent > 0;
@@ -138,7 +140,11 @@ const UploadItemRow: React.FC<UploadItemRowProps> = ({ item, onCancel, onRetry, 
             aria-valuemax={100}
           />
           <span className="drive-upload-item-progress-text">
-            {isPending ? "等待中" : `${item.progress}%`}
+            {isPending
+              ? "等待中"
+              : item.phase === "encrypt"
+                ? "加密中…"
+                : `${item.progress}%`}
           </span>
         </div>
       )}

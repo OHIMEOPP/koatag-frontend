@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useUploadQueueStore } from "stores/uploadQueueStore";
 import { useDriveQuotaStore } from "stores/driveQuotaStore";
 import { useFolderTreeStore } from "stores/folderTreeStore";
-import { uploadFile, DriveServiceError } from "services/drive.service";
+import { uploadFileSmart, DriveServiceError } from "services/drive.service";
 
 const MAX_CONCURRENT = 3;
 // D.16: progress 事件 250ms throttle — 大檔 onUploadProgress 100+ fires/sec
@@ -14,7 +14,7 @@ const PROGRESS_THROTTLE_MS = 250;
  *
  * - 監聽 uploadQueueStore.queue
  * - 拉 pending → 設 status='uploading' + abortController
- * - call uploadFile(file, folderId, onProgress, signal)
+ * - call uploadFileSmart({ file, folderId, detectedMime, onProgress, onPhaseProgress, signal })
  * - 成功 → setResult + 重撈 quota + invalidate folder
  * - 失敗 → setError (依 DriveServiceError code 或 abort 略過)
  *
@@ -28,6 +28,7 @@ export function useUploadScheduler(): void {
   const queue = useUploadQueueStore((s) => s.queue);
   const setStatus = useUploadQueueStore((s) => s.setStatus);
   const setProgressBytes = useUploadQueueStore((s) => s.setProgressBytes);
+  const setPhase = useUploadQueueStore((s) => s.setPhase);
   const setStarted = useUploadQueueStore((s) => s.setStarted);
   const setResult = useUploadQueueStore((s) => s.setResult);
   const setError = useUploadQueueStore((s) => s.setError);
@@ -54,21 +55,33 @@ export function useUploadScheduler(): void {
       setAbortController(item.id, ctrl);
       lastUpdateRef.current.set(item.id, 0);
 
-      uploadFile(
-        item.file,
-        item.folderId,
-        (loaded, total) => {
-          const now = Date.now();
-          const last = lastUpdateRef.current.get(item.id) ?? 0;
-          const isFinal = total > 0 && loaded >= total;
-          // D.16 throttle：≥250ms 才寫 store；最後一筆（loaded===total）必 push
-          if (!isFinal && now - last < PROGRESS_THROTTLE_MS) return;
-          lastUpdateRef.current.set(item.id, now);
-          const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
-          setProgressBytes(item.id, loaded, pct);
+      // D.16 throttle：≥250ms 才寫 store；最後一筆（loaded===total）必 push。
+      // R2 #4 cutover — onProgress（single/plaintext path）+ onPhaseProgress
+      // （chunked path）共用同一條 throttled bytes/percent 寫入。
+      const writeProgress = (loaded: number, total: number) => {
+        const now = Date.now();
+        const last = lastUpdateRef.current.get(item.id) ?? 0;
+        const isFinal = total > 0 && loaded >= total;
+        if (!isFinal && now - last < PROGRESS_THROTTLE_MS) return;
+        lastUpdateRef.current.set(item.id, now);
+        const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
+        setProgressBytes(item.id, loaded, pct);
+      };
+
+      // R2 #4 cutover（fe-cutover §2.2.1）— uploadFile → uploadFileSmart：
+      // masterPubkey 在 → EncryptedSingle/Chunked；缺 → throw KEYS_MISSING
+      // （fallback split，§2.2.2 backstop）。detectedMime 餵入 ciphertext payload。
+      uploadFileSmart({
+        file: item.file,
+        folderId: item.folderId,
+        detectedMime: item.detectedMime,
+        onProgress: writeProgress,
+        onPhaseProgress: (phase, loaded, total) => {
+          setPhase(item.id, phase);
+          writeProgress(loaded, total);
         },
-        ctrl.signal,
-      )
+        signal: ctrl.signal,
+      })
         .then((file) => {
           lastUpdateRef.current.delete(item.id);
           setResult(item.id, file);
@@ -94,6 +107,7 @@ export function useUploadScheduler(): void {
     queue,
     setStatus,
     setProgressBytes,
+    setPhase,
     setStarted,
     setResult,
     setError,
