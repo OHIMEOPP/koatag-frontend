@@ -50,9 +50,7 @@ export interface ImageListParams {
 }
 
 export const getImageList = async (params: ImageListParams = {}): Promise<ImageResponseType> => {
-    // direct 打 Laravel；axios interceptor 預設把 GET 導 NodeRED，這裡顯式覆寫。
     const response = await api.get<ImageResponseType>(`/image/list`, {
-        baseURL: process.env.REACT_APP_API_URL,
         params,
     });
     return response.data;

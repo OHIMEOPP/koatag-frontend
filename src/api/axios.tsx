@@ -8,14 +8,9 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    // 動態 baseURL：call site 顯式傳 baseURL 時優先採用，否則用方法預設
-    // (GET → NodeRED legacy, POST → Laravel)。Step 12 後新 GET endpoint 直打 Laravel。
+    // 沒指定 baseURL 時一律打 Laravel
     if (!config.baseURL) {
-      if (config.method?.toLowerCase() === 'get') {
-        config.baseURL = process.env.REACT_APP_NODERED_API_URL;
-      } else if (config.method?.toLowerCase() === 'post') {
-        config.baseURL = process.env.API_URL || process.env.REACT_APP_API_URL;
-      }
+      config.baseURL = process.env.API_URL || process.env.REACT_APP_API_URL;
     }
 
     // 帶 token

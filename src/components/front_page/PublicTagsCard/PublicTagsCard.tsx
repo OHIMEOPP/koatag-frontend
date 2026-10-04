@@ -5,8 +5,7 @@ import axios from 'axios';
 // 「參考標籤」card — 既有 PublicTagBlog 行為搬到 v3 .tags-card 殼。
 // 4 個 tab: 標籤 / 作者 / 人物 / 團體，點擊呼叫 NodeRED `getRefrenceTag` 撈
 // 「其他使用者公開且自己沒有的 tag」。chip click 跳 image_area。
-// 不走 api/axios 的 interceptor (那是 GET→NodeRED, POST→Laravel 二分)，這裡是
-// POST→NodeRED 例外，直接用 axios + 環境變數的 NodeRED base URL。
+// 直接打 NodeRED，不走 api/axios interceptor。
 const PUBLIC_TABS: Array<{ id: string; label: string }> = [
     { id: 'tag_name',      label: '標籤' },
     { id: 'ArtistTag',     label: '作者' },
