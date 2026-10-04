@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Data, Icon } from 'components';
 
 interface SideInfoCardsProps {
@@ -61,10 +62,10 @@ const SideInfoCards: React.FC<SideInfoCardsProps> = ({ imageData, naturalDims })
             <div className="card info-card">
                 <h3>標籤統計 <span style={{ fontSize: 10, color: 'var(--color-text-quaternary)', fontWeight: 400, letterSpacing: '0.08em' }}>自有 / 公開</span></h3>
                 {[
-                    { label: '人物', tags: imageData.mainTag, amounts: imageData.tagAmount.pageMainTagAmount },
-                    { label: '團體', tags: imageData.secondaryTag, amounts: imageData.tagAmount.pageSecondaryTagAmount },
-                    { label: '作者', tags: imageData.ArtistTag, amounts: imageData.tagAmount.pageArtistTagAmount },
-                    { label: '其他', tags: imageData.anotherTag, amounts: imageData.tagAmount.pageAnotherTagAmount },
+                    { label: '人物', group: 'mainTag', tags: imageData.mainTag, amounts: imageData.tagAmount.pageMainTagAmount },
+                    { label: '團體', group: 'secondaryTag', tags: imageData.secondaryTag, amounts: imageData.tagAmount.pageSecondaryTagAmount },
+                    { label: '作者', group: 'ArtistTag', tags: imageData.ArtistTag, amounts: imageData.tagAmount.pageArtistTagAmount },
+                    { label: '其他', group: 'anotherTag', tags: imageData.anotherTag, amounts: imageData.tagAmount.pageAnotherTagAmount },
                 ].map((cat) => {
                     const tagsList = cat.tags ?? [];
                     if (tagsList.length === 0) return null;
@@ -79,7 +80,13 @@ const SideInfoCards: React.FC<SideInfoCardsProps> = ({ imageData, naturalDims })
                                 const publicCount = a?.[1]?.count ?? 0;
                                 return (
                                     <div key={`${tagName}-${i}`} className="info-row" style={{ padding: '4px 0' }}>
-                                        <span className="k text" style={{ fontFamily: 'var(--font-family-base)', color: 'var(--color-text-secondary)' }}>{tagName}</span>
+                                        <Link
+                                            className="k text"
+                                            to={`/main/image_area?page=1&tag=${encodeURIComponent(tagName)}&group=${encodeURIComponent(cat.group)}`}
+                                            style={{ fontFamily: 'var(--font-family-base)', color: 'var(--color-text-secondary)', textDecoration: 'none' }}
+                                        >
+                                            {tagName}
+                                        </Link>
                                         <span className="v">{selfCount} / {publicCount}</span>
                                     </div>
                                 );
