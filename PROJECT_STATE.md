@@ -8,6 +8,17 @@
 
 ## In-flight（等動作）
 
+**RequireKeys 重登 gate over-block 修復（單側小修 · 純 UI）— ✅ LANDED + pushed + 部署 live + container browser verify 全綠 + wiki #2240 RATIFY + #2238 CLOSE**（2026-06-13）：
+- **push**：`e0cab62..e9bc568` origin/feat/redesign-v3（HEAD==origin）。**部署 live**：build `main.2e0ace94.js`/`main.3f763fa6.css` `docker cp` 進 `koatag_fontend`（md5 容器==本地 `e5c31ad2…`、index.html 指向新 bundle）。
+- **container live bundle verify**（localhost:3000 真 token）：gate `position:static`、x=248 在側欄右側、側欄「首頁」elementFromPoint 命中 `SPAN.nav-label` 非 gate、無殘留 `.drive-modal-overlay` 全屏。截圖 `relogin-gate-container-live-2e0ace94.png`。
+- **wiki #2240**：獨立 grep verify-back（diff stat / className / `.drive-modal-overlay` 逐字零變動 / 5 dialog 全屏不破 / 新 class 確無 fixed）→ ratify 三方一致。
+- ───── 以下達成過程（可摺疊）─────
+- **背景**（wiki #2238）：從別頁進 Drive 觸發重登 modal 時，整個側欄/首頁/圖片導覽被全屏黑幕蓋住+攔點擊，逼 user 一定要重登才能做任何事（連點回首頁都不行）。重登需求本身是設計，但蓋掉全域導覽是 over-block。
+- **根因**：`RequireKeys.tsx:83` ReloginGate 借用 `.drive-modal-overlay`（`position:fixed inset:0 z-index:1200` 全屏黑幕）。但側欄 nav 由 AppShell/LayOut 在 RequireKeys 外層渲染（`Main.tsx`），邏輯上沒被 gate，只是被 fixed 黑幕視覺蓋住+攔點。
+- **修法**（commit `e9bc568`）：RequireKeys 改用 scoped class `.drive-relogin-gate`（in-flow，`position:static`/`min-height:60vh`/flex 置中，**無 fixed/inset:0**）→ 只填滿 Drive 內容區。共用的 `.drive-modal-overlay`（另 5 真 modal：Confirm/Move/NewFolder/Rename/Share）零變動維持全屏。gate 觸發邏輯（`:41` masterPubkey null && token）零變動。tsc clean。2 檔 14+/1-。
+- **verify**（dev server localhost:3001 + Playwright，沒金鑰狀態）：①重登面板只在 `<main>` 內容區（dialog nested 在 main，側欄是 sibling）②computed `position:static`、gateRect x=248 在側欄右側 ③側欄「首頁」elementFromPoint 命中 `SPAN.nav-label` 非 gate ④**點側欄首頁成功導去 /main/front_page 不被逼重登（user 核心痛點驗到）**。截圖 `relogin-gate-scoped-sidebar-clickable.png`。
+- **未 push、未部署**（純驗證走 dev server；container 仍 a15d2fbc）。等 wiki #2238 cross-check → 決定 push/deploy。
+
 **Security MIME-gate 修復（D.18/R3#7 client gate 形同虛設）— ✅ LANDED + push + 部署 live + browser 三項 verify 全綠 + wiki #2237 CLOSE**（2026-06-13）：
 - **背景**：P0 smoke 揪到 console `[mimeCheck] classify failed: Buffer is not defined` → CRA/webpack5 拔 Node `Buffer` global，file-type@16 magic 解析引用 Buffer 即 throw → classify reject → 靜默 fail-open。enforce=true 後，加密路徑 server 結構上不驗內容（`DriveFileController:151` `$runServerMagic=!isEncrypted`、`:256` 對密文無 verify means）→ **這道 client gate 是內容型 MIME/polyglot 唯一防線，卻從沒在 browser 跑過**。
 - **修法**（commit `f497fc9`）：Fix1 `import {Buffer} from "buffer"`(6.0.3 直接 dep)+ guard shim 不覆寫 Node 原生（jest 不受影響）；Fix2 catch 從「無 gate enqueue」改 `rejectCode:'MIME_CHECK_FAILED'`（fail-open→**fail-closed**）；errorMap +1 + test +4（含 fail-closed 斷言）。6 檔 100+/7-。
@@ -60,7 +71,7 @@ D.19 frontend ship done（commit `f72fa04` + 容器 cp `main.d625f217.js`）。
 
 ## Live in prod-like container
 
-`koatag_fontend` (docker, port 3000) serving **`main.a15d2fbc.js`** / `main.6e8248fd.css` — 2026-06-13 cp（E2EE R2#4 cutover full + enforce flag live + P0 inline 顯示解密 + **security MIME-gate 修復 Buffer polyfill/fail-closed**）。內含累積（D.x plaintext era + E2EE）：
+`koatag_fontend` (docker, port 3000) serving **`main.2e0ace94.js`** / `main.3f763fa6.css` — 2026-06-13 cp（E2EE R2#4 cutover full + enforce flag live + P0 inline 顯示解密 + security MIME-gate 修復 + **RequireKeys 重登 gate over-block 修復（scoped class，不再全屏蓋導覽列）**）。內含累積（D.x plaintext era + E2EE）：
 - D.1 A+B+C share / video onError / v?-zip landing
 - D.9 v3 Trash UI scaffold
 - D.12 上傳 2GB / 配額 20GB
