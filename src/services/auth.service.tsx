@@ -378,7 +378,12 @@ export const logout = async () => {
         $message("即將登出請稍後...");
         await delay(2);
     } catch (e) {
-        alert(`登出失敗 -> ${e}`);
+        if (axios.isAxiosError(e) && e.response?.status === 401) {
+            // Already logged out (token expired or invalid) — ignore.
+        } else {
+            console.error(e);
+        }
+        // alert(`登出失敗 -> ${e}`);
     } finally {
         // R3 #4 §1.8 5-layer logout zero-out:
         //   1. master_key/master_privkey/master_pubkey in-memory bundle
