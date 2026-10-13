@@ -27,6 +27,7 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
       { to: '/main/front_page',  label: '首頁',     icon: 'home' },
       { to: '/main/image_area',  label: '圖庫',     icon: 'gallery', badge: '1,716' },
       { to: '/main/upload_area', label: '上傳',     icon: 'upload' },
+      { to: '/main/bookmarks',   label: 'X 書籤',   icon: 'bookmark' },
       { to: '/main/front_page',  label: '我的最愛',  icon: 'heart',   badge: '184', placeholder: true },
     ],
   },

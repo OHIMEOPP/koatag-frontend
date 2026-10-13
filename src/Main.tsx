@@ -3,7 +3,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { Tooltip } from 'react-tooltip';
 
 import LayOut from './LayOut';
-import { Image_area, Image_page, Upload_area, Front_page, History } from 'pages'
+import { Image_area, Image_page, Upload_area, Front_page, History, Bookmarks } from 'pages'
 
 import './style/style.scss'
 import './style/message/message.scss'
@@ -69,6 +69,7 @@ const Main = () => {
                         <Route path="image_area"  element={<Image_area />} />
                         <Route path="image_page"  element={<Image_page />} />
                         <Route path="history"     element={<History />} />
+                        <Route path="bookmarks"   element={<Bookmarks />} />
                         <Route path="drive/*"     element={
                           <Suspense fallback={<div className="drive-loading">載入中…</div>}>
                             {/* R2 #4 cutover — force-re-login gate at the Drive
