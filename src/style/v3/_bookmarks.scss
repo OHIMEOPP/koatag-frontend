@@ -22,6 +22,7 @@
 
   &.ok  { background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
   &.bad { background: var(--color-danger);  box-shadow: 0 0 6px var(--color-danger); }
+  &.warn { background: var(--color-warning); box-shadow: 0 0 6px var(--color-warning); }
 }
 
 .bm-notice {

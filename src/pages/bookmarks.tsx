@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from 'components';
 import { pingExt, getXSession } from 'services/bookmarkExt';
+import { getExtensionVersion, downloadExtension, isOlderVersion } from 'services/bookmark.service';
+import { $message } from 'utils';
 
 // X 書籤即時頁
 type Kind = 'bookmarks' | 'likes';
@@ -18,6 +20,8 @@ const Bookmarks: React.FC = () => {
   const [extVersion, setExtVersion] = useState('');
   const [xState, setXState] = useState<XState>('checking');
   const [xUserId, setXUserId] = useState('');
+  const [latestVersion, setLatestVersion] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
   const detect = async () => {
     setExtState('checking');
@@ -42,11 +46,30 @@ const Bookmarks: React.FC = () => {
 
   useEffect(() => {
     detect();
+    // 拿不到最新版本就不提示更新，不影響其他功能
+    getExtensionVersion()
+      .then((version) => setLatestVersion(version))
+      .catch(() => setLatestVersion(''));
   }, []);
 
   const openXLogin = () => {
     window.open('https://x.com/login', '_blank', 'noopener');
   };
+
+  const onDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadExtension(latestVersion);
+    } catch (e) {
+      $message('擴充套件下載失敗，稍後再試', 'error');
+    }
+    setDownloading(false);
+  };
+
+  let outdated = false;
+  if (extState === 'ready' && latestVersion && isOlderVersion(extVersion, latestVersion)) {
+    outdated = true;
+  }
 
   // 偵測中不能再按重新偵測
   let checking = false;
@@ -66,6 +89,10 @@ const Bookmarks: React.FC = () => {
   if (extState === 'ready') {
     extDot = 'ok';
     extText = '擴充套件 v' + extVersion;
+  }
+  if (outdated) {
+    extDot = 'warn';
+    extText = '擴充套件 v' + extVersion + '（版本過低，建議更新）';
   }
 
   let xDot = '';
@@ -100,6 +127,11 @@ const Bookmarks: React.FC = () => {
           {xState === 'loggedOut' && (
             <button className="btn btn-sm btn-primary" onClick={openXLogin}>登入 X</button>
           )}
+          {(extState === 'missing' || outdated) && (
+            <button className="btn btn-sm btn-primary" onClick={onDownload} disabled={downloading}>
+              <Icon.download size={13} /> {downloading ? '下載中…' : '下載擴充套件'}
+            </button>
+          )}
           {extState === 'missing' ? (
             // 擴充套件只在頁面載入時注入，裝好後要重新整理才偵測得到
             <button className="btn btn-sm btn-ghost" onClick={() => window.location.reload()}>
@@ -131,9 +163,9 @@ const Bookmarks: React.FC = () => {
           <div className="bm-notice">
             要瀏覽 X 書籤，這台電腦的瀏覽器需要先安裝 KOATAG 書籤擴充套件：
             <ol>
-              <li>下載擴充套件 zip 並解壓縮</li>
+              <li>按右上角「下載擴充套件」，把 zip 解壓縮</li>
               <li>開啟 <code>chrome://extensions</code>，打開右上角「開發人員模式」</li>
-              <li>按「載入未封裝項目」，選解壓縮後的資料夾</li>
+              <li>按「載入未封裝項目」，選解壓縮後的 <code>bookmark-sync</code> 資料夾</li>
               <li>回到這一頁按「重新整理」</li>
             </ol>
           </div>
