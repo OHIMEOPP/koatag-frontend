@@ -1,6 +1,31 @@
 import api from "api/axios";
+import { XItem } from "services/bookmarkExt";
 
 type ExtensionInfoResponse = { ok: boolean; data: { version: string } };
+
+// 收藏一則 X 貼文，已收藏過後端會回既有那筆
+export const saveBookmark = async (item: XItem, xUserId: string) => {
+    let postedAt = null;
+    const d = new Date(item.createdAt);
+    if (item.createdAt && !isNaN(d.getTime())) {
+        postedAt = d.toISOString();
+    }
+
+    const payload = {
+        platform: 'x',
+        item_id: item.itemId,
+        source_account_id: xUserId || null,
+        author_id: item.author ? item.author.id : null,
+        author_handle: item.author ? item.author.screenName : null,
+        author_name: item.author ? item.author.name : null,
+        text: item.text || null,
+        url: item.url,
+        media: item.media,
+        posted_at: postedAt,
+    };
+    const response = await api.post(`/bookmarks`, payload);
+    return response.data;
+}
 
 // 擴充套件目前版本，拿來跟使用者裝的比對
 export const getExtensionVersion = async () => {

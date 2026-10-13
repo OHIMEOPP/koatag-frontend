@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from 'components';
 import { PostCard } from 'components/bookmarks/PostCard';
 import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
-import { getExtensionVersion, downloadExtension, isOlderVersion } from 'services/bookmark.service';
+import { getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark } from 'services/bookmark.service';
 import { $message } from 'utils';
 
 // X 書籤即時頁
@@ -29,6 +29,8 @@ const Bookmarks: React.FC = () => {
   const [items, setItems] = useState<XItem[]>([]);
   const [message, setMessage] = useState('');
   const [messageBad, setMessageBad] = useState(false);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
 
   // 載入流程要讀到最新值，用 ref 存
   const kindRef = useRef<XKind>('bookmarks');
@@ -146,6 +148,24 @@ const Bookmarks: React.FC = () => {
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
   }, [xState]);
+
+  const onSave = async (item: XItem) => {
+    if (savedIds.has(item.itemId) || savingIds.has(item.itemId)) {
+      return;
+    }
+    setSavingIds((prev) => new Set(prev).add(item.itemId));
+    try {
+      await saveBookmark(item, xUserId);
+      setSavedIds((prev) => new Set(prev).add(item.itemId));
+    } catch (e) {
+      $message('收藏失敗，稍後再試', 'error');
+    }
+    setSavingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(item.itemId);
+      return next;
+    });
+  };
 
   const switchKind = (newKind: XKind) => {
     if (newKind === kindRef.current) {
@@ -289,7 +309,13 @@ const Bookmarks: React.FC = () => {
         {xState === 'loggedIn' && (
           <div className="bm-list">
             {items.map((item) => (
-              <PostCard key={item.itemId} item={item} />
+              <PostCard
+                key={item.itemId}
+                item={item}
+                saved={savedIds.has(item.itemId)}
+                saving={savingIds.has(item.itemId)}
+                onSave={onSave}
+              />
             ))}
             <div ref={sentinelRef} />
             {message && (

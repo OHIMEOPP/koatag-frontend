@@ -168,6 +168,33 @@
   }
 }
 
+// 收藏是綠框空心，已收藏是綠底實心
+.bm-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--color-success);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--color-success);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: rgba(62, 207, 142, 0.12);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &.saved {
+    color: var(--color-text-inverse);
+    background: var(--color-success);
+  }
+}
+
 .bm-message {
   padding: var(--spacing-md) 0;
   font-size: 13px;

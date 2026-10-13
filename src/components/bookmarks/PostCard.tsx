@@ -1,8 +1,12 @@
 import React from 'react';
+import { Icon } from 'components/Icon';
 import { XItem } from 'services/bookmarkExt';
 
 type Props = {
   item: XItem;
+  saved: boolean;
+  saving: boolean;
+  onSave: (item: XItem) => void;
 };
 
 // 跟 X 一樣的相對時間，一天內顯示多久前
@@ -38,8 +42,16 @@ const fullTime = (createdAt: string) => {
   return d.toLocaleString('zh-TW', { hour12: false });
 };
 
-export const PostCard: React.FC<Props> = ({ item }) => {
+export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave }) => {
   const media = item.media.slice(0, 4);
+
+  let saveLabel = '收藏';
+  if (saving) {
+    saveLabel = '收藏中…';
+  }
+  if (saved) {
+    saveLabel = '已收藏';
+  }
 
   return (
     <article className="bm-post">
@@ -71,9 +83,19 @@ export const PostCard: React.FC<Props> = ({ item }) => {
         )}
 
         <div className="bm-post-foot">
-          {item.url && (
+          {item.url ? (
             <a href={item.url} target="_blank" rel="noopener noreferrer">在 X 上查看</a>
+          ) : (
+            <span />
           )}
+          <button
+            className={`bm-save ${saved ? 'saved' : ''}`}
+            onClick={() => onSave(item)}
+            disabled={saved || saving}
+          >
+            {saved ? <Icon.bookmarkFilled size={14} /> : <Icon.bookmark size={14} />}
+            <span>{saveLabel}</span>
+          </button>
         </div>
       </div>
     </article>
