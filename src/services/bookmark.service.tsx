@@ -4,6 +4,52 @@ import { XItem } from "services/bookmarkExt";
 type ExtensionInfoResponse = { ok: boolean; data: { version: string } };
 type SavedResponse = { ok: boolean; data: Array<{ item_id: string }> };
 
+export type BookmarkRow = {
+  id: number;
+  item_id: string;
+  author_id: string | null;
+  author_handle: string | null;
+  author_name: string | null;
+  text: string | null;
+  url: string | null;
+  media: Array<{ type: string; url: string }> | null;
+  posted_at: string | null;
+};
+type SavedPageResponse = {
+  ok: boolean;
+  data: BookmarkRow[];
+  meta: { page: number; per_page: number; total: number; last_page: number };
+};
+
+// 已收藏列表，新收藏的在前
+export const getSavedPage = async (page: number) => {
+    const response = await api.get<SavedPageResponse>(`/bookmarks`, {
+        params: { platform: 'x', page: page, per_page: 20 },
+    });
+    return response.data;
+}
+
+// 收藏紀錄轉成卡片用的格式，頭像沒存所以空著
+export const bookmarkToItem = (row: BookmarkRow): XItem => {
+    let author = null;
+    if (row.author_handle) {
+        author = {
+            id: row.author_id || '',
+            screenName: row.author_handle,
+            name: row.author_name || row.author_handle,
+            avatar: null,
+        };
+    }
+    return {
+        itemId: row.item_id,
+        author: author,
+        text: row.text || '',
+        createdAt: row.posted_at || '',
+        media: row.media || [],
+        url: row.url,
+    };
+}
+
 // 查這些 X 貼文哪些已收藏，回已收藏的 item_id
 export const getSavedItemIds = async (itemIds: string[]) => {
     const response = await api.get<SavedResponse>(`/bookmarks`, {

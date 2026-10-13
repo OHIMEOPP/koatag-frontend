@@ -2,12 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from 'components';
 import { PostCard } from 'components/bookmarks/PostCard';
 import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
-import { getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark, getSavedItemIds } from 'services/bookmark.service';
+import {
+  getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark, getSavedItemIds, getSavedPage, bookmarkToItem,
+} from 'services/bookmark.service';
 import { $message } from 'utils';
 
 // X 書籤即時頁
 type ExtState = 'checking' | 'missing' | 'ready';
 type XState = 'checking' | 'loggedIn' | 'loggedOut';
+// 書籤、喜歡即時抓 X；已收藏讀 KOATAG
+type View = XKind | 'saved';
 
 const TABS: Array<{ kind: XKind; label: string }> = [
   { kind: 'bookmarks', label: '書籤' },
@@ -25,7 +29,7 @@ const MESSAGES: Record<string, string> = {
 };
 
 const Bookmarks: React.FC = () => {
-  const [kind, setKind] = useState<XKind>('bookmarks');
+  const [kind, setKind] = useState<View>('bookmarks');
   const [items, setItems] = useState<XItem[]>([]);
   const [message, setMessage] = useState('');
   const [messageBad, setMessageBad] = useState(false);
@@ -33,8 +37,9 @@ const Bookmarks: React.FC = () => {
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
 
   // 載入流程要讀到最新值，用 ref 存
-  const kindRef = useRef<XKind>('bookmarks');
+  const kindRef = useRef<View>('bookmarks');
   const cursorRef = useRef<string | null>(null);
+  const pageRef = useRef(0);
   const loadingRef = useRef(false);
   const finishedRef = useRef(false);
   const countRef = useRef(0);
@@ -106,6 +111,57 @@ const Bookmarks: React.FC = () => {
     }
   };
 
+  // 已收藏分頁，照收藏時間由新到舊一頁 20 則
+  const loadSavedPage = async () => {
+    const page = pageRef.current + 1;
+    let res = null;
+    try {
+      res = await getSavedPage(page);
+    } catch (e) {
+      res = null;
+    }
+    loadingRef.current = false;
+
+    if (kindRef.current !== 'saved') {
+      loadNextPage();
+      return;
+    }
+    if (!res) {
+      showMessage('已收藏載入失敗，稍後再試', true);
+      return;
+    }
+
+    const pageItems: XItem[] = [];
+    for (const row of res.data) {
+      pageItems.push(bookmarkToItem(row));
+    }
+    setItems((prev) => prev.concat(pageItems));
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      for (const item of pageItems) {
+        next.add(item.itemId);
+      }
+      return next;
+    });
+    countRef.current = countRef.current + pageItems.length;
+    pageRef.current = page;
+
+    if (pageItems.length === 0 || page >= res.meta.last_page) {
+      finishedRef.current = true;
+      if (countRef.current > 0) {
+        showMessage('已經到底了，共 ' + countRef.current + ' 則', false);
+      } else {
+        showMessage('還沒有收藏任何貼文', false);
+      }
+      return;
+    }
+    showMessage('', false);
+
+    if (sentinelRef.current && sentinelRef.current.getBoundingClientRect().top < window.innerHeight + 600) {
+      loadNextPage();
+    }
+  };
+
   const loadNextPage = async () => {
     if (loadingRef.current || finishedRef.current) {
       return;
@@ -113,6 +169,16 @@ const Bookmarks: React.FC = () => {
     loadingRef.current = true;
     showMessage('載入中…', false);
     const requestKind = kindRef.current;
+    if (requestKind === 'saved') {
+      await loadSavedPage();
+      return;
+    }
+    // 沒登入 X 就不去問擴充套件，免得等滿 30 秒逾時
+    if (xState !== 'loggedIn') {
+      loadingRef.current = false;
+      showMessage('', false);
+      return;
+    }
     const res = await fetchXPage(requestKind, cursorRef.current);
     loadingRef.current = false;
 
@@ -163,8 +229,11 @@ const Bookmarks: React.FC = () => {
   const loadRef = useRef(loadNextPage);
   loadRef.current = loadNextPage;
 
+  // 已收藏不需要擴充套件跟 X 登入
+  const showList = kind === 'saved' || xState === 'loggedIn';
+
   useEffect(() => {
-    if (xState !== 'loggedIn' || !sentinelRef.current) {
+    if (!showList || !sentinelRef.current) {
       return;
     }
     const observer = new IntersectionObserver((entries) => {
@@ -174,7 +243,7 @@ const Bookmarks: React.FC = () => {
     }, { rootMargin: '600px' });
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [xState]);
+  }, [showList]);
 
   const onSave = async (item: XItem) => {
     if (savedIds.has(item.itemId) || savingIds.has(item.itemId)) {
@@ -194,13 +263,14 @@ const Bookmarks: React.FC = () => {
     });
   };
 
-  const switchKind = (newKind: XKind) => {
+  const switchKind = (newKind: View) => {
     if (newKind === kindRef.current) {
       return;
     }
     kindRef.current = newKind;
     setKind(newKind);
     cursorRef.current = null;
+    pageRef.current = 0;
     finishedRef.current = false;
     countRef.current = 0;
     setItems([]);
@@ -312,10 +382,15 @@ const Bookmarks: React.FC = () => {
               {t.label}
             </button>
           ))}
-          <button className="btn btn-sm btn-ghost" disabled>已收藏</button>
+          <button
+            className={`btn btn-sm ${kind === 'saved' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => switchKind('saved')}
+          >
+            已收藏
+          </button>
         </div>
 
-        {extState === 'missing' && (
+        {kind !== 'saved' && extState === 'missing' && (
           <div className="bm-notice">
             要瀏覽 X 書籤，這台電腦的瀏覽器需要先安裝 KOATAG 書籤擴充套件：
             <ol>
@@ -327,13 +402,13 @@ const Bookmarks: React.FC = () => {
           </div>
         )}
 
-        {xState === 'loggedOut' && (
+        {kind !== 'saved' && xState === 'loggedOut' && (
           <div className="bm-notice">
             請先在這個瀏覽器登入 X。按右上角「登入 X」會開新分頁到 X 官方登入頁，帳密只在 X 輸入。登入後回到這一頁按「重新偵測」。
           </div>
         )}
 
-        {xState === 'loggedIn' && (
+        {showList && (
           <div className="bm-list">
             {items.map((item) => (
               <PostCard
@@ -342,6 +417,7 @@ const Bookmarks: React.FC = () => {
                 saved={savedIds.has(item.itemId)}
                 saving={savingIds.has(item.itemId)}
                 onSave={onSave}
+                showAvatar={kind !== 'saved'}
               />
             ))}
             <div ref={sentinelRef} />

@@ -7,6 +7,8 @@ type Props = {
   saved: boolean;
   saving: boolean;
   onSave: (item: XItem) => void;
+  // 已收藏沒存頭像，不顯示
+  showAvatar?: boolean;
 };
 
 // 跟 X 一樣的相對時間，一天內顯示多久前
@@ -42,7 +44,7 @@ const fullTime = (createdAt: string) => {
   return d.toLocaleString('zh-TW', { hour12: false });
 };
 
-export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave }) => {
+export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, showAvatar = true }) => {
   const media = item.media.slice(0, 4);
 
   let saveLabel = '收藏';
@@ -54,10 +56,11 @@ export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave }) => {
   }
 
   return (
-    <article className="bm-post">
-      {item.author && item.author.avatar ? (
+    <article className={`bm-post ${showAvatar ? '' : 'no-avatar'}`}>
+      {showAvatar && item.author && item.author.avatar && (
         <img className="bm-avatar" src={item.author.avatar} alt="" />
-      ) : (
+      )}
+      {showAvatar && !(item.author && item.author.avatar) && (
         <div className="bm-avatar" />
       )}
 
