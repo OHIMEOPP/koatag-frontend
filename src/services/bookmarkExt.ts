@@ -5,6 +5,25 @@ const EXT_SOURCE = 'koatag-bookmarks-ext';
 export type ExtPing = { ok: boolean; version: string };
 export type ExtSession = { ok: boolean; loggedIn: boolean; xUserId?: string };
 
+export type XKind = 'bookmarks' | 'likes';
+export type XAuthor = { id: string; screenName: string; name: string; avatar: string | null };
+export type XMedia = { type: string; url: string };
+export type XItem = {
+  itemId: string;
+  author: XAuthor | null;
+  text: string;
+  createdAt: string;
+  media: XMedia[];
+  url: string | null;
+};
+export type ExtPage = {
+  ok: boolean;
+  status: string;
+  kind: XKind;
+  items: XItem[];
+  nextCursor: string | null;
+};
+
 let reqCounter = 0;
 
 // 逾時沒回應就回 null
@@ -34,3 +53,6 @@ export const askExt = <T = any>(type: string, extra: Record<string, unknown>, ti
 export const pingExt = () => askExt<ExtPing>('ping', {}, 1500);
 
 export const getXSession = () => askExt<ExtSession>('session', {}, 5000);
+
+// 抓一頁 X 書籤或喜歡，cursor 空的是第一頁
+export const fetchXPage = (kind: XKind, cursor: string | null) => askExt<ExtPage>('fetchPage', { kind: kind, cursor: cursor }, 30000);

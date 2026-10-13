@@ -1,21 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from 'components';
-import { pingExt, getXSession } from 'services/bookmarkExt';
+import { PostCard } from 'components/bookmarks/PostCard';
+import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
 import { getExtensionVersion, downloadExtension, isOlderVersion } from 'services/bookmark.service';
 import { $message } from 'utils';
 
 // X 書籤即時頁
-type Kind = 'bookmarks' | 'likes';
 type ExtState = 'checking' | 'missing' | 'ready';
 type XState = 'checking' | 'loggedIn' | 'loggedOut';
 
-const TABS: Array<{ kind: Kind; label: string }> = [
+const TABS: Array<{ kind: XKind; label: string }> = [
   { kind: 'bookmarks', label: '書籤' },
   { kind: 'likes', label: '喜歡' },
 ];
 
+// 擴充套件回傳的錯誤代碼
+const MESSAGES: Record<string, string> = {
+  x_not_logged_in: '請先在這個瀏覽器登入 X',
+  x_rate_limited: 'X 暫時限制請求，稍後再試',
+  x_api_changed: 'X 改版了，等待更新設定',
+  x_blocked: 'X 拒絕了請求',
+  x_error: '暫時無法連線 X，稍後再試',
+  extension_error: '擴充套件沒有回應，請重新整理頁面',
+};
+
 const Bookmarks: React.FC = () => {
-  const [kind, setKind] = useState<Kind>('bookmarks');
+  const [kind, setKind] = useState<XKind>('bookmarks');
+  const [items, setItems] = useState<XItem[]>([]);
+  const [message, setMessage] = useState('');
+  const [messageBad, setMessageBad] = useState(false);
+
+  // 載入流程要讀到最新值，用 ref 存
+  const kindRef = useRef<XKind>('bookmarks');
+  const cursorRef = useRef<string | null>(null);
+  const loadingRef = useRef(false);
+  const finishedRef = useRef(false);
+  const countRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [extState, setExtState] = useState<ExtState>('checking');
   const [extVersion, setExtVersion] = useState('');
   const [xState, setXState] = useState<XState>('checking');
@@ -51,6 +72,94 @@ const Bookmarks: React.FC = () => {
       .then((version) => setLatestVersion(version))
       .catch(() => setLatestVersion(''));
   }, []);
+
+  const showMessage = (text: string, bad: boolean) => {
+    setMessage(text);
+    setMessageBad(bad);
+  };
+
+  const loadNextPage = async () => {
+    if (loadingRef.current || finishedRef.current) {
+      return;
+    }
+    loadingRef.current = true;
+    showMessage('載入中…', false);
+    const requestKind = kindRef.current;
+    const res = await fetchXPage(requestKind, cursorRef.current);
+    loadingRef.current = false;
+
+    // 載入途中切了分頁，這頁不要，改抓新分頁
+    if (requestKind !== kindRef.current) {
+      loadNextPage();
+      return;
+    }
+    if (!res) {
+      showMessage(MESSAGES.extension_error, true);
+      return;
+    }
+    if (!res.ok) {
+      showMessage(MESSAGES[res.status] || '載入失敗（' + res.status + '）', true);
+      if (res.status === 'x_not_logged_in') {
+        setXState('loggedOut');
+      }
+      return;
+    }
+    if (res.kind !== requestKind) {
+      showMessage('擴充套件版本太舊，請更新擴充套件後重新整理', true);
+      return;
+    }
+
+    setItems((prev) => prev.concat(res.items));
+    countRef.current = countRef.current + res.items.length;
+
+    if (res.items.length === 0 || !res.nextCursor || res.nextCursor === cursorRef.current) {
+      finishedRef.current = true;
+      if (countRef.current > 0) {
+        showMessage('已經到底了，共 ' + countRef.current + ' 則', false);
+      } else {
+        showMessage('這裡還沒有內容', false);
+      }
+      return;
+    }
+    cursorRef.current = res.nextCursor;
+    showMessage('', false);
+
+    // 一頁填不滿畫面就繼續抓
+    if (sentinelRef.current && sentinelRef.current.getBoundingClientRect().top < window.innerHeight + 600) {
+      loadNextPage();
+    }
+  };
+
+  // observer 只建一次，透過 ref 呼叫最新的 loadNextPage
+  const loadRef = useRef(loadNextPage);
+  loadRef.current = loadNextPage;
+
+  useEffect(() => {
+    if (xState !== 'loggedIn' || !sentinelRef.current) {
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        loadRef.current();
+      }
+    }, { rootMargin: '600px' });
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [xState]);
+
+  const switchKind = (newKind: XKind) => {
+    if (newKind === kindRef.current) {
+      return;
+    }
+    kindRef.current = newKind;
+    setKind(newKind);
+    cursorRef.current = null;
+    finishedRef.current = false;
+    countRef.current = 0;
+    setItems([]);
+    showMessage('', false);
+    loadNextPage();
+  };
 
   const openXLogin = () => {
     window.open('https://x.com/login', '_blank', 'noopener');
@@ -145,13 +254,13 @@ const Bookmarks: React.FC = () => {
         </div>
       </div>
 
-      <div className="card" style={{ padding: 24 }}>
+      <div className="card bm-card" style={{ padding: 24 }}>
         <div className="v-row v-gap-2" style={{ marginBottom: 18 }}>
           {TABS.map((t) => (
             <button
               key={t.kind}
               className={`btn btn-sm ${t.kind === kind ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setKind(t.kind)}
+              onClick={() => switchKind(t.kind)}
             >
               {t.label}
             </button>
@@ -178,7 +287,20 @@ const Bookmarks: React.FC = () => {
         )}
 
         {xState === 'loggedIn' && (
-          <p className="t-sm txt-mute">這裡還沒有內容</p>
+          <div className="bm-list">
+            {items.map((item) => (
+              <PostCard key={item.itemId} item={item} />
+            ))}
+            <div ref={sentinelRef} />
+            {message && (
+              <div className={`bm-message ${messageBad ? 'bad' : ''}`}>
+                {message}
+                {messageBad && (
+                  <button className="btn btn-sm btn-ghost" style={{ marginLeft: 8 }} onClick={() => loadNextPage()}>重試</button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
