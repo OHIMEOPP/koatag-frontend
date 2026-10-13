@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from 'components';
 import { PostCard } from 'components/bookmarks/PostCard';
 import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
-import { getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark } from 'services/bookmark.service';
+import { getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark, getSavedItemIds } from 'services/bookmark.service';
 import { $message } from 'utils';
 
 // X 書籤即時頁
@@ -80,6 +80,32 @@ const Bookmarks: React.FC = () => {
     setMessageBad(bad);
   };
 
+  // 貼文先顯示，再查哪些已收藏，每頁只多打一次 backend
+  const markSaved = async (pageItems: XItem[]) => {
+    if (pageItems.length === 0) {
+      return;
+    }
+    const ids: string[] = [];
+    for (const item of pageItems) {
+      ids.push(item.itemId);
+    }
+    try {
+      const saved = await getSavedItemIds(ids);
+      if (saved.length === 0) {
+        return;
+      }
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of saved) {
+          next.add(id);
+        }
+        return next;
+      });
+    } catch (e) {
+      // 查不到就當沒收藏，按下去後端也不會重複新增
+    }
+  };
+
   const loadNextPage = async () => {
     if (loadingRef.current || finishedRef.current) {
       return;
@@ -113,6 +139,7 @@ const Bookmarks: React.FC = () => {
 
     setItems((prev) => prev.concat(res.items));
     countRef.current = countRef.current + res.items.length;
+    markSaved(res.items);
 
     if (res.items.length === 0 || !res.nextCursor || res.nextCursor === cursorRef.current) {
       finishedRef.current = true;

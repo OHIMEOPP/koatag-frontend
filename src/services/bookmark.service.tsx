@@ -2,6 +2,19 @@ import api from "api/axios";
 import { XItem } from "services/bookmarkExt";
 
 type ExtensionInfoResponse = { ok: boolean; data: { version: string } };
+type SavedResponse = { ok: boolean; data: Array<{ item_id: string }> };
+
+// 查這些 X 貼文哪些已收藏，回已收藏的 item_id
+export const getSavedItemIds = async (itemIds: string[]) => {
+    const response = await api.get<SavedResponse>(`/bookmarks`, {
+        params: { platform: 'x', item_ids: itemIds },
+    });
+    const ids: string[] = [];
+    for (const b of response.data.data) {
+        ids.push(b.item_id);
+    }
+    return ids;
+}
 
 // 收藏一則 X 貼文，已收藏過後端會回既有那筆
 export const saveBookmark = async (item: XItem, xUserId: string) => {
