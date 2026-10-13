@@ -2,7 +2,8 @@ import api from "api/axios";
 import { XItem } from "services/bookmarkExt";
 
 type ExtensionInfoResponse = { ok: boolean; data: { version: string } };
-type SavedResponse = { ok: boolean; data: Array<{ item_id: string }> };
+type SavedResponse = { ok: boolean; data: Array<{ id: number; item_id: string }> };
+type SaveResponse = { ok: boolean; data: { id: number; item_id: string } };
 
 export type BookmarkRow = {
   id: number;
@@ -50,16 +51,21 @@ export const bookmarkToItem = (row: BookmarkRow): XItem => {
     };
 }
 
-// 查這些 X 貼文哪些已收藏，回已收藏的 item_id
+// 查這些 X 貼文哪些已收藏，回 item_id 對應的收藏 id，取消收藏要用
 export const getSavedItemIds = async (itemIds: string[]) => {
     const response = await api.get<SavedResponse>(`/bookmarks`, {
         params: { platform: 'x', item_ids: itemIds },
     });
-    const ids: string[] = [];
+    const saved: Array<{ itemId: string; id: number }> = [];
     for (const b of response.data.data) {
-        ids.push(b.item_id);
+        saved.push({ itemId: b.item_id, id: b.id });
     }
-    return ids;
+    return saved;
+}
+
+// 取消收藏
+export const deleteBookmark = async (id: number) => {
+    await api.delete(`/bookmarks/${id}`);
 }
 
 // 收藏一則 X 貼文，已收藏過後端會回既有那筆
@@ -82,8 +88,8 @@ export const saveBookmark = async (item: XItem, xUserId: string) => {
         media: item.media,
         posted_at: postedAt,
     };
-    const response = await api.post(`/bookmarks`, payload);
-    return response.data;
+    const response = await api.post<SaveResponse>(`/bookmarks`, payload);
+    return response.data.data.id;
 }
 
 // 擴充套件目前版本，拿來跟使用者裝的比對

@@ -4,6 +4,7 @@ import { PostCard } from 'components/bookmarks/PostCard';
 import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
 import {
   getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark, getSavedItemIds, getSavedPage, bookmarkToItem,
+  deleteBookmark,
 } from 'services/bookmark.service';
 import { $message } from 'utils';
 
@@ -33,7 +34,8 @@ const Bookmarks: React.FC = () => {
   const [items, setItems] = useState<XItem[]>([]);
   const [message, setMessage] = useState('');
   const [messageBad, setMessageBad] = useState(false);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  // item_id 對應 KOATAG 收藏 id，有在裡面就是已收藏
+  const [savedIds, setSavedIds] = useState<Map<string, number>>(new Map());
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
 
   // 載入流程要讀到最新值，用 ref 存
@@ -100,9 +102,9 @@ const Bookmarks: React.FC = () => {
         return;
       }
       setSavedIds((prev) => {
-        const next = new Set(prev);
-        for (const id of saved) {
-          next.add(id);
+        const next = new Map(prev);
+        for (const s of saved) {
+          next.set(s.itemId, s.id);
         }
         return next;
       });
@@ -131,15 +133,16 @@ const Bookmarks: React.FC = () => {
       return;
     }
 
+    const rows = res.data;
     const pageItems: XItem[] = [];
-    for (const row of res.data) {
+    for (const row of rows) {
       pageItems.push(bookmarkToItem(row));
     }
     setItems((prev) => prev.concat(pageItems));
     setSavedIds((prev) => {
-      const next = new Set(prev);
-      for (const item of pageItems) {
-        next.add(item.itemId);
+      const next = new Map(prev);
+      for (const row of rows) {
+        next.set(row.item_id, row.id);
       }
       return next;
     });
@@ -251,10 +254,34 @@ const Bookmarks: React.FC = () => {
     }
     setSavingIds((prev) => new Set(prev).add(item.itemId));
     try {
-      await saveBookmark(item, xUserId);
-      setSavedIds((prev) => new Set(prev).add(item.itemId));
+      const id = await saveBookmark(item, xUserId);
+      setSavedIds((prev) => new Map(prev).set(item.itemId, id));
     } catch (e) {
       $message('收藏失敗，稍後再試', 'error');
+    }
+    setSavingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(item.itemId);
+      return next;
+    });
+  };
+
+  // 取消後卡片留著，按鈕變回收藏，按錯可以馬上收回來
+  const onUnsave = async (item: XItem) => {
+    const id = savedIds.get(item.itemId);
+    if (id === undefined || savingIds.has(item.itemId)) {
+      return;
+    }
+    setSavingIds((prev) => new Set(prev).add(item.itemId));
+    try {
+      await deleteBookmark(id);
+      setSavedIds((prev) => {
+        const next = new Map(prev);
+        next.delete(item.itemId);
+        return next;
+      });
+    } catch (e) {
+      $message('取消收藏失敗，稍後再試', 'error');
     }
     setSavingIds((prev) => {
       const next = new Set(prev);
@@ -417,6 +444,7 @@ const Bookmarks: React.FC = () => {
                 saved={savedIds.has(item.itemId)}
                 saving={savingIds.has(item.itemId)}
                 onSave={onSave}
+                onUnsave={onUnsave}
                 showAvatar={kind !== 'saved'}
               />
             ))}

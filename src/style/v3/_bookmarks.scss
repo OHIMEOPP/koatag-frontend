@@ -197,6 +197,20 @@
     color: var(--color-text-inverse);
     background: var(--color-success);
   }
+
+  .bm-save-cancel {
+    display: none;
+  }
+
+  // 已收藏滑過去變紅框「取消收藏」
+  &.saved:hover:not(:disabled) {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+    background: transparent;
+
+    .bm-save-label { display: none; }
+    .bm-save-cancel { display: inline; }
+  }
 }
 
 .bm-message {

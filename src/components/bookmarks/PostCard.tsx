@@ -7,6 +7,7 @@ type Props = {
   saved: boolean;
   saving: boolean;
   onSave: (item: XItem) => void;
+  onUnsave: (item: XItem) => void;
   // 已收藏沒存頭像，不顯示
   showAvatar?: boolean;
 };
@@ -44,15 +45,23 @@ const fullTime = (createdAt: string) => {
   return d.toLocaleString('zh-TW', { hour12: false });
 };
 
-export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, showAvatar = true }) => {
+export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, onUnsave, showAvatar = true }) => {
   const media = item.media.slice(0, 4);
 
+  const onClickSave = () => {
+    if (saved) {
+      onUnsave(item);
+      return;
+    }
+    onSave(item);
+  };
+
   let saveLabel = '收藏';
-  if (saving) {
-    saveLabel = '收藏中…';
-  }
   if (saved) {
     saveLabel = '已收藏';
+  }
+  if (saving) {
+    saveLabel = '處理中…';
   }
 
   return (
@@ -93,11 +102,13 @@ export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, showAva
           )}
           <button
             className={`bm-save ${saved ? 'saved' : ''}`}
-            onClick={() => onSave(item)}
-            disabled={saved || saving}
+            onClick={onClickSave}
+            disabled={saving}
           >
             {saved ? <Icon.bookmarkFilled size={14} /> : <Icon.bookmark size={14} />}
-            <span>{saveLabel}</span>
+            <span className="bm-save-label">{saveLabel}</span>
+            {/* 已收藏滑過去改顯示取消收藏 */}
+            {saved && !saving && <span className="bm-save-cancel">取消收藏</span>}
           </button>
         </div>
       </div>
