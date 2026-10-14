@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from 'components';
 import { PostCard } from 'components/bookmarks/PostCard';
+import { ExtensionDialog } from 'components/bookmarks/ExtensionDialog';
 import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
 import {
   getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark, getSavedItemIds, getSavedPage, bookmarkToItem,
@@ -52,6 +53,7 @@ const Bookmarks: React.FC = () => {
   const [xUserId, setXUserId] = useState('');
   const [latestVersion, setLatestVersion] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [showExtDialog, setShowExtDialog] = useState(false);
 
   const detect = async () => {
     setExtState('checking');
@@ -380,9 +382,14 @@ const Bookmarks: React.FC = () => {
           {xState === 'loggedOut' && (
             <button className="btn btn-sm btn-primary" onClick={openXLogin}>登入 X</button>
           )}
-          {(extState === 'missing' || outdated) && (
+          {extState === 'missing' && (
             <button className="btn btn-sm btn-primary" onClick={onDownload} disabled={downloading}>
               <Icon.download size={13} /> {downloading ? '下載中…' : '下載擴充套件'}
+            </button>
+          )}
+          {extState === 'ready' && (
+            <button className={`btn btn-sm ${outdated ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShowExtDialog(true)}>
+              <Icon.download size={13} /> 擴充套件安裝
             </button>
           )}
           {extState === 'missing' ? (
@@ -421,11 +428,14 @@ const Bookmarks: React.FC = () => {
           <div className="bm-notice">
             要瀏覽 X 書籤，這台電腦的瀏覽器需要先安裝 KOATAG 書籤擴充套件：
             <ol>
-              <li>按右上角「下載擴充套件」，把 zip 解壓縮</li>
+              <li>按下方「下載擴充套件」，把 zip 解壓縮</li>
               <li>開啟 <code>chrome://extensions</code>，打開右上角「開發人員模式」</li>
               <li>按「載入未封裝項目」，選解壓縮後的 <code>bookmark-sync</code> 資料夾</li>
               <li>回到這一頁按「重新整理」</li>
             </ol>
+            <button className="btn btn-sm btn-primary bm-notice-btn" onClick={onDownload} disabled={downloading}>
+              <Icon.download size={13} /> {downloading ? '下載中…' : '下載擴充套件'}
+            </button>
           </div>
         )}
 
@@ -460,6 +470,17 @@ const Bookmarks: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showExtDialog && (
+        <ExtensionDialog
+          installedVersion={extVersion}
+          latestVersion={latestVersion}
+          outdated={outdated}
+          downloading={downloading}
+          onDownload={onDownload}
+          onClose={() => setShowExtDialog(false)}
+        />
+      )}
     </div>
   );
 };

@@ -46,6 +46,22 @@
   }
 }
 
+.bm-notice-btn {
+  margin-top: 12px;
+}
+
+.bm-dialog-version {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.bm-dialog-warn {
+  color: var(--color-warning);
+}
+
 // 斷點 320 / 768 / 1024 / 1200 / 1440，越寬 card 越窄
 .bm-card {
   width: 100%;
