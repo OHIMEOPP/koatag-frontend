@@ -91,6 +91,18 @@ export class RegisterError extends Error {
     }
 }
 
+// 打 /register，同 IP 註冊達上限（429）時轉成 RegisterError
+async function postRegister<T>(payload: Record<string, unknown>) {
+    try {
+        return await api.post<T>(`/register`, payload);
+    } catch (e) {
+        if (axios.isAxiosError(e) && e.response?.status === 429) {
+            throw new RegisterError('今日已達註冊上限，請明日再試');
+        }
+        throw e;
+    }
+}
+
 export const getUser = async () => {
     try {
         const token = localStorage.getItem('token');
@@ -262,7 +274,7 @@ export const registerFlow = async (args: {
     const keypair = await generateKeypair();
     const master_privkey_wrap = await aeadWrap(keypair.privateKey, master_key, aad);
 
-    const registerResp = await api.post<E2eeLoginResponse>(`/register`, {
+    const registerResp = await postRegister<E2eeLoginResponse>({
         account,
         password,
         auth_password_hash: bytesToBase64(auth_password_hash),
