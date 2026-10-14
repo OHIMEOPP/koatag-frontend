@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { QuotaIndicator } from './drive';
-import { logout } from 'services/auth.service';
+import { isAdmin, logout } from 'services/auth.service';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -97,6 +97,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
                 </Link>
               );
             })}
+            {sec.section === '管理' && isAdmin() && (
+              <Link
+                to="/main/admin/users"
+                className={`nav-item ${location.pathname === '/main/admin/users' ? 'active' : ''}`}
+              >
+                <Icon.user className="nav-icon" />
+                <span className="nav-label">帳號管理</span>
+              </Link>
+            )}
             {sec.section === '帳號' && (
               <a href="#" onClick={handleLogout} className="nav-item">
                 <Icon.logout className="nav-icon" />

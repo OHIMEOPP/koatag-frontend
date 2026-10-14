@@ -3,7 +3,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { Tooltip } from 'react-tooltip';
 
 import LayOut from './LayOut';
-import { Image_area, Image_page, Upload_area, Front_page, History, Bookmarks } from 'pages'
+import { Image_area, Image_page, Upload_area, Front_page, History, Bookmarks, AdminUsers, NotFound } from 'pages'
 
 import './style/style.scss'
 import './style/message/message.scss'
@@ -15,6 +15,7 @@ import { AppShell, MetaHead } from 'components';
 import { RequireKeys } from 'components/drive';
 import { getFilePath } from 'utils';
 import { fetchIcon } from 'services/image.service';
+import { isAdmin } from 'services/auth.service';
 
 // Drive 走 lazy load — feature 較大且不是每個 user 必進入
 const DrivePage = lazy(() => import('pages/drive/DrivePage'));
@@ -84,7 +85,10 @@ const Main = () => {
                             <ChangePasswordPage />
                           </Suspense>
                         } />
+                        {/* 不是 admin 跟網址不存在一樣顯示找不到頁面 */}
+                        <Route path="admin/users" element={isAdmin() ? <AdminUsers /> : <NotFound />} />
                         <Route path=""            element={<Navigate to="front_page" replace />} />
+                        <Route path="*"           element={<NotFound />} />
                     </Routes>
                 </LayOut>
             </AppShell>

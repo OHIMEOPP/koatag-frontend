@@ -442,3 +442,13 @@ export const handleUnauthorized = async () => {
     $message("登入超時，請重新登入");
     await logout();
 };
+
+// 登入時存的 user 是 admin 才顯示管理頁，真正的權限由後端擋
+export const isAdmin = () => {
+    const userRaw = localStorage.getItem('user');
+    if (!userRaw) {
+        return false;
+    }
+    const user = JSON.parse(userRaw);
+    return user?.role === 'admin';
+};
