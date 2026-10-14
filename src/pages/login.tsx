@@ -88,14 +88,23 @@ const Login = () => {
     const handleRegisterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
 
         const form = e.currentTarget as HTMLFormElement;
         const regAccount = (form.elements.namedItem('signAccount') as HTMLInputElement)?.value ?? '';
+        const regName = (form.elements.namedItem('signName') as HTMLInputElement)?.value ?? '';
         const regPassword = (form.elements.namedItem('signPassword') as HTMLInputElement)?.value ?? '';
+        const regPasswordConfirm = (form.elements.namedItem('signPasswordConfirm') as HTMLInputElement)?.value ?? '';
+
+        // 兩次密碼不同就不送出
+        if (regPassword !== regPasswordConfirm) {
+            setError('兩次輸入的密碼不一致');
+            return;
+        }
+
+        setLoading(true);
 
         try {
-            await registerFlow({ account: regAccount, password: regPassword, onKeys: setKeys });
+            await registerFlow({ account: regAccount, name: regName.trim(), password: regPassword, onKeys: setKeys });
         } catch (err) {
             if (err instanceof RegisterError) {
                 setError(err.message);
@@ -214,11 +223,19 @@ const Login = () => {
                     <p className="login-sub">建立你的 KOATAG 帳號</p>
 
                     <Field label="帳號">
-                        <input className="input" name="signAccount" placeholder="輸入帳號" required />
+                        <input className="input" name="signAccount" placeholder="輸入帳號" autoComplete="username" required />
+                    </Field>
+                    <div style={{ height: 14 }} />
+                    <Field label="名稱">
+                        <input className="input" name="signName" placeholder="顯示名稱，沒填就用帳號" maxLength={30} autoComplete="nickname" />
                     </Field>
                     <div style={{ height: 14 }} />
                     <Field label="密碼">
-                        <input className="input" type="password" name="signPassword" placeholder="輸入密碼" required />
+                        <input className="input" type="password" name="signPassword" placeholder="輸入密碼" autoComplete="new-password" required />
+                    </Field>
+                    <div style={{ height: 14 }} />
+                    <Field label="確認密碼">
+                        <input className="input" type="password" name="signPasswordConfirm" placeholder="再輸入一次密碼" autoComplete="new-password" required />
                     </Field>
 
                     <div style={{ height: 24 }} />

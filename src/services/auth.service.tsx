@@ -253,10 +253,11 @@ export const loginFlow = async (args: {
 // Once migration is complete (Round 4+ scope), plaintext field can be dropped.
 export const registerFlow = async (args: {
     account: string;
+    name: string;
     password: string;
     onKeys?: (bundle: KeyBundle) => void;
 }): Promise<void> => {
-    const { account, password, onKeys } = args;
+    const { account, name, password, onKeys } = args;
 
     const bundleResp = await api.post<DeriveBundleResponse>(`/register/derive-bundle`, { account });
     const bundle = bundleResp.data;
@@ -276,6 +277,7 @@ export const registerFlow = async (args: {
 
     const registerResp = await postRegister<E2eeLoginResponse>({
         account,
+        name,
         password,
         auth_password_hash: bytesToBase64(auth_password_hash),
         master_pubkey: bytesToBase64(keypair.publicKey),
