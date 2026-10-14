@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from 'components';
-import { getAdminUsers, AdminUserRow } from 'services/admin.service';
+import { ConfirmDialog } from 'components/drive';
+import { getAdminUsers, disableUser, enableUser, unlockUser, AdminUserRow } from 'services/admin.service';
 import { $message } from 'utils';
 
 // 帳號管理頁，只有 admin 進得來
@@ -24,6 +25,38 @@ const statusOf = (user: AdminUserRow): { label: string; className: string } => {
   return { label: '啟用中', className: 'create' };
 };
 
+type Action = 'disable' | 'enable' | 'unlock';
+
+// 確認視窗的標題、按鈕與說明
+const ACTION_TEXT: Record<Action, { label: string; title: string; message: string }> = {
+  disable: {
+    label: '停用',
+    title: '停用帳號',
+    message: '停用後對方會立刻被登出，也無法再登入，之後可以重新啟用。',
+  },
+  enable: {
+    label: '重新啟用',
+    title: '重新啟用帳號',
+    message: '重新啟用後對方可以再次登入。',
+  },
+  unlock: {
+    label: '解鎖',
+    title: '解除登入鎖定',
+    message: '解鎖後登入失敗次數歸零，對方可以馬上重新登入。',
+  },
+};
+
+// 鎖定中或有登入失敗次數才需要解鎖
+const canUnlock = (user: AdminUserRow) => {
+  if (user.login_fail_count > 0) {
+    return true;
+  }
+  if (user.locked_until && new Date(user.locked_until.replace(' ', 'T')) > new Date()) {
+    return true;
+  }
+  return false;
+};
+
 // DB 時間只取到分鐘，沒有就顯示破折號
 const formatTime = (value: string | null) => {
   if (!value) {
@@ -41,6 +74,9 @@ const AdminUsers: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [busyIds, setBusyIds] = useState<Set<number>>(new Set());
+  const [pending, setPending] = useState<{ action: Action; user: AdminUserRow } | null>(null);
+  const myId = Number(localStorage.getItem('user_id') || '0');
 
   useEffect(() => {
     const load = async () => {
@@ -68,6 +104,52 @@ const AdminUsers: React.FC = () => {
     e.preventDefault();
     setKeyword(keywordInput.trim());
     setPage(1);
+  };
+
+  // 用 API 回傳的那筆換掉列表裡同 id 的那列
+  const replaceUser = (updated: AdminUserRow) => {
+    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+  };
+
+  const setBusy = (id: number, busy: boolean) => {
+    setBusyIds((prev) => {
+      const next = new Set(prev);
+      if (busy) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  // 三種操作都在確認視窗裡執行，失敗丟錯讓視窗顯示
+  const onConfirm = async () => {
+    if (!pending) {
+      return;
+    }
+    const id = pending.user.id;
+    const label = ACTION_TEXT[pending.action].label;
+    setBusy(id, true);
+    try {
+      let updated: AdminUserRow;
+      if (pending.action === 'disable') {
+        updated = await disableUser(id);
+      } else if (pending.action === 'enable') {
+        updated = await enableUser(id);
+      } else {
+        updated = await unlockUser(id);
+      }
+      replaceUser(updated);
+      $message('已' + label + ' ' + updated.account);
+    } catch (e: any) {
+      setBusy(id, false);
+      if (e?.response?.data?.error?.code === 'CANNOT_DISABLE_SELF') {
+        throw new Error('不能停用自己');
+      }
+      throw new Error(label + '失敗，稍後再試');
+    }
+    setBusy(id, false);
   };
 
   let emptyText = '沒有帳號';
@@ -128,6 +210,7 @@ const AdminUsers: React.FC = () => {
             )}
             {users.map((user) => {
               const st = statusOf(user);
+              const busy = busyIds.has(user.id);
               return (
                 <tr key={user.id}>
                   <td>
@@ -142,7 +225,25 @@ const AdminUsers: React.FC = () => {
                   </td>
                   <td><span className={`badge ${st.className}`}>{st.label}</span></td>
                   <td>{formatTime(user.created_at)}</td>
-                  <td />
+                  <td>
+                    <div className="adm-actions">
+                      {canUnlock(user) && (
+                        <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => setPending({ action: 'unlock', user: user })}>
+                          解鎖
+                        </button>
+                      )}
+                      {user.is_active === 0 && (
+                        <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => setPending({ action: 'enable', user: user })}>
+                          重新啟用
+                        </button>
+                      )}
+                      {user.is_active === 1 && user.id !== myId && (
+                        <button className="btn btn-sm btn-ghost adm-danger" disabled={busy} onClick={() => setPending({ action: 'disable', user: user })}>
+                          停用
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -162,6 +263,17 @@ const AdminUsers: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {pending && (
+        <ConfirmDialog
+          title={ACTION_TEXT[pending.action].title}
+          message={`確定${ACTION_TEXT[pending.action].label}「${pending.user.account}」？${ACTION_TEXT[pending.action].message}`}
+          confirmLabel={ACTION_TEXT[pending.action].label}
+          destructive={pending.action === 'disable'}
+          onConfirm={onConfirm}
+          onClose={() => setPending(null)}
+        />
+      )}
     </div>
   );
 };

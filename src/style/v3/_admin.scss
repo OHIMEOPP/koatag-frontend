@@ -67,3 +67,13 @@
   font-size: 13px;
   color: var(--color-text-secondary);
 }
+
+.adm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.adm-danger {
+  color: var(--color-danger);
+}

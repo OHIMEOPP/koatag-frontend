@@ -33,3 +33,23 @@ export const getAdminUsers = async (status: string, keyword: string, page: numbe
     const response = await api.get<AdminUsersResponse>(`/admin/users`, { params: params });
     return response.data;
 }
+
+type AdminUserResponse = { ok: boolean; data: AdminUserRow };
+
+// 停用帳號，回傳更新後的那筆
+export const disableUser = async (id: number) => {
+    const response = await api.post<AdminUserResponse>(`/admin/users/${id}/disable`);
+    return response.data.data;
+}
+
+// 重新啟用帳號，回傳更新後的那筆
+export const enableUser = async (id: number) => {
+    const response = await api.post<AdminUserResponse>(`/admin/users/${id}/enable`);
+    return response.data.data;
+}
+
+// 解除登入鎖定，回傳更新後的那筆
+export const unlockUser = async (id: number) => {
+    const response = await api.post<AdminUserResponse>(`/admin/users/${id}/unlock`);
+    return response.data.data;
+}
