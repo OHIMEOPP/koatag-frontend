@@ -1,6 +1,5 @@
 import axios from "axios"; 
-import { logout } from "services/auth.service";
-import { $message } from "utils";
+import { handleUnauthorized } from "services/auth.service";
 
 const api = axios.create({
   // 不設定 baseURL，改由 interceptor 根據方法動態決定
@@ -29,8 +28,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response && error.response.status === 401) {
-      $message("登入超時，請重新登入");
-      await logout();
+      await handleUnauthorized();
     }
     return Promise.reject(error);
   }

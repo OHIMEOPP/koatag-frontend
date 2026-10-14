@@ -431,3 +431,14 @@ export const logout = async () => {
         window.location.href = '/login';
     }
 };
+
+let isLoggingOut = false;
+
+export const handleUnauthorized = async () => {
+    if (isLoggingOut) {
+        return;
+    }
+    isLoggingOut = true;
+    $message("登入超時，請重新登入");
+    await logout();
+};

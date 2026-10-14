@@ -14,8 +14,7 @@
  * 若 backend 違反此契約回 `200 + {ok:false}`，void op 會 silently 假成功（已知 risk，wiki review #3 acknowledged）。
  */
 import axios from "axios";
-import { logout } from "services/auth.service";
-import { $message } from "utils";
+import { handleUnauthorized } from "services/auth.service";
 
 export class DriveServiceError extends Error {
   public code: string;
@@ -49,8 +48,7 @@ driveApi.interceptors.response.use(
   (response: any) => response,
   async (error: any) => {
     if (error?.response?.status === 401) {
-      $message("登入超時，請重新登入");
-      await logout();
+      await handleUnauthorized();
       return Promise.reject(
         new DriveServiceError("UNAUTHORIZED", "登入超時，請重新登入")
       );
