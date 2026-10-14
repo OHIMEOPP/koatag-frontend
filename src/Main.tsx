@@ -21,13 +21,12 @@ const DrivePage = lazy(() => import('pages/drive/DrivePage'));
 // R4 #3 — change-password 頁（自願改 + id=1,2 首登強制 gate 共用）
 const ChangePasswordPage = lazy(() => import('pages/settings/ChangePasswordPage'));
 
-const userRaw = localStorage.getItem('user');
-const user = userRaw ? JSON.parse(userRaw) : null;
-const user_id: string = user ? user.id : '0';
 const defaultBg = `/backgroundImg.jpg`;
 
 const Main = () => {
     useEffect(() => {
+        // 登入後不 reload，掛載時才讀 user_id
+        const user_id: string = localStorage.getItem('user_id') || '0';
         const backGoundImage = localStorage.getItem('backGoundImage');
         if (backGoundImage) {
             document.body.style.backgroundImage = `url(${getFilePath(user_id, backGoundImage)})`;
