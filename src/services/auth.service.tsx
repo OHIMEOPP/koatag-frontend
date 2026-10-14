@@ -72,6 +72,18 @@ export class LoginError extends Error {
     }
 }
 
+// 打 /login，被 IP 限流擋下（429）時轉成看得懂的 LoginError
+async function postLogin<T>(payload: Record<string, unknown>) {
+    try {
+        return await api.post<T>(`/login`, payload);
+    } catch (e) {
+        if (axios.isAxiosError(e) && e.response?.status === 429) {
+            throw new LoginError(e.response.data?.massage || '嘗試太頻繁，請稍後再試');
+        }
+        throw e;
+    }
+}
+
 export class RegisterError extends Error {
     constructor(message: string) {
         super(message);
@@ -112,7 +124,7 @@ export const getUser = async () => {
 // New E2EE flow callers should use loginFlow() which derives auth_password_hash
 // client-side via Argon2id before posting to /login.
 export const login = async (account: string, password: string): Promise<void> => {
-    const response = await api.post<LegacyLoginResponse>(`/login`, { account, password });
+    const response = await postLogin<LegacyLoginResponse>({ account, password });
     const data = response.data;
 
     if (data.status !== 'success') {
@@ -172,7 +184,7 @@ export const loginFlow = async (args: {
         master_key_kdf_salt: bundle.master_key_kdf_salt,
     });
 
-    const loginResp = await api.post<E2eeLoginResponse>(`/login`, {
+    const loginResp = await postLogin<E2eeLoginResponse>({
         account,
         password,
         auth_password_hash: bytesToBase64(auth_password_hash),
