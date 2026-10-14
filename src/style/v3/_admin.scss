@@ -54,3 +54,16 @@
     margin: 8px 0 20px;
   }
 }
+
+.adm-badge-gap {
+  margin-left: 6px;
+}
+
+.adm-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
