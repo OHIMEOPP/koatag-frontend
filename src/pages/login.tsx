@@ -276,11 +276,11 @@ const Login = () => {
                     </Field>
                     <div style={{ height: 14 }} />
                     <Field label="名稱">
-                        <input className="input" name="signName" placeholder="顯示名稱，沒填就用帳號" maxLength={30} autoComplete="nickname" />
+                        <input className="input" name="signName" placeholder="輸入名稱" maxLength={30} autoComplete="nickname" />
                     </Field>
                     <div style={{ height: 14 }} />
                     <Field label="Email">
-                        <input className="input" type="email" name="signEmail" placeholder="用來收驗證信" maxLength={255} autoComplete="email" required />
+                        <input className="input" type="email" name="signEmail" placeholder="輸入 Email" maxLength={255} autoComplete="email" required />
                     </Field>
                     <div style={{ height: 14 }} />
                     <Field label="密碼">
