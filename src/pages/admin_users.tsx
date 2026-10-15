@@ -5,22 +5,26 @@ import { getAdminUsers, disableUser, enableUser, unlockUser, AdminUserRow } from
 import { $message } from 'utils';
 
 // 帳號管理頁，只有 admin 進得來
-type Status = '' | 'active' | 'disabled' | 'locked';
+type Status = '' | 'active' | 'disabled' | 'locked' | 'unverified';
 
 const TABS: Array<{ status: Status; label: string }> = [
   { status: '', label: '全部' },
   { status: 'active', label: '啟用中' },
   { status: 'disabled', label: '已停用' },
   { status: 'locked', label: '鎖定中' },
+  { status: 'unverified', label: '未驗證' },
 ];
 
-// 停用優先，其次看鎖定時間還沒到
+// 停用優先，其次鎖定，再來 email 未驗證
 const statusOf = (user: AdminUserRow): { label: string; className: string } => {
   if (user.is_active === 0) {
     return { label: '已停用', className: 'delete' };
   }
   if (user.locked_until && new Date(user.locked_until.replace(' ', 'T')) > new Date()) {
     return { label: '鎖定中', className: 'tag' };
+  }
+  if (user.email_verified_at === null) {
+    return { label: '未驗證', className: '' };
   }
   return { label: '啟用中', className: 'create' };
 };

@@ -5,6 +5,7 @@ export type AdminUserRow = {
   account: string;
   name: string;
   email: string;
+  email_verified_at: string | null;
   role: 'user' | 'admin';
   is_active: number;
   is_test: number;
