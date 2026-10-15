@@ -22,6 +22,8 @@ const Login = () => {
     const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    // 註冊成功後回登入表單顯示的提示
+    const [notice, setNotice] = useState('');
     // R4 #3 — id=1,2 rescue: render the forced change-password page inline (no
     // navigation/reload) so the in-memory master key bundle survives for it.
     const [forcedChange, setForcedChange] = useState(false);
@@ -39,6 +41,7 @@ const Login = () => {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setNotice('');
         setLoading(true);
 
         if (remember) {
@@ -92,6 +95,7 @@ const Login = () => {
         const form = e.currentTarget as HTMLFormElement;
         const regAccount = (form.elements.namedItem('signAccount') as HTMLInputElement)?.value ?? '';
         const regName = (form.elements.namedItem('signName') as HTMLInputElement)?.value ?? '';
+        const regEmail = (form.elements.namedItem('signEmail') as HTMLInputElement)?.value ?? '';
         const regPassword = (form.elements.namedItem('signPassword') as HTMLInputElement)?.value ?? '';
         const regPasswordConfirm = (form.elements.namedItem('signPasswordConfirm') as HTMLInputElement)?.value ?? '';
 
@@ -104,7 +108,18 @@ const Login = () => {
         setLoading(true);
 
         try {
-            await registerFlow({ account: regAccount, name: regName.trim(), password: regPassword, onKeys: setKeys });
+            const message = await registerFlow({
+                account: regAccount,
+                name: regName.trim(),
+                email: regEmail.trim(),
+                password: regPassword,
+            });
+            // 不登入，回登入表單並帶入剛註冊的帳號
+            setAccount(regAccount);
+            setPassword('');
+            setNotice(message);
+            setShowRegister(false);
+            setLoading(false);
         } catch (err) {
             if (err instanceof RegisterError) {
                 setError(err.message);
@@ -144,6 +159,7 @@ const Login = () => {
                     <h1 className="login-title">會員登入</h1>
                     <p className="login-sub">用您的帳號繼續管理圖庫</p>
 
+                    {notice && <div className="login-notice">{notice}</div>}
                     {error && <div className="login-error">{error}</div>}
 
                     <Field label="帳號">
@@ -205,7 +221,7 @@ const Login = () => {
 
                     <div className="login-foot">
                         還沒有帳號嗎?{' '}
-                        <a href="#" onClick={(e) => { e.preventDefault(); setShowRegister(true); setError(''); }}>
+                        <a href="#" onClick={(e) => { e.preventDefault(); setShowRegister(true); setError(''); setNotice(''); }}>
                             註冊帳號
                         </a>
                     </div>
@@ -230,6 +246,10 @@ const Login = () => {
                         <input className="input" name="signName" placeholder="顯示名稱，沒填就用帳號" maxLength={30} autoComplete="nickname" />
                     </Field>
                     <div style={{ height: 14 }} />
+                    <Field label="Email">
+                        <input className="input" type="email" name="signEmail" placeholder="用來收驗證信" maxLength={255} autoComplete="email" required />
+                    </Field>
+                    <div style={{ height: 14 }} />
                     <Field label="密碼">
                         <input className="input" type="password" name="signPassword" placeholder="輸入密碼" autoComplete="new-password" required />
                     </Field>
@@ -248,7 +268,7 @@ const Login = () => {
 
                     <div className="login-foot">
                         已有帳號?{' '}
-                        <a href="#" onClick={(e) => { e.preventDefault(); setShowRegister(false); }}>
+                        <a href="#" onClick={(e) => { e.preventDefault(); setShowRegister(false); setError(''); }}>
                             返回登入
                         </a>
                     </div>

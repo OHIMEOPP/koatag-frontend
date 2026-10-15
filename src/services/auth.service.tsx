@@ -91,13 +91,29 @@ export class RegisterError extends Error {
     }
 }
 
-// 打 /register，同 IP 註冊達上限（429）時轉成 RegisterError
-async function postRegister<T>(payload: Record<string, unknown>) {
+// 後端註冊錯誤代碼對應的提示
+const REGISTER_ERROR_MESSAGES: Record<string, string> = {
+    account_taken: '帳號已被使用',
+    email_taken: '這個 email 已被使用',
+    invalid_email: 'email 格式不正確',
+    name_too_long: '名稱最多 30 個字',
+};
+
+type RegisterResponse = { status: string; massage?: string; user_id?: number };
+
+// 打 /register，看得懂的錯誤轉成 RegisterError
+async function postRegister(payload: Record<string, unknown>) {
     try {
-        return await api.post<T>(`/register`, payload);
+        return await api.post<RegisterResponse>(`/register`, payload);
     } catch (e) {
         if (axios.isAxiosError(e) && e.response?.status === 429) {
             throw new RegisterError('今日已達註冊上限，請明日再試');
+        }
+        if (axios.isAxiosError(e)) {
+            const reason = e.response?.data?.reason;
+            if (reason && REGISTER_ERROR_MESSAGES[reason]) {
+                throw new RegisterError(REGISTER_ERROR_MESSAGES[reason]);
+            }
         }
         throw e;
     }
@@ -251,13 +267,14 @@ export const loginFlow = async (args: {
 // Note: plaintext password posted alongside auth_password_hash — backend keeps
 // bcrypt(password) for the dual-mode migration era (per backend #1490 §1.3).
 // Once migration is complete (Round 4+ scope), plaintext field can be dropped.
+// 註冊完不登入，回傳後端的提示讓頁面顯示，驗證 email 後才能登入
 export const registerFlow = async (args: {
     account: string;
     name: string;
+    email: string;
     password: string;
-    onKeys?: (bundle: KeyBundle) => void;
-}): Promise<void> => {
-    const { account, name, password, onKeys } = args;
+}): Promise<string> => {
+    const { account, name, email, password } = args;
 
     const bundleResp = await api.post<DeriveBundleResponse>(`/register/derive-bundle`, { account });
     const bundle = bundleResp.data;
@@ -275,37 +292,25 @@ export const registerFlow = async (args: {
     const keypair = await generateKeypair();
     const master_privkey_wrap = await aeadWrap(keypair.privateKey, master_key, aad);
 
-    const registerResp = await postRegister<E2eeLoginResponse>({
+    const registerResp = await postRegister({
         account,
         name,
+        email,
         password,
         auth_password_hash: bytesToBase64(auth_password_hash),
         master_pubkey: bytesToBase64(keypair.publicKey),
         auth_kdf_salt: bundle.auth_kdf_salt,
         master_key_kdf_salt: bundle.master_key_kdf_salt,
         master_privkey_wrap_by_master_key: bytesToBase64(packWrap(master_privkey_wrap)),
+        // 驗證信點完導回目前這個網址
+        origin: window.location.origin,
     });
     const data = registerResp.data;
-    if (data.status !== 'success') {
+    if (data.status !== 'verify_required') {
         throw new RegisterError(data.massage || '註冊失敗');
     }
 
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user_id', String(data['user_id(nosession)']));
-    localStorage.setItem('tokenExpireAt', String(Date.now() + data.expires_in * 1000));
-
-    // R3 #2 Catch 11 — keep privkey (we just generated it client-side, no
-    // need to round-trip through unwrap chain).
-    const keys: KeyBundle = {
-        masterKey: master_key,
-        masterPrivkey: keypair.privateKey,
-        masterPubkey: keypair.publicKey,
-    };
-    setKeyBundleRef(keys);
-    onKeys?.(keys);
-
-    await getUser();
-    window.location.href = '/main';
+    return data.massage || '已寄出驗證信，請到信箱完成驗證後再登入';
 };
 
 // R4 (Round 4 #3) — change-password flow. The X25519 master keypair is

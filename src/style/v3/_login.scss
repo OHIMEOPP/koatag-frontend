@@ -73,3 +73,14 @@
   font-size: 13px;
   margin-bottom: 16px;
 }
+
+// 註冊成功等提示
+.login-notice {
+  background: rgba(62, 207, 142, 0.10);
+  border: 1px solid rgba(62, 207, 142, 0.4);
+  color: var(--color-success);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
