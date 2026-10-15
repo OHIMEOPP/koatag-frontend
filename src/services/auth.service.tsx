@@ -33,6 +33,8 @@ interface LegacyLoginSuccess {
 interface LoginFail {
     status: 'login-fail';
     massage: string;
+    // unverified 代表 email 還沒驗證
+    reason?: string;
 }
 type LegacyLoginResponse = LegacyLoginSuccess | LoginFail;
 
@@ -66,9 +68,13 @@ interface LogoutResponse {
 }
 
 export class LoginError extends Error {
-    constructor(message: string) {
+    // 後端給的失敗原因，例如 unverified
+    public reason: string;
+
+    constructor(message: string, reason: string = '') {
         super(message);
         this.name = 'LoginError';
+        this.reason = reason;
     }
 }
 
@@ -219,7 +225,7 @@ export const loginFlow = async (args: {
     });
     const data = loginResp.data;
     if (data.status !== 'success') {
-        throw new LoginError(data.massage || '登入失敗');
+        throw new LoginError(data.massage || '登入失敗', data.reason || '');
     }
 
     const aad = userIdToAad(account);
@@ -311,6 +317,22 @@ export const registerFlow = async (args: {
     }
 
     return data.massage || '已寄出驗證信，請到信箱完成驗證後再登入';
+};
+
+// 重寄驗證信，回傳後端的提示；寄太頻繁丟 RegisterError
+export const resendVerifyEmail = async (account: string): Promise<string> => {
+    try {
+        const resp = await api.post<{ status: string; massage: string }>(`/email/resend`, {
+            account,
+            origin: window.location.origin,
+        });
+        return resp.data.massage;
+    } catch (e) {
+        if (axios.isAxiosError(e) && e.response?.status === 429) {
+            throw new RegisterError('寄送太頻繁，請稍後再試');
+        }
+        throw e;
+    }
 };
 
 // R4 (Round 4 #3) — change-password flow. The X25519 master keypair is

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginFlow, registerFlow, LoginError, RegisterError } from '../services/auth.service';
+import { loginFlow, registerFlow, resendVerifyEmail, LoginError, RegisterError } from '../services/auth.service';
 import { useMasterKey } from '../contexts/MasterKeyContext';
 import { deleteCookie, getCookie, setCookie } from 'utils';
 import { Btn, Field, Icon } from 'components';
@@ -24,6 +24,9 @@ const Login = () => {
     const [error, setError] = useState('');
     // 註冊成功後回登入表單顯示的提示
     const [notice, setNotice] = useState('');
+    // 登入被擋在 email 未驗證時顯示重寄按鈕
+    const [unverified, setUnverified] = useState(false);
+    const [resending, setResending] = useState(false);
     // R4 #3 — id=1,2 rescue: render the forced change-password page inline (no
     // navigation/reload) so the in-memory master key bundle survives for it.
     const [forcedChange, setForcedChange] = useState(false);
@@ -42,6 +45,7 @@ const Login = () => {
         e.preventDefault();
         setError('');
         setNotice('');
+        setUnverified(false);
         setLoading(true);
 
         if (remember) {
@@ -80,6 +84,7 @@ const Login = () => {
         } catch (err) {
             if (err instanceof LoginError) {
                 setError(err.message);
+                setUnverified(err.reason === 'unverified');
             } else {
                 setError('登入時發生錯誤，請稍後再試');
                 console.error(err);
@@ -131,6 +136,25 @@ const Login = () => {
         }
     };
 
+    // 用目前輸入的帳號重寄驗證信
+    const handleResend = async () => {
+        setResending(true);
+        try {
+            const message = await resendVerifyEmail(account);
+            setError('');
+            setUnverified(false);
+            setNotice(message);
+        } catch (err) {
+            if (err instanceof RegisterError) {
+                setError(err.message);
+            } else {
+                setError('重寄驗證信失敗，請稍後再試');
+                console.error(err);
+            }
+        }
+        setResending(false);
+    };
+
     const handleForgotPassword = (e: React.MouseEvent) => {
         e.preventDefault();
         alert('忘記密碼功能尚未開放');
@@ -160,7 +184,16 @@ const Login = () => {
                     <p className="login-sub">用您的帳號繼續管理圖庫</p>
 
                     {notice && <div className="login-notice">{notice}</div>}
-                    {error && <div className="login-error">{error}</div>}
+                    {error && (
+                        <div className="login-error">
+                            {error}
+                            {unverified && (
+                                <button type="button" className="login-error-action" onClick={handleResend} disabled={resending}>
+                                    {resending ? '寄送中...' : '重寄驗證信'}
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     <Field label="帳號">
                         <input

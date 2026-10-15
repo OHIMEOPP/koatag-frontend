@@ -84,3 +84,21 @@
   font-size: 13px;
   margin-bottom: 16px;
 }
+
+// 錯誤框裡的文字按鈕，例如重寄驗證信
+.login-error-action {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary-light);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}

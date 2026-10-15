@@ -10,7 +10,7 @@ const TEXT: Record<State, { title: string; message: string }> = {
     checking: { title: '驗證中', message: '正在確認驗證連結…' },
     verified: { title: '驗證完成', message: 'email 已驗證，現在可以登入了。' },
     already_verified: { title: '已經驗證過了', message: '這個 email 先前已完成驗證，直接登入即可。' },
-    expired: { title: '連結已過期', message: '驗證連結已超過有效時間，請到登入頁重新寄送驗證信。' },
+    expired: { title: '連結已過期', message: '驗證連結已超過有效時間，請到登入頁輸入帳號密碼登入，再按「重寄驗證信」。' },
     invalid: { title: '連結無效', message: '驗證連結不完整或已失效，請確認是否複製了完整的網址。' },
     error: { title: '暫時無法驗證', message: '連線發生問題，請稍後重新整理這個頁面。' },
 };
