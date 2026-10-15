@@ -2,7 +2,7 @@ import { ScrollTop, ScrollToTop } from 'components';
 import React, { lazy, Suspense } from 'react';
 import './App.css';
 import Main from './Main';
-import { Login } from 'pages';
+import { Login, VerifyEmail } from 'pages';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Test from 'pages/test';
 import { getUserId } from 'utils';
@@ -58,6 +58,8 @@ function App() {
             </RedirectIfAuthed>
           }
         />
+        {/* 驗證信連結，登入與否都能開 */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route
           path="/main/drive/share/:token"
           element={
