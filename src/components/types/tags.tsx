@@ -3,7 +3,7 @@ export interface TagData {
     tag_name: string;
     type: string;
     Tag_Group: string;
-    creat_user_id: number;
+    user_id: number;
     created_at: string;
     updated_at: string;
 }
@@ -20,7 +20,7 @@ export interface TagAmountDetailed {
 }
 
 export interface duplicateTag{
-    creat_user_id: number;
+    user_id: number;
     tag_name: string;
     type: string;
     Tag_Group: string;

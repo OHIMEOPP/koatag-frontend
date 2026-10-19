@@ -12,7 +12,7 @@ export interface ImageData {
     secondaryTag: string[] | null;
     ArtistTag: string[] | null;
     anotherTag: string[] | null;
-    creat_user_id: string | number;
+    user_id: string | number;
     check_img_type: string | undefined;
     // 'public' / 'private' 字串
     is_public: string;
