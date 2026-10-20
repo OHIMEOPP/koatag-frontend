@@ -8,10 +8,10 @@ export interface ImageData {
     thumb_path?: string | null;
     // NodeRED getImage 回傳 tag 陣列為 string[]（純 tag 名）；空時是 null 而不是 []
     // (verified 2026-05-02 via debug log on actual response)。
-    mainTag: string[] | null;
-    secondaryTag: string[] | null;
-    ArtistTag: string[] | null;
-    anotherTag: string[] | null;
+    character_tag: string[] | null;
+    group_tag: string[] | null;
+    artist_tag: string[] | null;
+    another_tag: string[] | null;
     user_id: string | number;
     check_img_type: string | undefined;
     // 'public' / 'private' 字串

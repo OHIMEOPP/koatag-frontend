@@ -2,7 +2,7 @@ export interface TagData {
     id: number;
     tag_name: string;
     type: string;
-    Tag_Group: string;
+    tag_group: string;
     user_id: number;
     created_at: string;
     updated_at: string;
@@ -23,6 +23,6 @@ export interface duplicateTag{
     user_id: number;
     tag_name: string;
     type: string;
-    Tag_Group: string;
+    tag_group: string;
     duplicate_count: number;
 }

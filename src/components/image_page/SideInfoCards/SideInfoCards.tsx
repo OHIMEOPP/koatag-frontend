@@ -62,10 +62,10 @@ const SideInfoCards: React.FC<SideInfoCardsProps> = ({ imageData, naturalDims })
             <div className="card info-card">
                 <h3>標籤統計 <span style={{ fontSize: 10, color: 'var(--color-text-quaternary)', fontWeight: 400, letterSpacing: '0.08em' }}>自有 / 公開</span></h3>
                 {[
-                    { label: '人物', group: 'mainTag', tags: imageData.mainTag, amounts: imageData.tagAmount.pageMainTagAmount },
-                    { label: '團體', group: 'secondaryTag', tags: imageData.secondaryTag, amounts: imageData.tagAmount.pageSecondaryTagAmount },
-                    { label: '作者', group: 'ArtistTag', tags: imageData.ArtistTag, amounts: imageData.tagAmount.pageArtistTagAmount },
-                    { label: '其他', group: 'anotherTag', tags: imageData.anotherTag, amounts: imageData.tagAmount.pageAnotherTagAmount },
+                    { label: '人物', group: 'character_tag', tags: imageData.character_tag, amounts: imageData.tagAmount.pageMainTagAmount },
+                    { label: '團體', group: 'group_tag', tags: imageData.group_tag, amounts: imageData.tagAmount.pageSecondaryTagAmount },
+                    { label: '作者', group: 'artist_tag', tags: imageData.artist_tag, amounts: imageData.tagAmount.pageArtistTagAmount },
+                    { label: '其他', group: 'another_tag', tags: imageData.another_tag, amounts: imageData.tagAmount.pageAnotherTagAmount },
                 ].map((cat) => {
                     const tagsList = cat.tags ?? [];
                     if (tagsList.length === 0) return null;

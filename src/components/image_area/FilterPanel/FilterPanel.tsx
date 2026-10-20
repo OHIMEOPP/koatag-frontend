@@ -16,7 +16,7 @@ interface FilterPanelProps {
     onReset: () => void;
 }
 
-// Sort 只露 3 個 — tag 欄位 (mainTag/...) 是 JSON 字串字典序，語義模糊不展示。
+// Sort 只露 3 個 — tag 欄位 (character_tag/...) 是 JSON 字串字典序，語義模糊不展示。
 const SORT_OPTIONS: { value: ImageSort; label: string }[] = [
     { value: 'created_at', label: '上傳日期' },
     { value: 'id', label: 'ID' },

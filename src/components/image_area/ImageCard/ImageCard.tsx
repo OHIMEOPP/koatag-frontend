@@ -21,10 +21,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     const tagCount =
-        (image.mainTag?.length ?? 0) +
-        (image.secondaryTag?.length ?? 0) +
-        (image.ArtistTag?.length ?? 0) +
-        (image.anotherTag?.length ?? 0);
+        (image.character_tag?.length ?? 0) +
+        (image.group_tag?.length ?? 0) +
+        (image.artist_tag?.length ?? 0) +
+        (image.another_tag?.length ?? 0);
 
     // NodeRED `getImage` 回傳 is_public 是字串 'public' / 'private' (verified 2026-05-02
     // via debug log). 兼容也接受 truthy 數字/布林避免後端 contract 微改時炸。

@@ -85,10 +85,10 @@ const Image_page = () => {
     const handleSave = async () => {
         if (!img_id) return;
         const formData = new FormData();
-        if (mainTag.trim())      formData.append('mainTag', mainTag.trim());
-        if (secondaryTag.trim()) formData.append('secondaryTag', secondaryTag.trim());
-        if (ArtistTag.trim())    formData.append('ArtistTag', ArtistTag.trim());
-        if (anotherTag.trim())   formData.append('anotherTag', anotherTag.trim());
+        if (mainTag.trim())      formData.append('character_tag', mainTag.trim());
+        if (secondaryTag.trim()) formData.append('group_tag', secondaryTag.trim());
+        if (ArtistTag.trim())    formData.append('artist_tag', ArtistTag.trim());
+        if (anotherTag.trim())   formData.append('another_tag', anotherTag.trim());
         if (source.trim())       formData.append('source', source.trim());
         if (isPublic) formData.append('isPublic', '1');
 

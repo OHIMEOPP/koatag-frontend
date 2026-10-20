@@ -39,9 +39,9 @@ const TagsCard: React.FC<TagsCardProps> = ({ tags, onOpenEditor }) => {
                 ...(tags.UncategorizedTags ?? []),
             ],
         },
-        { id: 'mainTag',       label: '人物',   items: tags.mainTags ?? [] },
-        { id: 'secondaryTag',  label: '團體',   items: tags.secondaryTags ?? [] },
-        { id: 'ArtistTag',     label: '作者',   items: tags.artistTags ?? [] },
+        { id: 'character_tag',  label: '人物',   items: tags.mainTags ?? [] },
+        { id: 'group_tag',      label: '團體',   items: tags.secondaryTags ?? [] },
+        { id: 'artist_tag',     label: '作者',   items: tags.artistTags ?? [] },
         { id: 'uncategorized', label: '未分類', items: tags.UncategorizedTags ?? [] },
     ] : [];
 
@@ -56,7 +56,7 @@ const TagsCard: React.FC<TagsCardProps> = ({ tags, onOpenEditor }) => {
 
     const handleChipClick = (tag: TagData) => {
         navigate(
-            `/main/image_area?page=1&tag=${encodeURIComponent(tag.tag_name)}&group=${encodeURIComponent(tag.Tag_Group)}`
+            `/main/image_area?page=1&tag=${encodeURIComponent(tag.tag_name)}&group=${encodeURIComponent(tag.tag_group)}`
         );
     };
 
@@ -65,7 +65,7 @@ const TagsCard: React.FC<TagsCardProps> = ({ tags, onOpenEditor }) => {
         if (!confirm(`要刪除標籤「${tag.tag_name}」嗎?`)) return;
         const formData = new FormData();
         formData.append('tagName', tag.tag_name);
-        formData.append('tagGroup', tag.Tag_Group);
+        formData.append('tagGroup', tag.tag_group);
         const response = await deleteTag(formData, tag.id);
         if (response?.data.status === 1) {
             $message(response.data.message);

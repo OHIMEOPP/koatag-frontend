@@ -29,18 +29,18 @@ export const UploadImage = async (formData: FormData) => {
     );
     return response.data
 }
-export type ImageSort = 'created_at' | 'id' | 'img_path' | 'mainTag' | 'secondaryTag' | 'ArtistTag';
-export type TagGroup = 'mainTag' | 'secondaryTag' | 'ArtistTag' | 'anotherTag';
+export type ImageSort = 'created_at' | 'id' | 'img_path' | 'character_tag' | 'group_tag' | 'artist_tag';
+export type TagGroup = 'character_tag' | 'group_tag' | 'artist_tag' | 'another_tag';
 
 export interface ImageListParams {
     tag?: string;
     tag_group?: TagGroup;
     is_public?: 'public' | 'private';
     untagged?: boolean;
-    mainTag_empty?: boolean;
-    secondaryTag_empty?: boolean;
-    ArtistTag_empty?: boolean;
-    anotherTag_empty?: boolean;
+    character_tag_empty?: boolean;
+    group_tag_empty?: boolean;
+    artist_tag_empty?: boolean;
+    another_tag_empty?: boolean;
     date_from?: string;
     date_to?: string;
     sort?: ImageSort;

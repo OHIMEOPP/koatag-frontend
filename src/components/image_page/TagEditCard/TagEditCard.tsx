@@ -55,34 +55,34 @@ const TagEditCard: React.FC<TagEditCardProps> = ({
 
             <div className="tag-edit-section">
                 <div className="head">
-                    <span className="lbl">人物 mainTag</span>
+                    <span className="lbl">人物 character_tag</span>
                     <span className="ct">{mainTag.split(',').filter(Boolean).length}</span>
                 </div>
-                <TagInput allTags={mainAllTags} value={mainTag} name="mainTag" onChange={onMainTagChange} placeholder="人物標籤,逗號分隔" />
+                <TagInput allTags={mainAllTags} value={mainTag} name="character_tag" onChange={onMainTagChange} placeholder="人物標籤,逗號分隔" />
             </div>
 
             <div className="tag-edit-section">
                 <div className="head">
-                    <span className="lbl">團體 secondaryTag</span>
+                    <span className="lbl">團體 group_tag</span>
                     <span className="ct">{secondaryTag.split(',').filter(Boolean).length}</span>
                 </div>
-                <TagInput allTags={secondaryAllTags} value={secondaryTag} name="secondaryTag" onChange={onSecondaryTagChange} placeholder="團體標籤,逗號分隔" />
+                <TagInput allTags={secondaryAllTags} value={secondaryTag} name="group_tag" onChange={onSecondaryTagChange} placeholder="團體標籤,逗號分隔" />
             </div>
 
             <div className="tag-edit-section">
                 <div className="head">
-                    <span className="lbl">作者 ArtistTag</span>
+                    <span className="lbl">作者 artist_tag</span>
                     <span className="ct">{ArtistTag.split(',').filter(Boolean).length}</span>
                 </div>
-                <TagInput allTags={artistAllTags} value={ArtistTag} name="ArtistTag" onChange={onArtistTagChange} placeholder="作者,逗號分隔" />
+                <TagInput allTags={artistAllTags} value={ArtistTag} name="artist_tag" onChange={onArtistTagChange} placeholder="作者,逗號分隔" />
             </div>
 
             <div className="tag-edit-section">
                 <div className="head">
-                    <span className="lbl">其他 anotherTag</span>
+                    <span className="lbl">其他 another_tag</span>
                     <span className="ct">{anotherTag.split(',').filter(Boolean).length}</span>
                 </div>
-                <TagInput allTags={anotherAllTags} value={anotherTag} name="anotherTag" isTextarea onChange={onAnotherTagChange} placeholder="金髮, 黑絲, 藍瞳, ..." />
+                <TagInput allTags={anotherAllTags} value={anotherTag} name="another_tag" isTextarea onChange={onAnotherTagChange} placeholder="金髮, 黑絲, 藍瞳, ..." />
             </div>
 
             <div className="tag-edit-section">

@@ -52,11 +52,11 @@ const AiSuggestionCard: React.FC<AiSuggestionCardProps> = ({
             }
             const result = await response.json();
 
-            // 人物 (mainTag) ← character_res_zh keys
+            // 人物 (character_tag) ← character_res_zh keys
             const mainNames = Object.keys(result?.character_res_zh ?? {});
             if (mainNames.length) onMergeMainTag(mainNames);
 
-            // 團體 (secondaryTag) ← character_res key 中括號內的作品名
+            // 團體 (group_tag) ← character_res key 中括號內的作品名
             const copyrights = Object.keys(result?.character_res ?? {})
                 .map((k: string) => {
                     const m = k.match(/\(([^)]+)\)/);
@@ -65,7 +65,7 @@ const AiSuggestionCard: React.FC<AiSuggestionCardProps> = ({
                 .filter(Boolean);
             if (copyrights.length) onMergeSecondaryTag(copyrights);
 
-            // 其他 (anotherTag) ← sorted_general_strings_zh
+            // 其他 (another_tag) ← sorted_general_strings_zh
             const generalsZh = String(result?.sorted_general_strings_zh ?? '')
                 .split(',').map((t: string) => t.trim()).filter(Boolean);
             if (generalsZh.length) onMergeAnotherTag(generalsZh);

@@ -1,22 +1,22 @@
 import { TagData } from "components";
 
 interface TagsByGroup {
-  ArtistTag: TagData[];
-  anotherTag: TagData[];
-  mainTag: TagData[];
-  secondaryTag: TagData[];
+  artist_tag: TagData[];
+  another_tag: TagData[];
+  character_tag: TagData[];
+  group_tag: TagData[];
 }
 
 const Classifier = (tags: TagData[]): TagsByGroup => {
   const grouped = tags.reduce<TagsByGroup>((acc, tag) => {
-    const group = tag.Tag_Group as keyof TagsByGroup; // 確保是合法 key
+    const group = tag.tag_group as keyof TagsByGroup; // 確保是合法 key
     acc[group].push(tag);
     return acc;
   }, {
-    ArtistTag: [],
-    anotherTag: [],
-    mainTag: [],
-    secondaryTag: []
+    artist_tag: [],
+    another_tag: [],
+    character_tag: [],
+    group_tag: []
   });
 
   return grouped;

@@ -40,7 +40,7 @@ const UploadForm: React.FC<UploadFormProps> = ({
                 <TagInput
                     allTags={{ '人物': uploadAreaInfo?.mainTags?.map((t) => t.tag_name) ?? [] }}
                     value={mainTag}
-                    name="mainTag"
+                    name="character_tag"
                     onChange={onMainTagChange}
                     placeholder="輸入人物標籤"
                 />
@@ -50,7 +50,7 @@ const UploadForm: React.FC<UploadFormProps> = ({
                 <TagInput
                     allTags={{ '團體': uploadAreaInfo?.secondaryTags?.map((t) => t.tag_name) ?? [] }}
                     value={secondaryTag}
-                    name="secondaryTag"
+                    name="group_tag"
                     onChange={onSecondaryTagChange}
                     placeholder="輸入團體標籤"
                 />
@@ -60,7 +60,7 @@ const UploadForm: React.FC<UploadFormProps> = ({
                 <TagInput
                     allTags={{ '作者': uploadAreaInfo?.artistTags?.map((t) => t.tag_name) ?? [] }}
                     value={ArtistTag}
-                    name="ArtistTag"
+                    name="artist_tag"
                     onChange={onArtistTagChange}
                     placeholder="輸入作者"
                 />
@@ -70,7 +70,7 @@ const UploadForm: React.FC<UploadFormProps> = ({
                 <TagInput
                     allTags={anotherAllTags}
                     value={anotherTag}
-                    name="anotherTag"
+                    name="another_tag"
                     isTextarea
                     onChange={onAnotherTagChange}
                     placeholder="金髮, 黑絲, 藍瞳, ..."

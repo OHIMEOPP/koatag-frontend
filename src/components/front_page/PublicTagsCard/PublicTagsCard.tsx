@@ -7,10 +7,10 @@ import axios from 'axios';
 // 「其他使用者公開且自己沒有的 tag」。chip click 跳 image_area。
 // 直接打 NodeRED，不走 api/axios interceptor。
 const PUBLIC_TABS: Array<{ id: string; label: string }> = [
-    { id: 'tag_name',      label: '標籤' },
-    { id: 'ArtistTag',     label: '作者' },
-    { id: 'mainTag',       label: '人物' },
-    { id: 'secondaryTag',  label: '團體' },
+    { id: 'tag_name',       label: '標籤' },
+    { id: 'artist_tag',     label: '作者' },
+    { id: 'character_tag',  label: '人物' },
+    { id: 'group_tag',      label: '團體' },
 ];
 
 const PublicTagsCard: React.FC = () => {

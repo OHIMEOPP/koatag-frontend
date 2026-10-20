@@ -17,7 +17,7 @@ import type { ImageData } from "components/types/images";
  *              其他    → GenericPreview (icon + mime)
  * - sidebar：File 基本 meta (size / mime / created / updated) + download button
  * - image_data tag block (b) readonly：v2-X 連結到 image_datas 時用 ?include=image_data 一次抓
- *   顯示 mainTag/secondaryTag/ArtistTag/anotherTag；編輯請至 image system
+ *   顯示 character_tag/group_tag/artist_tag/another_tag；編輯請至 image system
  * - crossOrigin="anonymous"：對齊 backend §17.7c CORS contract（koatag #301 verify pass）
  *   讓未來 canvas drawImage 不 taint
  * - retry button on error（wiki #302 finding F）
@@ -244,10 +244,10 @@ const FileMeta: React.FC<{
 
 const ImageDataTagBlock: React.FC<{ data: ImageData }> = ({ data }) => {
   const sections: Array<{ label: string; tags: string[] | null | undefined }> = [
-    { label: "Main", tags: data.mainTag },
-    { label: "Sub", tags: data.secondaryTag },
-    { label: "Artist", tags: data.ArtistTag },
-    { label: "Other", tags: data.anotherTag },
+    { label: "Main", tags: data.character_tag },
+    { label: "Sub", tags: data.group_tag },
+    { label: "Artist", tags: data.artist_tag },
+    { label: "Other", tags: data.another_tag },
   ];
   return (
     <div className="drive-file-tags">

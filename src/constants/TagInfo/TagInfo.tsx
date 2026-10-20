@@ -1,9 +1,9 @@
 const TagGroupInfo = [
     {
-        "人物": "mainTag",
-        "團體": "secondaryTag",
-        "作者": "ArtistTag",
-        "其他": "anotherTag"
+        "人物": "character_tag",
+        "團體": "group_tag",
+        "作者": "artist_tag",
+        "其他": "another_tag"
     }
 ]
 export { TagGroupInfo }

@@ -11,9 +11,9 @@ const SORT_LABEL: Record<ImageSort, string> = {
     created_at: '上傳日期',
     id: 'ID',
     img_path: '檔名',
-    mainTag: '人物',
-    secondaryTag: '團體',
-    ArtistTag: '作者',
+    character_tag: '人物',
+    group_tag: '團體',
+    artist_tag: '作者',
 };
 
 const readSortValue = (): ImageSort => {
@@ -75,10 +75,10 @@ const Image_area = () => {
     }, []);
 
     const tagTypes = [
-        { group: '人物', name: 'mainTag',      tags: imageData?.mainTags?.map((t) => t.tag_name) ?? [] },
-        { group: '團體', name: 'secondaryTag', tags: imageData?.secondaryTags?.map((t) => t.tag_name) ?? [] },
-        { group: '作者', name: 'ArtistTag',    tags: imageData?.artistTags?.map((t) => t.tag_name) ?? [] },
-        { group: '其他', name: 'anotherTag',   tags: imageData?.tagsGroup?.map((t) => t.tag_name) ?? [] },
+        { group: '人物', name: 'character_tag', tags: imageData?.mainTags?.map((t) => t.tag_name) ?? [] },
+        { group: '團體', name: 'group_tag',     tags: imageData?.secondaryTags?.map((t) => t.tag_name) ?? [] },
+        { group: '作者', name: 'artist_tag',    tags: imageData?.artistTags?.map((t) => t.tag_name) ?? [] },
+        { group: '其他', name: 'another_tag',   tags: imageData?.tagsGroup?.map((t) => t.tag_name) ?? [] },
     ];
 
     const handleBatchSubmit = () => {
