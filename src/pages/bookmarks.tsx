@@ -5,7 +5,7 @@ import { ExtensionDialog } from 'components/bookmarks/ExtensionDialog';
 import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
 import {
   getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark, getSavedItemIds, getSavedPage, bookmarkToItem,
-  deleteBookmark,
+  deleteBookmark, bookmarkToGallery, postToGallery,
 } from 'services/bookmark.service';
 import { $message } from 'utils';
 
@@ -292,6 +292,15 @@ const Bookmarks: React.FC = () => {
     });
   };
 
+  // 已收藏的走收藏那支，其他像喜歡的貼文不建收藏直接存圖
+  const onToGallery = async (item: XItem, indexes: number[] | null, anotherTag: string | null) => {
+    const id = savedIds.get(item.itemId);
+    if (id !== undefined) {
+      return bookmarkToGallery(id, indexes, anotherTag);
+    }
+    return postToGallery(item, indexes, anotherTag);
+  };
+
   const switchKind = (newKind: View) => {
     if (newKind === kindRef.current) {
       return;
@@ -366,7 +375,7 @@ const Bookmarks: React.FC = () => {
       <div className="page-head">
         <div>
           <h1 className="t-h1 page-title">X 書籤</h1>
-          <p className="page-sub">即時瀏覽 X 的書籤與喜歡，按收藏才存進 KOATAG</p>
+          <p className="page-sub">即時瀏覽 X 的書籤與喜歡，按收藏才存進 KOATAG；圖片可以點選後直接存進圖庫</p>
         </div>
         <div className="bm-status">
           <span className="bm-status-item">
@@ -455,6 +464,7 @@ const Bookmarks: React.FC = () => {
                 saving={savingIds.has(item.itemId)}
                 onSave={onSave}
                 onUnsave={onUnsave}
+                onToGallery={onToGallery}
                 showAvatar={kind !== 'saved'}
               />
             ))}

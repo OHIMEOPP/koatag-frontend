@@ -167,6 +167,75 @@
   font-size: 12px;
   color: #fff;
   background: rgba(0, 0, 0, 0.65);
+
+  &.saved { background: var(--color-success); }
+  &.failed { background: var(--color-danger); }
+}
+
+// 點圖片勾選要存進圖庫的那幾張
+.bm-media-cell.pickable {
+  cursor: pointer;
+
+  &.picked {
+    outline: 3px solid var(--color-primary);
+    outline-offset: -3px;
+  }
+}
+
+.bm-pick {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  .bm-media-cell:hover &,
+  .picked & {
+    opacity: 1;
+  }
+
+  .picked & {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+  }
+}
+
+.bm-post-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// 存進圖庫是主色空心框，跟收藏的綠色分開
+.bm-gallery {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--color-primary);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--color-primary);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--color-bg-active);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
 }
 
 .bm-post-foot {

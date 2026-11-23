@@ -92,6 +92,57 @@ export const saveBookmark = async (item: XItem, xUserId: string) => {
     return response.data.data.id;
 }
 
+export type GalleryResult = {
+  index: number;
+  status: 'saved' | 'exists' | 'skipped' | 'failed';
+  image_id: number | null;
+  reason: string | null;
+};
+type GalleryResponse = { ok: boolean; data: { results: GalleryResult[] } };
+
+// 已收藏的貼文圖片存進圖庫，indexes 為 null 存全部
+export const bookmarkToGallery = async (id: number, indexes: number[] | null, anotherTag: string | null) => {
+    const payload = { indexes: indexes, another_tag: anotherTag };
+    const response = await api.post<GalleryResponse>(`/bookmarks/${id}/to-gallery`, payload);
+    return response.data.data.results;
+}
+
+// 不收藏直接把貼文圖片存進圖庫，喜歡的貼文用這個
+export const postToGallery = async (item: XItem, indexes: number[] | null, anotherTag: string | null) => {
+    const payload = {
+        platform: 'x',
+        item_id: item.itemId,
+        author_handle: item.author ? item.author.screenName : null,
+        url: item.url,
+        media: item.media,
+        indexes: indexes,
+        another_tag: anotherTag,
+    };
+    const response = await api.post<GalleryResponse>(`/posts/to-gallery`, payload);
+    return response.data.data.results;
+}
+
+// AI 辨識圖片，只取其他標籤，回逗號分隔字串
+export const aiAnotherTags = async (imageUrl: string) => {
+    const response = await fetch(`${process.env.REACT_APP_AI_API_URL}/upload_by_url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: imageUrl, translate_to_zh: true }),
+    });
+    if (!response.ok) {
+        throw new Error('ai ' + response.status);
+    }
+    const result = await response.json();
+    const tags: string[] = [];
+    for (const t of String(result?.sorted_general_strings_zh ?? '').split(',')) {
+        const tag = t.trim();
+        if (tag && !tags.includes(tag)) {
+            tags.push(tag);
+        }
+    }
+    return tags.join(',');
+}
+
 // 擴充套件目前版本，拿來跟使用者裝的比對
 export const getExtensionVersion = async () => {
     const response = await api.get<ExtensionInfoResponse>(`/bookmarks/extension`);
