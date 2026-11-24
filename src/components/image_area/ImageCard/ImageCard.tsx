@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ImageData } from 'components/types/images';
 import { Icon, FullscreenViewer } from 'components';
 import { getFilePath } from 'utils';
+import { isDesktop, importToDesktopApp } from 'utils/desktop';
 
 interface ImageCardProps {
     image: ImageData;
@@ -60,6 +61,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
         setIsFullscreen(true);
     };
 
+    // 送到桌面版黑板，只有網頁版需要
+    const handleToDesktop = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (image.id) {
+            importToDesktopApp(image.id);
+        }
+    };
+
     return (
         <div
             className="img-card"
@@ -89,16 +98,30 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, editMode }) => {
                     </span>
                 </div>
                 {!editMode && (
-                    <button
-                        type="button"
-                        className="img-fs"
-                        onClick={handleFullscreen}
-                        aria-label="全螢幕看圖"
-                        data-tooltip-content="全螢幕看圖"
-                        data-tooltip-id="tooltip"
-                    >
-                        <Icon.maximize size={12} />
-                    </button>
+                    <div className="img-top-actions">
+                        {!isDesktop() && (
+                            <button
+                                type="button"
+                                className="img-fs"
+                                onClick={handleToDesktop}
+                                aria-label="匯入到桌面版黑板"
+                                data-tooltip-content="匯入到桌面版黑板"
+                                data-tooltip-id="tooltip"
+                            >
+                                <Icon.image size={12} />
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className="img-fs"
+                            onClick={handleFullscreen}
+                            aria-label="全螢幕看圖"
+                            data-tooltip-content="全螢幕看圖"
+                            data-tooltip-id="tooltip"
+                        >
+                            <Icon.maximize size={12} />
+                        </button>
+                    </div>
                 )}
             </div>
             <div className="img-bot">

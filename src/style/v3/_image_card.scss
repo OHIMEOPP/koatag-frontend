@@ -39,6 +39,12 @@
   gap: 6px;
   min-width: 0;
 }
+// 右上角的按鈕列，滑鼠移上去才出現
+.img-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .img-fs {
   width: 26px; height: 26px;
   display: grid; place-items: center;

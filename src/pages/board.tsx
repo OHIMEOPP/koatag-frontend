@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { isDesktop } from 'utils/desktop';
 import { BoardCanvas } from 'components/board/BoardCanvas';
 import { BoardItem, BoardView } from 'components/board/types';
@@ -11,7 +12,7 @@ import { aiAnotherTags } from 'services/bookmark.service';
 import { ImageData } from 'components';
 import {
   galleryImageUrl, loadImage, rememberKoatagUrl, toBoardData, fromBoardData, saveLocalBoard, loadLocalBoard,
-  imageUrlFromDrop, copyLocalImage, localImageUrl, saveItemToGallery,
+  imageUrlFromDrop, copyLocalImage, localImageUrl, saveItemToGallery, koatagImageUrl,
 } from 'services/board.service';
 import { $message } from 'utils';
 
@@ -48,6 +49,8 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
   // 讀完本機暫存才開始自動存，避免空黑板蓋掉檔案
   const [loaded, setLoaded] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  // 收到 koatag:// 匯入通知就加一，觸發去拿排給這個視窗的圖
+  const [importTick, setImportTick] = useState(0);
   // 主視窗的專注模式，藏起側欄與頂端列
   const [focus, setFocus] = useState(false);
 
@@ -116,6 +119,33 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, view, items]);
+
+  // Rust 收到 koatag:// 會通知這個視窗，只聽自己視窗的
+  useEffect(() => {
+    if (!isDesktop()) {
+      return;
+    }
+    const unlisten = getCurrentWebviewWindow().listen('board-import', () => {
+      setImportTick((t) => t + 1);
+    });
+    return () => {
+      unlisten.then((off) => off());
+    };
+  }, []);
+
+  // 讀完本機暫存後，以及每次收到通知，去拿排給這個視窗的圖
+  // APP 被連結叫起來時通知會比黑板早到，靠讀完暫存這次補拿
+  useEffect(() => {
+    if (!loaded || !isDesktop()) {
+      return;
+    }
+    invoke<number[]>('take_board_imports', { label: label }).then((ids) => {
+      if (ids.length > 0) {
+        addKoatagImages(ids);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, importTick]);
 
   // 在圖上按右鍵先選取它再開選單
   const onContextMenu = (id: string, clientX: number, clientY: number) => {
@@ -266,6 +296,62 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
       }
       return next;
     });
+  };
+
+  // koatag:// 匯入的圖庫圖片，只有 image_id，放到畫面中央，多張往右下錯開
+  const addKoatagImages = async (ids: number[]) => {
+    const centerX = (canvasSize.width / 2 - view.x) / view.zoom;
+    const centerY = (canvasSize.height / 2 - view.y) / view.zoom;
+
+    let maxZ = 0;
+    for (const it of items) {
+      if (it.z > maxZ) {
+        maxZ = it.z;
+      }
+    }
+
+    // 查網址與載圖同時進行
+    const loading: Array<Promise<HTMLImageElement | null>> = [];
+    for (const id of ids) {
+      loading.push(
+        koatagImageUrl(id).then((url) => {
+          if (!url) {
+            return null;
+          }
+          return loadImage(url);
+        }),
+      );
+    }
+    const images = await Promise.all(loading);
+
+    const added: BoardItem[] = [];
+    let failed = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const img = images[i];
+      if (!img) {
+        failed++;
+        continue;
+      }
+      const longest = Math.max(img.naturalWidth, img.naturalHeight);
+      const offset = added.length * NEW_IMAGE_OFFSET / view.zoom;
+      added.push({
+        id: crypto.randomUUID(),
+        kind: 'koatag',
+        image_id: ids[i],
+        x: centerX + offset,
+        y: centerY + offset,
+        scale: NEW_IMAGE_SIZE / view.zoom / longest,
+        rotation: 0,
+        z: maxZ + 1 + added.length,
+      });
+    }
+
+    if (added.length > 0) {
+      setItems((prev) => [...prev, ...added]);
+    }
+    if (failed > 0) {
+      $message(`${failed} 張圖找不到，可能不是你圖庫裡的圖`, 'warning');
+    }
   };
 
   // 選好的圖放到目前畫面中央，多張時往右下錯開

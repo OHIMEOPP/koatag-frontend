@@ -1,6 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Tooltip } from 'react-tooltip';
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { isDesktop } from 'utils/desktop';
 
 import LayOut from './LayOut';
 import { Image_area, Image_page, Upload_area, Front_page, History, Bookmarks, Board, AdminUsers, NotFound } from 'pages'
@@ -25,6 +28,27 @@ const ChangePasswordPage = lazy(() => import('pages/settings/ChangePasswordPage'
 const defaultBg = `/backgroundImg.jpg`;
 
 const Main = () => {
+    const navigate = useNavigate();
+
+    // 桌面版主視窗收到 koatag:// 匯入時切到黑板頁，黑板載好會自己去拿圖
+    // APP 被連結叫起來時通知比這裡早到，所以開頭也查一次有沒有排隊的
+    useEffect(() => {
+        if (!isDesktop()) {
+            return;
+        }
+        invoke<number>('count_board_imports', { label: 'main' }).then((count) => {
+            if (count > 0) {
+                navigate('/main/board');
+            }
+        });
+        const unlisten = getCurrentWebviewWindow().listen('board-import', () => {
+            navigate('/main/board');
+        });
+        return () => {
+            unlisten.then((off) => off());
+        };
+    }, [navigate]);
+
     useEffect(() => {
         // 登入後不 reload，掛載時才讀 user_id
         const user_id: string = localStorage.getItem('user_id') || '0';
