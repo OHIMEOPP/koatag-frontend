@@ -4,12 +4,14 @@ import { useDialogEsc } from 'hooks/useDialogEsc';
 
 type Props = {
   count: number;
+  // 黑板的圖沒有貼文作者，不顯示自動填作者那句
+  hideArtistNote?: boolean;
   onPick: (useAi: boolean) => void;
   onClose: () => void;
 };
 
 // 存進圖庫前問要不要 AI 辨識，只填其他標籤
-export const GalleryAiDialog: React.FC<Props> = ({ count, onPick, onClose }) => {
+export const GalleryAiDialog: React.FC<Props> = ({ count, hideArtistNote, onPick, onClose }) => {
   useDialogEsc(onClose);
 
   return (
@@ -18,7 +20,8 @@ export const GalleryAiDialog: React.FC<Props> = ({ count, onPick, onClose }) => 
         <div className="drive-modal-title">要用 AI 辨識標籤嗎？</div>
 
         <div className="bm-notice">
-          準備把 {count} 張圖存進圖庫。AI 辨識的結果只會填進「其他標籤」，人物、團體不會動，作者照樣自動填貼文帳號。
+          準備把 {count} 張圖存進圖庫。AI 辨識的結果只會填進「其他標籤」，人物、團體不會動
+          {hideArtistNote ? '。' : '，作者照樣自動填貼文帳號。'}
           每張圖要多等幾秒。
         </div>
 

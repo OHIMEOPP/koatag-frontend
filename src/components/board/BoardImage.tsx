@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Konva from 'konva';
 import { Group, Image as KonvaImage, Rect, Text } from 'react-konva';
 import { BoardItem } from './types';
-import { koatagImageUrl, loadImage } from 'services/board.service';
+import { koatagImageUrl, loadImage, localImageUrl } from 'services/board.service';
 
 type Props = {
   item: BoardItem;
@@ -16,13 +16,16 @@ type Status = 'loading' | 'ok' | 'missing';
 const MISSING_WIDTH = 1000;
 const MISSING_HEIGHT = 750;
 
-// 圖片來源網址，file 之後補上
+// 圖片來源網址
 const sourceOf = async (item: BoardItem): Promise<string | null> => {
   if (item.kind === 'url' && item.url) {
     return item.url;
   }
   if (item.kind === 'koatag' && item.image_id) {
     return koatagImageUrl(item.image_id);
+  }
+  if (item.kind === 'file' && item.path) {
+    return localImageUrl(item.path);
   }
   return null;
 };
@@ -33,7 +36,7 @@ const sourceLabel = (item: BoardItem): string => {
     return '圖庫圖片 #' + item.image_id;
   }
   if (item.kind === 'file') {
-    return item.path || '';
+    return '本機複本 ' + (item.path || '');
   }
   return item.url || '';
 };
@@ -44,9 +47,9 @@ export const BoardImage: React.FC<Props> = ({ item, onSelect, onChange }) => {
   const [status, setStatus] = useState<Status>('loading');
 
   // 來源不變就不重新載入，拖動縮放不會重抓
+  // 來源換掉時先留著舊圖，新圖載好才換，存進圖庫後不會閃一下
   useEffect(() => {
     let cancelled = false;
-    setStatus('loading');
     const run = async () => {
       const src = await sourceOf(item);
       let img = null;

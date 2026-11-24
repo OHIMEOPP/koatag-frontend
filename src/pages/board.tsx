@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { isDesktop } from 'utils/desktop';
 import { BoardCanvas } from 'components/board/BoardCanvas';
 import { BoardItem, BoardView } from 'components/board/types';
 import { GalleryPicker } from 'components/board/GalleryPicker';
+import { BoardContextMenu } from 'components/board/BoardContextMenu';
+import { GalleryAiDialog } from 'components/bookmarks/GalleryAiDialog';
+import { aiAnotherTags } from 'services/bookmark.service';
 import { ImageData } from 'components';
 import {
   galleryImageUrl, loadImage, rememberKoatagUrl, toBoardData, fromBoardData, saveLocalBoard, loadLocalBoard,
+  imageUrlFromDrop, copyLocalImage, localImageUrl, saveItemToGallery,
 } from 'services/board.service';
 import { $message } from 'utils';
 
@@ -24,6 +28,10 @@ const Board: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [showPicker, setShowPicker] = useState(false);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  // 等使用者回答要不要 AI 辨識的那張圖
+  const [aiAskId, setAiAskId] = useState<string | null>(null);
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   // 讀完本機暫存才開始自動存，避免空黑板蓋掉檔案
   const [loaded, setLoaded] = useState(false);
 
@@ -54,6 +62,87 @@ const Board: React.FC = () => {
     }, SAVE_DELAY);
     return () => clearTimeout(timer);
   }, [loaded, view, items]);
+
+  // 在圖上按右鍵先選取它再開選單
+  const onContextMenu = (id: string, clientX: number, clientY: number) => {
+    onSelect(id);
+    setMenu({ id: id, x: clientX, y: clientY });
+  };
+
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  const removeItem = (item: BoardItem) => {
+    setItems((prev) => prev.filter((it) => it.id !== item.id));
+    setSelectedId(null);
+  };
+
+  // 存進圖庫，存好後黑板上這張改成記圖庫的 image_id
+  const runSaveToGallery = async (item: BoardItem, useAi: boolean) => {
+    if (savingIds.has(item.id)) {
+      return;
+    }
+    setSavingIds((prev) => new Set(prev).add(item.id));
+    $message('存進圖庫中…');
+
+    let anotherTag: string | null = null;
+    let aiFailed = false;
+    if (useAi && item.kind === 'url' && item.url) {
+      try {
+        anotherTag = (await aiAnotherTags(item.url)) || null;
+      } catch (e) {
+        aiFailed = true;
+      }
+    }
+
+    try {
+      const result = await saveItemToGallery(item, anotherTag);
+      setItems((prev) => {
+        const next: BoardItem[] = [];
+        for (const it of prev) {
+          if (it.id === item.id) {
+            next.push({
+              id: it.id,
+              kind: 'koatag',
+              image_id: result.imageId,
+              x: it.x,
+              y: it.y,
+              scale: it.scale,
+              rotation: it.rotation,
+              z: it.z,
+            });
+          } else {
+            next.push(it);
+          }
+        }
+        return next;
+      });
+      if (result.status === 'exists') {
+        $message('這張圖本來就在圖庫，已改成圖庫圖片', 'info');
+      } else if (aiFailed) {
+        $message('已存進圖庫，但 AI 辨識失敗，沒有填其他標籤', 'warning');
+      } else {
+        $message('已存進圖庫');
+      }
+    } catch (e: any) {
+      console.error('[board] 存進圖庫失敗', e);
+      $message('存進圖庫失敗：' + (e?.message || e), 'error');
+    } finally {
+      setSavingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
+
+  // 網頁圖先問要不要 AI 辨識，電腦檔案直接存
+  const saveToGallery = (item: BoardItem) => {
+    if (item.kind === 'url') {
+      setAiAskId(item.id);
+      return;
+    }
+    runSaveToGallery(item, false);
+  };
 
   // 選取的圖按 Delete 從黑板拿掉，打字中不算
   useEffect(() => {
@@ -163,9 +252,120 @@ const Board: React.FC = () => {
       setItems((prev) => [...prev, ...added]);
     }
     if (failed > 0) {
-      $message(`${failed} 張圖載入失敗，沒有加上黑板`, 'warning');
+      $message(`${failed} 張圖載入失敗`, 'warning');
     }
   };
+
+  // 電腦檔案複製到 APP 資料夾再放上黑板，多張往右下錯開
+  const dropLocalFiles = async (files: File[], point: { x: number; y: number }) => {
+    let maxZ = 0;
+    for (const it of items) {
+      if (it.z > maxZ) {
+        maxZ = it.z;
+      }
+    }
+
+    const added: BoardItem[] = [];
+    let skipped = 0;
+    for (const file of files) {
+      let name = null;
+      try {
+        name = await copyLocalImage(file);
+      } catch (e) {
+        console.error('[board] 複製電腦檔案失敗', e);
+      }
+      if (!name) {
+        skipped++;
+        continue;
+      }
+      const src = await localImageUrl(name);
+      let img = null;
+      if (src) {
+        img = await loadImage(src);
+      }
+      if (!img) {
+        skipped++;
+        continue;
+      }
+      const longest = Math.max(img.naturalWidth, img.naturalHeight);
+      const offset = added.length * NEW_IMAGE_OFFSET / view.zoom;
+      added.push({
+        id: crypto.randomUUID(),
+        kind: 'file',
+        path: name,
+        x: point.x + offset,
+        y: point.y + offset,
+        scale: NEW_IMAGE_SIZE / view.zoom / longest,
+        rotation: 0,
+        z: maxZ + 1 + added.length,
+      });
+    }
+
+    if (added.length > 0) {
+      setItems((prev) => [...prev, ...added]);
+    }
+    if (skipped > 0) {
+      $message(`不是支援的圖片格式`, 'warning');
+    }
+  };
+
+  // 拖進來的東西：瀏覽器的圖記網址，電腦檔案存複本
+  const onDrop = async (data: DataTransfer, point: { x: number; y: number }) => {
+    const url = imageUrlFromDrop(data);
+    if (!url) {
+      if (data.files.length > 0) {
+        await dropLocalFiles(Array.from(data.files), point);
+      } else {
+        $message('沒有找到圖片網址', 'warning');
+      }
+      return;
+    }
+
+    const img = await loadImage(url);
+    if (!img) {
+      $message('無法載入，可能網站不允許外部讀取', 'warning');
+      return;
+    }
+
+    let maxZ = 0;
+    for (const it of items) {
+      if (it.z > maxZ) {
+        maxZ = it.z;
+      }
+    }
+
+    const longest = Math.max(img.naturalWidth, img.naturalHeight);
+    const item: BoardItem = {
+      id: crypto.randomUUID(),
+      kind: 'url',
+      url: url,
+      x: point.x,
+      y: point.y,
+      scale: NEW_IMAGE_SIZE / view.zoom / longest,
+      rotation: 0,
+      z: maxZ + 1,
+    };
+    setItems((prev) => [...prev, item]);
+  };
+
+  let aiAskItem: BoardItem | null = null;
+  if (aiAskId) {
+    for (const it of items) {
+      if (it.id === aiAskId) {
+        aiAskItem = it;
+      }
+    }
+  }
+
+  // 選單對應的圖，圖被刪掉選單就不顯示
+  let menuItem: BoardItem | null = null;
+  if (menu) {
+    for (const it of items) {
+      if (it.id === menu.id) {
+        menuItem = it;
+      }
+    }
+  }
 
   if (!isDesktop()) {
     return (
@@ -191,7 +391,7 @@ const Board: React.FC = () => {
         <button type="button" className="board-btn board-btn-primary" onClick={() => setShowPicker(true)}>
           從圖庫加入
         </button>
-        <span className="board-hint">點圖片選取，拖角落縮放、拖上方圓點旋轉，Delete 從黑板移除</span>
+        <span className="board-hint">可從瀏覽器或電腦拖圖進來；點圖片選取，拖角落縮放、拖上方圓點旋轉，Delete 從黑板移除</span>
       </div>
       <BoardCanvas
         view={view}
@@ -201,8 +401,32 @@ const Board: React.FC = () => {
         onSelect={onSelect}
         onItemChange={onItemChange}
         onSizeChange={setCanvasSize}
+        onDrop={onDrop}
+        onContextMenu={onContextMenu}
       />
       {showPicker && <GalleryPicker onPick={onPick} onClose={() => setShowPicker(false)} />}
+      {menuItem && (
+        <BoardContextMenu
+          item={menuItem}
+          x={menu ? menu.x : 0}
+          y={menu ? menu.y : 0}
+          onSaveToGallery={saveToGallery}
+          onRemove={removeItem}
+          onClose={closeMenu}
+        />
+      )}
+      {aiAskItem && (
+        <GalleryAiDialog
+          count={1}
+          hideArtistNote
+          onPick={(useAi) => {
+            const target = aiAskItem as BoardItem;
+            setAiAskId(null);
+            runSaveToGallery(target, useAi);
+          }}
+          onClose={() => setAiAskId(null)}
+        />
+      )}
     </div>
   );
 };

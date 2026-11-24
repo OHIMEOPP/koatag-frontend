@@ -24,3 +24,4 @@ log = "0.4"
 tauri = { version = "2.12.7", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-fs = "2"
+reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }

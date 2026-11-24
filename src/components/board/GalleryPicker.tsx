@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ImageData } from 'components';
 import { useDialogEsc } from 'hooks/useDialogEsc';
+import { TagSearchBox } from 'components/TagSearchBox';
 import { getImageList } from 'services/image.service';
 import { galleryThumbUrl } from 'services/board.service';
 
@@ -18,7 +19,6 @@ export const GalleryPicker: React.FC<Props> = ({ onPick, onClose }) => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [keyword, setKeyword] = useState('');
   const [tag, setTag] = useState('');
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState<ImageData[]>([]);
@@ -54,10 +54,10 @@ export const GalleryPicker: React.FC<Props> = ({ onPick, onClose }) => {
     };
   }, [page, tag]);
 
-  const onSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  // 跟頂端搜尋框同一套，空白送出顯示全部
+  const onSearch = (query: string) => {
     setPage(1);
-    setTag(keyword.trim());
+    setTag(query);
   };
 
   const isPicked = (image: ImageData) => {
@@ -82,15 +82,9 @@ export const GalleryPicker: React.FC<Props> = ({ onPick, onClose }) => {
       <div className="drive-modal board-picker" onClick={(e) => e.stopPropagation()} role="dialog">
         <div className="drive-modal-title">從圖庫加入</div>
 
-        <form className="board-picker-search" onSubmit={onSearch}>
-          <input
-            className="board-picker-input"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="輸入標籤搜尋，留空顯示全部"
-          />
-          <button type="submit" className="drive-modal-btn">搜尋</button>
-        </form>
+        <div className="board-picker-search">
+          <TagSearchBox onSearch={onSearch} allowEmpty autoFocus placeholder="搜尋標籤、人物或作者，留空按 Enter 顯示全部" />
+        </div>
 
         <div className="board-picker-grid">
           {loading && <div className="board-picker-empty">載入中…</div>}
