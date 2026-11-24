@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { QuotaIndicator } from './drive';
 import { isAdmin, logout } from 'services/auth.service';
+import { isDesktop } from 'utils/desktop';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -64,6 +65,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
   const account: string = user?.account ?? 'guest';
   const initial = account.slice(0, 2).toUpperCase();
 
+  // 桌面版先不接雲端硬碟
+  const desktop = isDesktop();
+  const sections = [];
+  for (const sec of NAV) {
+    if (desktop && sec.section === '雲端硬碟') {
+      continue;
+    }
+    sections.push(sec);
+  }
+
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await logout();
@@ -79,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
         </div>
       </div>
       <nav className="side-nav">
-        {NAV.map((sec) => (
+        {sections.map((sec) => (
           <div key={sec.section}>
             <div className="side-section">{sec.section}</div>
             {sec.items.map((item) => {
@@ -116,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
         ))}
       </nav>
       <div className="side-foot">
-        <QuotaIndicator />
+        {!desktop && <QuotaIndicator />}
         <div className="user-card">
           <div className="user-avatar">{initial}</div>
           <div className="side-foot-text">

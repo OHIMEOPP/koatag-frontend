@@ -1,0 +1,12 @@
+# 桌面版外殼與編譯產物，網頁版用不到
+src-tauri
+
+# 容器內會自己 npm install 與 build
+node_modules
+build
+
+# 測試與版控
+tests
+test-results
+playwright-report
+.git
