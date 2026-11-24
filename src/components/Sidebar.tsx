@@ -19,6 +19,8 @@ interface NavItem {
   // placeholder = nav item exists in design but underlying feature/page isn't built;
   // routes to front_page or no-op so it doesn't 404, never renders as active.
   placeholder?: boolean;
+  // 只在桌面版顯示
+  desktopOnly?: boolean;
 }
 
 const NAV: Array<{ section: string; items: NavItem[] }> = [
@@ -29,6 +31,7 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
       { to: '/main/image_area',  label: '圖庫',     icon: 'gallery', badge: '1,716' },
       { to: '/main/upload_area', label: '上傳',     icon: 'upload' },
       { to: '/main/bookmarks',   label: 'X 書籤',   icon: 'bookmark' },
+      { to: '/main/board',       label: '黑板',     icon: 'image',   desktopOnly: true },
       { to: '/main/front_page',  label: '我的最愛',  icon: 'heart',   badge: '184', placeholder: true },
     ],
   },
@@ -94,6 +97,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
           <div key={sec.section}>
             <div className="side-section">{sec.section}</div>
             {sec.items.map((item) => {
+              if (item.desktopOnly && !desktop) {
+                return null;
+              }
               const I = Icon[item.icon];
               const active = !item.placeholder && location.pathname === item.to;
               return (
