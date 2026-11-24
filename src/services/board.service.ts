@@ -75,6 +75,17 @@ export type BoardData = {
   items: Array<Omit<BoardItem, 'id'>>;
 };
 
+// 黑板來自哪一筆雲端存檔，再存時覆蓋它
+export type BoardSource = { id: number; name: string };
+
+// 本機暫存多記來源與有沒有未儲存的變更，雲端存檔不帶這些
+export type LocalBoardData = BoardData & { source?: BoardSource | null; dirty?: boolean };
+
+// 比對有沒有變更用，只看圖片不看視角，平移縮放黑板不算變更
+export const itemsSnapshot = (items: BoardItem[]): string => {
+  return JSON.stringify(toBoardData({ x: 0, y: 0, zoom: 1 }, items).items);
+};
+
 // 每個視窗一個暫存檔，主視窗 board-main.json，其他視窗 label 本身就是 board- 開頭
 export const localBoardFile = (label: string): string => {
   if (label.startsWith('board-')) {
@@ -123,13 +134,13 @@ export const fromBoardData = (data: BoardData): { view: BoardView; items: BoardI
 };
 
 // 寫進 APP 資料夾，資料夾已存在時 mkdir 不會出錯
-export const saveLocalBoard = async (label: string, data: BoardData) => {
+export const saveLocalBoard = async (label: string, data: LocalBoardData) => {
   await mkdir('', { baseDir: BaseDirectory.AppData, recursive: true });
   await writeTextFile(localBoardFile(label), JSON.stringify(data), { baseDir: BaseDirectory.AppData });
 };
 
 // 讀回本機暫存，沒有檔案或壞掉回 null
-export const loadLocalBoard = async (label: string): Promise<BoardData | null> => {
+export const loadLocalBoard = async (label: string): Promise<LocalBoardData | null> => {
   const file = localBoardFile(label);
   try {
     if (!(await exists(file, { baseDir: BaseDirectory.AppData }))) {
@@ -351,4 +362,68 @@ export const boardItemsFromClipboard = (text: string): Array<Omit<BoardItem, 'id
     return null;
   }
   return rows;
+};
+
+// 雲端存檔清單的一筆，不帶黑板內容
+export type CloudBoardRow = {
+  id: number;
+  name: string;
+  item_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+// 雲端存檔的完整內容
+export type CloudBoard = CloudBoardRow & { data: BoardData };
+
+type CloudListResponse = {
+  ok: boolean;
+  data: CloudBoardRow[];
+  meta: { page: number; per_page: number; total: number; last_page: number };
+};
+
+// 覆蓋既有存檔的內容，名稱不變
+// 那筆已被刪掉回 null，由呼叫的地方改成新增
+export const overwriteCloudBoard = async (id: number, data: BoardData): Promise<CloudBoardRow | null> => {
+  try {
+    const response = await api.put<{ ok: boolean; data: CloudBoardRow }>(`/boards/${id}`, { data: data });
+    return response.data.data;
+  } catch (e: any) {
+    if (e?.response?.status === 404) {
+      return null;
+    }
+    throw e;
+  }
+};
+
+// 存到雲端，新增一筆，名稱空白由後端取名
+export const saveCloudBoard = async (name: string, data: BoardData) => {
+  const payload: { name?: string; data: BoardData } = { data: data };
+  if (name.trim()) {
+    payload.name = name.trim();
+  }
+  const response = await api.post<{ ok: boolean; data: CloudBoardRow }>(`/boards`, payload);
+  return response.data.data;
+};
+
+// 雲端存檔清單，新存的在前
+export const listCloudBoards = async (page: number) => {
+  const response = await api.get<CloudListResponse>(`/boards`, {
+    params: { page: page, per_page: 20 },
+  });
+  return response.data;
+};
+
+export const getCloudBoard = async (id: number) => {
+  const response = await api.get<{ ok: boolean; data: CloudBoard }>(`/boards/${id}`);
+  return response.data.data;
+};
+
+export const renameCloudBoard = async (id: number, name: string) => {
+  const response = await api.patch<{ ok: boolean; data: CloudBoardRow }>(`/boards/${id}`, { name: name });
+  return response.data.data;
+};
+
+export const deleteCloudBoard = async (id: number) => {
+  await api.delete(`/boards/${id}`);
 };

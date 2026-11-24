@@ -11,11 +11,17 @@
 
 .board-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 8px var(--spacing-md);
 }
 
+// 有存檔名稱時顯示名稱，太長截斷，滑鼠移上去看全名
 .board-title {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -209,4 +215,108 @@ body.board-focus {
 .board-menu-key {
   font-size: 11.5px;
   color: var(--color-text-quaternary);
+}
+
+.board-btn-danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+// 對話框裡的輸入框與說明文字
+.board-input {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--color-primary);
+  }
+}
+
+.board-dialog-note {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+// 雲端存檔清單
+.board-cloud {
+  width: 640px;
+  max-height: calc(100vh - 64px);
+}
+
+.board-cloud-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 160px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.board-cloud-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.board-cloud-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.board-cloud-name {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-cloud-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.board-cloud-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+
+// 儲存方式切換，覆蓋或另存新檔
+.board-seg {
+  display: flex;
+  padding: 3px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+
+  button {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &.active {
+      color: var(--color-text-primary);
+      background: var(--color-bg-secondary);
+      box-shadow: inset 0 0 0 1px var(--color-primary);
+    }
+  }
 }

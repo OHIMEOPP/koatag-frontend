@@ -172,15 +172,30 @@ fn build_board_window(app: &AppHandle, label: &str) -> Result<(), String> {
   Ok(())
 }
 
+// 新視窗的初始內容上限，跟後端雲端存檔差不多
+const MAX_INITIAL_BYTES: usize = 2 * 1024 * 1024;
+
 // 開新黑板視窗並記進 windows.json，回傳新視窗的 label
 // 建視窗的指令要 async，Windows 上同步指令建視窗會卡死
+// 有帶 initial 時先寫成新視窗的暫存檔，視窗一打開就讀得到
 #[tauri::command]
-async fn open_board_window(app: AppHandle) -> Result<String, String> {
+async fn open_board_window(app: AppHandle, initial: Option<String>) -> Result<String, String> {
   let nanos = SystemTime::now()
     .duration_since(UNIX_EPOCH)
     .map_err(|e| e.to_string())?
     .as_nanos();
   let label = format!("board-{:x}", nanos);
+
+  if let Some(text) = initial {
+    if text.len() > MAX_INITIAL_BYTES {
+      return Err("黑板內容太大".into());
+    }
+    // 只確認是 JSON，內容格式由網頁讀取時檢查
+    serde_json::from_str::<serde_json::Value>(&text).map_err(|_| "黑板內容格式不對".to_string())?;
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join(format!("{}.json", label)), text).map_err(|e| e.to_string())?;
+  }
 
   build_board_window(&app, &label)?;
 

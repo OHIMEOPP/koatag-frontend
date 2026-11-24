@@ -7,6 +7,9 @@ import { BoardCanvas } from 'components/board/BoardCanvas';
 import { BoardItem, BoardView } from 'components/board/types';
 import { GalleryPicker } from 'components/board/GalleryPicker';
 import { BoardContextMenu } from 'components/board/BoardContextMenu';
+import { CloudSaveDialog, SaveMode } from 'components/board/CloudSaveDialog';
+import { CloudBoardList } from 'components/board/CloudBoardList';
+import { ConfirmDialog } from 'components/drive';
 import { GalleryAiDialog } from 'components/bookmarks/GalleryAiDialog';
 import { aiAnotherTags } from 'services/bookmark.service';
 import { ImageData } from 'components';
@@ -14,6 +17,7 @@ import {
   galleryImageUrl, loadImage, rememberKoatagUrl, toBoardData, fromBoardData, saveLocalBoard, loadLocalBoard,
   imageUrlFromDrop, copyLocalImage, localImageUrl, saveItemToGallery, koatagImageUrl,
   boardItemToClipboard, boardItemsFromClipboard,
+  saveCloudBoard, getCloudBoard, overwriteCloudBoard, CloudBoardRow, BoardSource, LocalBoardData, itemsSnapshot,
 } from 'services/board.service';
 import { $message } from 'utils';
 
@@ -52,6 +56,25 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   // 收到 koatag:// 匯入通知就加一，觸發去拿排給這個視窗的圖
   const [importTick, setImportTick] = useState(0);
+  const [showSave, setShowSave] = useState(false);
+  // 存好後要不要接著關掉這個視窗，從關閉確認框按「先存到雲端」時用
+  const [closeAfterSave, setCloseAfterSave] = useState(false);
+  // 雲端清單選到的存檔要載入目前黑板，還是開新視窗
+  const [cloudMode, setCloudMode] = useState<'load' | 'new' | null>(null);
+  const [showNewChoice, setShowNewChoice] = useState(false);
+  // 目前黑板不是空的，載入前要確認的那筆
+  const [replaceRow, setReplaceRow] = useState<CloudBoardRow | null>(null);
+  // 這塊黑板對應的雲端存檔，儲存時覆蓋它，標題顯示它的名稱
+  const [source, setSource] = useState<BoardSource | null>(null);
+  // 上次儲存或載入時的圖片內容，跟現在不同就是有未儲存的變更
+  // null 表示沒有可比的基準，有圖就算未儲存
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  // Ctrl+S 覆蓋儲存中，避免連按存好幾次
+  const [savingQuick, setSavingQuick] = useState(false);
+  let dirty = items.length > 0;
+  if (savedSnapshot !== null) {
+    dirty = itemsSnapshot(items) !== savedSnapshot;
+  }
   // 滑鼠在黑板上的位置，貼上時用，變動頻繁所以不放 state
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
   // 主視窗的專注模式，藏起側欄與頂端列
@@ -82,9 +105,95 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
   }, [label]);
 
   const openBoardWindow = () => {
+    setShowNewChoice(false);
     invoke('open_board_window').catch((e) => {
       $message('開新黑板失敗：' + e, 'error');
     });
+  };
+
+  // 存到雲端，存好回 true 讓對話框關掉
+  // 覆蓋時那筆已被刪掉，就改成新增一筆
+  const onCloudSave = async (name: string, mode: SaveMode): Promise<boolean> => {
+    const data = toBoardData(view, items);
+    try {
+      let row: CloudBoardRow | null = null;
+      if (mode === 'overwrite' && source) {
+        row = await overwriteCloudBoard(source.id, data);
+        if (row) {
+          $message(`已覆蓋儲存：${row.name}`);
+        } else {
+          $message('原本的存檔已被刪除，改存成新的一筆', 'warning');
+        }
+      }
+      if (!row) {
+        row = await saveCloudBoard(name, data);
+        $message(`已儲存：${row.name}`);
+      }
+      setSource({ id: row.id, name: row.name });
+      setSavedSnapshot(itemsSnapshot(items));
+      if (closeAfterSave) {
+        closeThisWindow();
+      }
+      return true;
+    } catch (e) {
+      $message('儲存失敗', 'error');
+      return false;
+    }
+  };
+
+  // 清單裡改名或刪除的剛好是這塊黑板的來源
+  const onSourceRenamed = (id: number, name: string) => {
+    if (source && source.id === id) {
+      setSource({ id: id, name: name });
+    }
+  };
+
+  const onSourceDeleted = (id: number) => {
+    if (source && source.id === id) {
+      setSource(null);
+    }
+  };
+
+  // 雲端存檔載入目前黑板，原本的內容整個取代
+  const loadCloudIntoBoard = async (row: CloudBoardRow) => {
+    try {
+      const cloud = await getCloudBoard(row.id);
+      const board = fromBoardData(cloud.data);
+      setView(board.view);
+      setItems(board.items);
+      setSelectedId(null);
+      setSource({ id: cloud.id, name: cloud.name });
+      setSavedSnapshot(itemsSnapshot(board.items));
+      $message(`已載入：${cloud.name}`);
+    } catch (e) {
+      $message('載入雲端存檔失敗', 'error');
+    }
+  };
+
+  // 雲端存檔開在新視窗，內容交給 Rust 先寫成新視窗的暫存檔
+  const openCloudInNewWindow = async (row: CloudBoardRow) => {
+    try {
+      const cloud = await getCloudBoard(row.id);
+      // 連同來源一起寫進新視窗的暫存，新視窗儲存時才會覆蓋這筆
+      const initial: LocalBoardData = { ...cloud.data, source: { id: cloud.id, name: cloud.name }, dirty: false };
+      await invoke('open_board_window', { initial: JSON.stringify(initial) });
+    } catch (e) {
+      $message('開新黑板失敗：' + e, 'error');
+    }
+  };
+
+  const onCloudPick = (row: CloudBoardRow) => {
+    const mode = cloudMode;
+    setCloudMode(null);
+    if (mode === 'new') {
+      openCloudInNewWindow(row);
+      return;
+    }
+    if (items.length > 0) {
+      setReplaceRow(row);
+      return;
+    }
+    loadCloudIntoBoard(row);
   };
 
   const closeThisWindow = () => {
@@ -104,6 +213,13 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
         const board = fromBoardData(data);
         setView(board.view);
         setItems(board.items);
+        if (data.source) {
+          setSource(data.source);
+        }
+        // 關掉前沒有未儲存的變更，就拿讀回來的內容當比對基準
+        if (data.dirty === false) {
+          setSavedSnapshot(itemsSnapshot(board.items));
+        }
       }
       setLoaded(true);
     });
@@ -115,13 +231,39 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
       return;
     }
     const timer = setTimeout(() => {
-      saveLocalBoard(label, toBoardData(view, items)).catch((e) => {
+      const data: LocalBoardData = { ...toBoardData(view, items), source: source, dirty: dirty };
+      saveLocalBoard(label, data).catch((e) => {
         console.error('[board] 本機暫存失敗', e);
       });
     }, SAVE_DELAY);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, view, items]);
+  }, [loaded, view, items, source, dirty]);
+
+  // Ctrl+S 儲存，有來源直接覆蓋，沒有就打開對話框取名
+  useEffect(() => {
+    if (!isDesktop()) {
+      return;
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.key.toLowerCase() !== 's') {
+        return;
+      }
+      e.preventDefault();
+      if (showSave || savingQuick) {
+        return;
+      }
+      if (source) {
+        setSavingQuick(true);
+        onCloudSave('', 'overwrite').finally(() => setSavingQuick(false));
+      } else {
+        setShowSave(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, showSave, savingQuick, view, items]);
 
   // Rust 收到 koatag:// 會通知這個視窗，只聽自己視窗的
   useEffect(() => {
@@ -252,14 +394,16 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
     if (!focus) {
       return;
     }
+    const dialogOpen = showPicker || !!menu || !!aiAskId || showCloseConfirm
+      || showSave || !!cloudMode || showNewChoice || !!replaceRow;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showPicker && !menu && !aiAskId && !showCloseConfirm) {
+      if (e.key === 'Escape' && !dialogOpen) {
         setFocus(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [focus, showPicker, menu, aiAskId, showCloseConfirm]);
+  }, [focus, showPicker, menu, aiAskId, showCloseConfirm, showSave, cloudMode, showNewChoice, replaceRow]);
 
   // 選取的圖按 Delete 從黑板拿掉，打字中不算
   useEffect(() => {
@@ -656,7 +800,9 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
   return (
     <div className={`board-page ${standalone ? 'standalone' : ''}`}>
       <div className="board-toolbar">
-        <span className="board-title">黑板</span>
+        <span className="board-title" title={source ? source.name : undefined}>
+          {source ? source.name : '黑板'}
+        </span>
         <span className="board-zoom">{Math.round(view.zoom * 100)}%</span>
         <button type="button" className="board-btn" onClick={() => setView(DEFAULT_VIEW)}>
           回到原點
@@ -664,7 +810,18 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
         <button type="button" className="board-btn board-btn-primary" onClick={() => setShowPicker(true)}>
           從圖庫加入
         </button>
-        <button type="button" className="board-btn" onClick={openBoardWindow}>
+        <button
+          type="button"
+          className={`board-btn ${dirty ? 'board-btn-primary' : ''}`}
+          onClick={() => setShowSave(true)}
+          title={dirty ? '有未儲存的變更（Ctrl+S）' : '儲存（Ctrl+S）'}
+        >
+          {dirty ? '儲存*' : '儲存'}
+        </button>
+        <button type="button" className="board-btn" onClick={() => setCloudMode('load')}>
+          載入
+        </button>
+        <button type="button" className="board-btn" onClick={() => setShowNewChoice(true)}>
           開新黑板
         </button>
         {!standalone && (
@@ -708,12 +865,77 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
             <div className="bm-notice">關閉後這塊黑板的內容會清掉，下次開 APP 也不會還原。</div>
             <div className="drive-modal-actions">
               <button type="button" className="drive-modal-btn" onClick={() => setShowCloseConfirm(false)}>取消</button>
+              <button
+                type="button"
+                className="drive-modal-btn"
+                onClick={() => {
+                  setShowCloseConfirm(false);
+                  setCloseAfterSave(true);
+                  setShowSave(true);
+                }}
+              >
+                先存到雲端再關閉
+              </button>
               <button type="button" className="drive-modal-btn drive-modal-btn-primary" onClick={closeThisWindow}>
                 關閉並清掉
               </button>
             </div>
           </div>
         </div>
+      )}
+      {showSave && (
+        <CloudSaveDialog
+          items={items}
+          source={source}
+          onSave={onCloudSave}
+          onClose={() => {
+            setShowSave(false);
+            setCloseAfterSave(false);
+          }}
+        />
+      )}
+      {cloudMode && (
+        <CloudBoardList
+          title={cloudMode === 'new' ? '選擇存檔' : '載入'}
+          pickLabel={cloudMode === 'new' ? '開啟' : '載入'}
+          onPick={onCloudPick}
+          onRenamed={onSourceRenamed}
+          onDeleted={onSourceDeleted}
+          onClose={() => setCloudMode(null)}
+        />
+      )}
+      {showNewChoice && (
+        <div className="drive-modal-overlay" onClick={() => setShowNewChoice(false)}>
+          <div className="drive-modal" onClick={(e) => e.stopPropagation()} role="dialog">
+            <div className="drive-modal-title">開新黑板</div>
+            <div className="board-dialog-note">新黑板會開在另一個視窗。</div>
+            <div className="drive-modal-actions">
+              <button type="button" className="drive-modal-btn" onClick={() => setShowNewChoice(false)}>取消</button>
+              <button
+                type="button"
+                className="drive-modal-btn"
+                onClick={() => {
+                  setShowNewChoice(false);
+                  setCloudMode('new');
+                }}
+              >
+                從雲端載入
+              </button>
+              <button type="button" className="drive-modal-btn drive-modal-btn-primary" onClick={openBoardWindow}>
+                空白黑板
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {replaceRow && (
+        <ConfirmDialog
+          title={`載入「${replaceRow.name}」？`}
+          message={`目前黑板上的 ${items.length} 張圖會被取代。想留著的話，先儲存，或改用「開新黑板」載入。`}
+          confirmLabel="取代並載入"
+          onConfirm={() => loadCloudIntoBoard(replaceRow)}
+          onClose={() => setReplaceRow(null)}
+        />
       )}
       {aiAskItem && (
         <GalleryAiDialog
