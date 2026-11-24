@@ -7,11 +7,13 @@ type Props = {
   y: number;
   onSaveToGallery: (item: BoardItem) => void;
   onRemove: (item: BoardItem) => void;
+  onCopy: (item: BoardItem) => void;
+  onCut: (item: BoardItem) => void;
   onClose: () => void;
 };
 
 // 圖片右鍵選單，點外面、按 Esc、捲動都會關
-export const BoardContextMenu: React.FC<Props> = ({ item, x, y, onSaveToGallery, onRemove, onClose }) => {
+export const BoardContextMenu: React.FC<Props> = ({ item, x, y, onSaveToGallery, onRemove, onCopy, onCut, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
 
@@ -72,6 +74,26 @@ export const BoardContextMenu: React.FC<Props> = ({ item, x, y, onSaveToGallery,
         }}
       >
         {inGallery ? '已在圖庫' : '存進圖庫'}
+      </button>
+      <button
+        type="button"
+        className="board-menu-item"
+        onClick={() => {
+          onClose();
+          onCopy(item);
+        }}
+      >
+        複製<span className="board-menu-key">Ctrl+C</span>
+      </button>
+      <button
+        type="button"
+        className="board-menu-item"
+        onClick={() => {
+          onClose();
+          onCut(item);
+        }}
+      >
+        剪下<span className="board-menu-key">Ctrl+X</span>
       </button>
       <button
         type="button"

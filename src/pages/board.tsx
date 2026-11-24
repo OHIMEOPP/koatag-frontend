@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
@@ -13,6 +13,7 @@ import { ImageData } from 'components';
 import {
   galleryImageUrl, loadImage, rememberKoatagUrl, toBoardData, fromBoardData, saveLocalBoard, loadLocalBoard,
   imageUrlFromDrop, copyLocalImage, localImageUrl, saveItemToGallery, koatagImageUrl,
+  boardItemToClipboard, boardItemsFromClipboard,
 } from 'services/board.service';
 import { $message } from 'utils';
 
@@ -51,6 +52,8 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   // 收到 koatag:// 匯入通知就加一，觸發去拿排給這個視窗的圖
   const [importTick, setImportTick] = useState(0);
+  // 滑鼠在黑板上的位置，貼上時用，變動頻繁所以不放 state
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
   // 主視窗的專注模式，藏起側欄與頂端列
   const [focus, setFocus] = useState(false);
 
@@ -160,6 +163,22 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
     setSelectedId(null);
   };
 
+  // 右鍵選單的複製與剪下，點擊算使用者操作所以可以寫剪貼簿
+  const copyItem = (item: BoardItem) => {
+    navigator.clipboard.writeText(boardItemToClipboard(item)).catch(() => {
+      $message('複製失敗', 'error');
+    });
+  };
+
+  const cutItem = (item: BoardItem) => {
+    navigator.clipboard
+      .writeText(boardItemToClipboard(item))
+      .then(() => removeItem(item))
+      .catch(() => {
+        $message('剪下失敗', 'error');
+      });
+  };
+
   // 存進圖庫，存好後黑板上這張改成記圖庫的 image_id
   const runSaveToGallery = async (item: BoardItem, useAi: boolean) => {
     if (savingIds.has(item.id)) {
@@ -259,9 +278,109 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [selectedId]);
 
+  // Ctrl+C、Ctrl+X、Ctrl+V，走系統剪貼簿所以跨黑板視窗也能貼
+  // 焦點在輸入框時照輸入框原本的行為
+  useEffect(() => {
+    // 在輸入框裡，或頁面上有反白的文字，都照瀏覽器原本的複製文字
+    const isTyping = (e: ClipboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA';
+    };
+
+    const hasTextSelection = () => {
+      const selection = window.getSelection();
+      return !!selection && selection.toString().length > 0;
+    };
+
+    const selected = () => {
+      for (const it of items) {
+        if (it.id === selectedId) {
+          return it;
+        }
+      }
+      return null;
+    };
+
+    const onCopy = (e: ClipboardEvent) => {
+      const item = selected();
+      if (isTyping(e) || hasTextSelection() || !item || !e.clipboardData) {
+        return;
+      }
+      e.clipboardData.setData('text/plain', boardItemToClipboard(item));
+      e.preventDefault();
+    };
+
+    const onCut = (e: ClipboardEvent) => {
+      const item = selected();
+      if (isTyping(e) || hasTextSelection() || !item || !e.clipboardData) {
+        return;
+      }
+      e.clipboardData.setData('text/plain', boardItemToClipboard(item));
+      e.preventDefault();
+      removeItem(item);
+    };
+
+    // 貼在滑鼠位置，滑鼠不在黑板上就貼在畫面中央
+    const onPaste = (e: ClipboardEvent) => {
+      if (isTyping(e) || !e.clipboardData) {
+        return;
+      }
+      const rows = boardItemsFromClipboard(e.clipboardData.getData('text/plain'));
+      if (!rows) {
+        return;
+      }
+      e.preventDefault();
+
+      let point = pointerRef.current;
+      if (!point) {
+        point = {
+          x: (canvasSize.width / 2 - view.x) / view.zoom,
+          y: (canvasSize.height / 2 - view.y) / view.zoom,
+        };
+      }
+
+      let maxZ = 0;
+      for (const it of items) {
+        if (it.z > maxZ) {
+          maxZ = it.z;
+        }
+      }
+
+      const added: BoardItem[] = [];
+      for (let i = 0; i < rows.length; i++) {
+        const offset = i * NEW_IMAGE_OFFSET / view.zoom;
+        added.push({
+          ...rows[i],
+          id: crypto.randomUUID(),
+          x: point.x + offset,
+          y: point.y + offset,
+          z: maxZ + 1 + i,
+        });
+      }
+      setItems((prev) => [...prev, ...added]);
+      setSelectedId(added[added.length - 1].id);
+    };
+
+    // 剪貼簿事件掛在 document 上
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('cut', onCut);
+    document.addEventListener('paste', onPaste);
+    return () => {
+      document.removeEventListener('copy', onCopy);
+      document.removeEventListener('cut', onCut);
+      document.removeEventListener('paste', onPaste);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, selectedId, view, canvasSize]);
+
   // 點到的圖移到最上層
   const onSelect = (id: string | null) => {
     setSelectedId(id);
+    // 點了黑板就清掉頁面上反白的文字，之後 Ctrl+C 才會複製圖
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+    }
     if (id === null) {
       return;
     }
@@ -565,6 +684,9 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
         onSizeChange={setCanvasSize}
         onDrop={onDrop}
         onContextMenu={onContextMenu}
+        onPointerMove={(point) => {
+          pointerRef.current = point;
+        }}
       />
       {showPicker && <GalleryPicker onPick={onPick} onClose={() => setShowPicker(false)} />}
       {menuItem && (
@@ -574,6 +696,8 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
           y={menu ? menu.y : 0}
           onSaveToGallery={saveToGallery}
           onRemove={removeItem}
+          onCopy={copyItem}
+          onCut={cutItem}
           onClose={closeMenu}
         />
       )}

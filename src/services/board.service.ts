@@ -297,3 +297,58 @@ export const saveItemToGallery = async (item: BoardItem, anotherTag: string | nu
   rememberKoatagUrl(image.id, getFilePath(getUserId(), image.img_path));
   return { status: status, imageId: image.id };
 };
+
+// 複製到剪貼簿的格式，前綴讓貼上時認得是黑板的圖
+const CLIPBOARD_PREFIX = 'koatag-board:';
+
+// 黑板上的圖轉成剪貼簿文字，沿用存檔格式所以不帶 id
+export const boardItemToClipboard = (item: BoardItem): string => {
+  const data = toBoardData({ x: 0, y: 0, zoom: 1 }, [item]);
+  return CLIPBOARD_PREFIX + JSON.stringify({ version: data.version, items: data.items });
+};
+
+// 剪貼簿文字轉回圖片資料，不是黑板的格式或內容不對回 null
+export const boardItemsFromClipboard = (text: string): Array<Omit<BoardItem, 'id'>> | null => {
+  if (!text || !text.startsWith(CLIPBOARD_PREFIX)) {
+    return null;
+  }
+  let data = null;
+  try {
+    data = JSON.parse(text.slice(CLIPBOARD_PREFIX.length));
+  } catch (e) {
+    return null;
+  }
+  if (!data || !Array.isArray(data.items)) {
+    return null;
+  }
+
+  // 剪貼簿可能被別的程式改過，每個欄位都檢查
+  const rows: Array<Omit<BoardItem, 'id'>> = [];
+  for (const it of data.items) {
+    if (typeof it.x !== 'number' || typeof it.y !== 'number' || typeof it.scale !== 'number' || it.scale <= 0) {
+      continue;
+    }
+    const row: Omit<BoardItem, 'id'> = {
+      kind: it.kind,
+      x: it.x,
+      y: it.y,
+      scale: it.scale,
+      rotation: typeof it.rotation === 'number' ? it.rotation : 0,
+      z: 0,
+    };
+    if (it.kind === 'koatag' && Number.isInteger(it.image_id) && it.image_id > 0) {
+      row.image_id = it.image_id;
+    } else if (it.kind === 'file' && typeof it.path === 'string' && /^img-[0-9a-f]{40}\.(jpg|png|gif|webp)$/.test(it.path)) {
+      row.path = it.path;
+    } else if (it.kind === 'url' && typeof it.url === 'string' && (it.url.startsWith('http://') || it.url.startsWith('https://'))) {
+      row.url = it.url;
+    } else {
+      continue;
+    }
+    rows.push(row);
+  }
+  if (rows.length === 0) {
+    return null;
+  }
+  return rows;
+};

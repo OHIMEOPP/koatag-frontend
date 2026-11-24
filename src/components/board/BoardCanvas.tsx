@@ -14,6 +14,8 @@ type Props = {
   onSizeChange: (size: { width: number; height: number }) => void;
   onDrop: (data: DataTransfer, point: { x: number; y: number }) => void;
   onContextMenu: (id: string, clientX: number, clientY: number) => void;
+  // 滑鼠在黑板上的座標，離開黑板時是 null，貼上時用
+  onPointerMove: (point: { x: number; y: number } | null) => void;
 };
 
 const MIN_ZOOM = 0.1;
@@ -22,7 +24,7 @@ const ZOOM_STEP = 1.1;
 const GRID = 40;
 
 // 黑板畫布，拖空白處平移，滾輪以游標為中心縮放
-export const BoardCanvas: React.FC<Props> = ({ view, items, selectedId, onViewChange, onSelect, onItemChange, onSizeChange, onDrop, onContextMenu }) => {
+export const BoardCanvas: React.FC<Props> = ({ view, items, selectedId, onViewChange, onSelect, onItemChange, onSizeChange, onDrop, onContextMenu, onPointerMove }) => {
   const areaRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
@@ -138,6 +140,19 @@ export const BoardCanvas: React.FC<Props> = ({ view, items, selectedId, onViewCh
     setDragOver(false);
   };
 
+  // 換算成黑板座標回報給頁面
+  const onAreaMouseMove = (e: React.MouseEvent) => {
+    const area = areaRef.current;
+    if (!area) {
+      return;
+    }
+    const rect = area.getBoundingClientRect();
+    onPointerMove({
+      x: (e.clientX - rect.left - view.x) / view.zoom,
+      y: (e.clientY - rect.top - view.y) / view.zoom,
+    });
+  };
+
   // 放開的位置換算成黑板座標
   const onAreaDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -170,6 +185,8 @@ export const BoardCanvas: React.FC<Props> = ({ view, items, selectedId, onViewCh
       onDragOver={onAreaDragOver}
       onDragLeave={onAreaDragLeave}
       onDrop={onAreaDrop}
+      onMouseMove={onAreaMouseMove}
+      onMouseLeave={() => onPointerMove(null)}
     >
       {size.width > 0 && (
         <Stage
