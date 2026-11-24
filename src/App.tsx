@@ -12,6 +12,11 @@ const ShareLinkLandingPage = lazy(
   () => import('pages/drive/ShareLinkLandingPage'),
 );
 
+// 黑板視窗自己載入樣式，用到才載，不能被主視窗先 import，否則樣式順序會亂
+const BoardWindow = lazy(() =>
+  import('pages/board_window').then((m) => ({ default: m.BoardWindow })),
+);
+
 declare global {
   interface Window {
     user_id: string;
@@ -73,6 +78,17 @@ function App() {
           element={
             <RequireAuth>
               <Main />
+            </RequireAuth>
+          }
+        />
+        {/* 桌面版另開的黑板視窗 */}
+        <Route
+          path="/board-window"
+          element={
+            <RequireAuth>
+              <Suspense fallback={null}>
+                <BoardWindow />
+              </Suspense>
             </RequireAuth>
           }
         />

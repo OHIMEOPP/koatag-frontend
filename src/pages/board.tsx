@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isDesktop } from 'utils/desktop';
 import { BoardCanvas } from 'components/board/BoardCanvas';
 import { BoardItem, BoardView } from 'components/board/types';
@@ -22,7 +24,18 @@ const NEW_IMAGE_OFFSET = 30;
 const SAVE_DELAY = 1000;
 
 // 黑板頁，只在桌面版使用
-const Board: React.FC = () => {
+type BoardProps = {
+  // 獨立黑板視窗，沒有側欄與頂端列
+  standalone?: boolean;
+};
+
+const Board: React.FC<BoardProps> = ({ standalone = false }) => {
+  // 視窗 label 決定暫存檔，網頁版用不到
+  let label = 'main';
+  if (isDesktop()) {
+    label = getCurrentWindow().label;
+  }
+
   const [view, setView] = useState<BoardView>(DEFAULT_VIEW);
   const [items, setItems] = useState<BoardItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -34,13 +47,53 @@ const Board: React.FC = () => {
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   // 讀完本機暫存才開始自動存，避免空黑板蓋掉檔案
   const [loaded, setLoaded] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  // 主視窗的專注模式，藏起側欄與頂端列
+  const [focus, setFocus] = useState(false);
+
+  // 用 body 的 class 控制外框，離開黑板頁時一定拿掉
+  useEffect(() => {
+    if (focus) {
+      document.body.classList.add('board-focus');
+    } else {
+      document.body.classList.remove('board-focus');
+    }
+    return () => document.body.classList.remove('board-focus');
+  }, [focus]);
+
+  // 獨立黑板視窗按關閉先確認，主視窗關閉由 Rust 結束整個 APP
+  useEffect(() => {
+    if (!isDesktop() || label === 'main') {
+      return;
+    }
+    const unlisten = getCurrentWindow().onCloseRequested((e) => {
+      e.preventDefault();
+      setShowCloseConfirm(true);
+    });
+    return () => {
+      unlisten.then((off) => off());
+    };
+  }, [label]);
+
+  const openBoardWindow = () => {
+    invoke('open_board_window').catch((e) => {
+      $message('開新黑板失敗：' + e, 'error');
+    });
+  };
+
+  const closeThisWindow = () => {
+    invoke('close_board_window', { label: label }).catch((e) => {
+      setShowCloseConfirm(false);
+      $message('關閉失敗：' + e, 'error');
+    });
+  };
 
   // 打開時讀回本機暫存
   useEffect(() => {
     if (!isDesktop()) {
       return;
     }
-    loadLocalBoard().then((data) => {
+    loadLocalBoard(label).then((data) => {
       if (data) {
         const board = fromBoardData(data);
         setView(board.view);
@@ -56,11 +109,12 @@ const Board: React.FC = () => {
       return;
     }
     const timer = setTimeout(() => {
-      saveLocalBoard(toBoardData(view, items)).catch((e) => {
+      saveLocalBoard(label, toBoardData(view, items)).catch((e) => {
         console.error('[board] 本機暫存失敗', e);
       });
     }, SAVE_DELAY);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, view, items]);
 
   // 在圖上按右鍵先選取它再開選單
@@ -143,6 +197,20 @@ const Board: React.FC = () => {
     }
     runSaveToGallery(item, false);
   };
+
+  // 專注模式按 Esc 離開，有視窗或選單開著時 Esc 先關它們
+  useEffect(() => {
+    if (!focus) {
+      return;
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !showPicker && !menu && !aiAskId && !showCloseConfirm) {
+        setFocus(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [focus, showPicker, menu, aiAskId, showCloseConfirm]);
 
   // 選取的圖按 Delete 從黑板拿掉，打字中不算
   useEffect(() => {
@@ -381,7 +449,7 @@ const Board: React.FC = () => {
   }
 
   return (
-    <div className="board-page">
+    <div className={`board-page ${standalone ? 'standalone' : ''}`}>
       <div className="board-toolbar">
         <span className="board-title">黑板</span>
         <span className="board-zoom">{Math.round(view.zoom * 100)}%</span>
@@ -391,6 +459,14 @@ const Board: React.FC = () => {
         <button type="button" className="board-btn board-btn-primary" onClick={() => setShowPicker(true)}>
           從圖庫加入
         </button>
+        <button type="button" className="board-btn" onClick={openBoardWindow}>
+          開新黑板
+        </button>
+        {!standalone && (
+          <button type="button" className="board-btn" onClick={() => setFocus(!focus)}>
+            {focus ? '離開專注模式' : '專注模式'}
+          </button>
+        )}
         <span className="board-hint">可從瀏覽器或電腦拖圖進來；點圖片選取，拖角落縮放、拖上方圓點旋轉，Delete 從黑板移除</span>
       </div>
       <BoardCanvas
@@ -414,6 +490,20 @@ const Board: React.FC = () => {
           onRemove={removeItem}
           onClose={closeMenu}
         />
+      )}
+      {showCloseConfirm && (
+        <div className="drive-modal-overlay" onClick={() => setShowCloseConfirm(false)}>
+          <div className="drive-modal" onClick={(e) => e.stopPropagation()} role="dialog">
+            <div className="drive-modal-title">關閉這塊黑板？</div>
+            <div className="bm-notice">關閉後這塊黑板的內容會清掉，下次開 APP 也不會還原。</div>
+            <div className="drive-modal-actions">
+              <button type="button" className="drive-modal-btn" onClick={() => setShowCloseConfirm(false)}>取消</button>
+              <button type="button" className="drive-modal-btn drive-modal-btn-primary" onClick={closeThisWindow}>
+                關閉並清掉
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {aiAskItem && (
         <GalleryAiDialog

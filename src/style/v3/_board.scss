@@ -173,3 +173,31 @@
     color: var(--color-danger);
   }
 }
+
+// 獨立黑板視窗佔滿整個視窗
+.board-page.standalone {
+  height: 100vh;
+  min-height: 0;
+  padding: 12px;
+  background: var(--color-bg-primary);
+}
+
+// 主視窗專注模式，藏起側欄、頂端列與頁尾，黑板佔滿視窗
+body.board-focus {
+  .app,
+  .app.collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .side,
+  .top,
+  .foot {
+    display: none;
+  }
+
+  .board-page {
+    height: 100vh;
+    min-height: 0;
+    padding: 12px;
+  }
+}

@@ -75,7 +75,13 @@ export type BoardData = {
   items: Array<Omit<BoardItem, 'id'>>;
 };
 
-const LOCAL_FILE = 'board-main.json';
+// 每個視窗一個暫存檔，主視窗 board-main.json，其他視窗 label 本身就是 board- 開頭
+export const localBoardFile = (label: string): string => {
+  if (label.startsWith('board-')) {
+    return label + '.json';
+  }
+  return 'board-' + label + '.json';
+};
 
 // 黑板內容轉成存檔格式，前端用的 id 不存
 export const toBoardData = (view: BoardView, items: BoardItem[]): BoardData => {
@@ -117,18 +123,19 @@ export const fromBoardData = (data: BoardData): { view: BoardView; items: BoardI
 };
 
 // 寫進 APP 資料夾，資料夾已存在時 mkdir 不會出錯
-export const saveLocalBoard = async (data: BoardData) => {
+export const saveLocalBoard = async (label: string, data: BoardData) => {
   await mkdir('', { baseDir: BaseDirectory.AppData, recursive: true });
-  await writeTextFile(LOCAL_FILE, JSON.stringify(data), { baseDir: BaseDirectory.AppData });
+  await writeTextFile(localBoardFile(label), JSON.stringify(data), { baseDir: BaseDirectory.AppData });
 };
 
 // 讀回本機暫存，沒有檔案或壞掉回 null
-export const loadLocalBoard = async (): Promise<BoardData | null> => {
+export const loadLocalBoard = async (label: string): Promise<BoardData | null> => {
+  const file = localBoardFile(label);
   try {
-    if (!(await exists(LOCAL_FILE, { baseDir: BaseDirectory.AppData }))) {
+    if (!(await exists(file, { baseDir: BaseDirectory.AppData }))) {
       return null;
     }
-    const text = await readTextFile(LOCAL_FILE, { baseDir: BaseDirectory.AppData });
+    const text = await readTextFile(file, { baseDir: BaseDirectory.AppData });
     const data = JSON.parse(text);
     if (!data || !Array.isArray(data.items)) {
       return null;
