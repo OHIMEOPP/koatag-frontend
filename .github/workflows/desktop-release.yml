@@ -116,7 +116,9 @@ jobs:
           aws s3 cp "$dir/latest.json" "s3://$bucket/latest.json" --endpoint-url $endpoint --content-type application/json
 
       # 第一次安裝要手動下載，安裝檔也放一份在這次執行的 Artifacts
+      # 上傳 bucket 失敗也照放，有產出安裝檔就留
       - uses: actions/upload-artifact@v4
+        if: always() && steps.files.outcome == 'success'
         with:
           name: koatag-setup-${{ steps.version.outputs.version }}
           path: |

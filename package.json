@@ -45,6 +45,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "desktop:dev": "cargo tauri dev --config src-tauri/tauri.dev.conf.json",
+    "desktop:release": "node scripts/desktop-release.js",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,scss,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,scss,css,json}\"",
     "e2e": "playwright test",
