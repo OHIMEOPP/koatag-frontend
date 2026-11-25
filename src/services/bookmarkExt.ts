@@ -1,6 +1,7 @@
 // 跟 KOATAG 書籤擴充套件溝通，走同頁面的 postMessage
 // 桌面版 APP 裝不了擴充套件，改呼叫 Rust
 import { invoke } from '@tauri-apps/api/core';
+import api from 'api/axios';
 import { isDesktop } from 'utils/desktop';
 
 const PAGE_SOURCE = 'koatag-bookmarks-page';
@@ -74,13 +75,39 @@ export const openXLoginWindow = () => invoke('x_login');
 export const logoutX = () => invoke('x_logout');
 
 // 抓一頁 X 書籤或喜歡，cursor 空的是第一頁
-// 桌面版由 APP 隱藏的 x.com 視窗抓，第一次要先擷取 queryId 會比較久
+type XConfig = { bookmarksQueryId: string | null; likesQueryId: string | null };
+type XConfigResponse = { ok: boolean; data: XConfig };
+
+// 後端給的 queryId，APP 開著時只問一次，問不到就交給 APP 用內建值
+let xConfigRequest: Promise<XConfig> | null = null;
+
+const getXConfig = (): Promise<XConfig> => {
+  if (!xConfigRequest) {
+    xConfigRequest = api
+      .get<XConfigResponse>('/bookmarks/x-config')
+      .then((response) => response.data.data)
+      .catch(() => {
+        // 這次失敗不記住，下次抓取再問
+        xConfigRequest = null;
+        return { bookmarksQueryId: null, likesQueryId: null };
+      });
+  }
+  return xConfigRequest;
+};
+
+// 桌面版由 APP 隱藏的 x.com 視窗抓
 export const fetchXPage = async (kind: XKind, cursor: string | null): Promise<ExtPage | null> => {
   if (!isDesktop()) {
     return askExt<ExtPage>('fetchPage', { kind: kind, cursor: cursor }, 30000);
   }
+  const config = await getXConfig();
   try {
-    return await invoke<ExtPage>('x_fetch_page', { kind: kind, cursor: cursor });
+    return await invoke<ExtPage>('x_fetch_page', {
+      kind: kind,
+      cursor: cursor,
+      bookmarksQueryId: config.bookmarksQueryId,
+      likesQueryId: config.likesQueryId,
+    });
   } catch (e) {
     return null;
   }

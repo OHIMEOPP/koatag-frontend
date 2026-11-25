@@ -6,7 +6,8 @@
     return;
   }
 
-  // queryId 與 features 用內建值，X 改版時更新這裡再發版
+  // 後端 x-config 有給 queryId 就用後端的，沒有才用內建值
+  // X 改版時先改後端 .env，內建值等下次發版再更新
   const DEFAULT_BEARER = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA';
   const DEFAULT_BOOKMARKS_QUERY_ID = 'Glt3WAwBvNSPD-n_sqmX_A';
   const DEFAULT_LIKES_QUERY_ID = 'PgAssYGsPMMF1vVox5ysPg';
@@ -161,7 +162,7 @@
     };
   }
 
-  // p：kind、cursor、ct0、userId
+  // p：kind、cursor、ct0、userId、bookmarksQueryId、likesQueryId
   async function fetchPage(p) {
     const features = DEFAULT_FEATURES;
     let variables;
@@ -181,7 +182,7 @@
       if (p.cursor) {
         variables.cursor = p.cursor;
       }
-      url = 'https://x.com/i/api/graphql/' + DEFAULT_LIKES_QUERY_ID + '/Likes'
+      url = 'https://x.com/i/api/graphql/' + (p.likesQueryId || DEFAULT_LIKES_QUERY_ID) + '/Likes'
         + '?variables=' + encodeURIComponent(JSON.stringify(variables))
         + '&features=' + encodeURIComponent(JSON.stringify(features))
         + '&fieldToggles=' + encodeURIComponent(JSON.stringify({ withPayments: false, withArticlePlainText: false }));
@@ -190,7 +191,7 @@
       if (p.cursor) {
         variables.cursor = p.cursor;
       }
-      url = 'https://x.com/i/api/graphql/' + DEFAULT_BOOKMARKS_QUERY_ID + '/Bookmarks'
+      url = 'https://x.com/i/api/graphql/' + (p.bookmarksQueryId || DEFAULT_BOOKMARKS_QUERY_ID) + '/Bookmarks'
         + '?variables=' + encodeURIComponent(JSON.stringify(variables))
         + '&features=' + encodeURIComponent(JSON.stringify(features));
     }

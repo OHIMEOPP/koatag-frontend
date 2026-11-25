@@ -20,7 +20,25 @@ fn failed_page(kind: &str, status: &str) -> Value {
   json!({ "ok": false, "status": status, "kind": kind, "items": [], "nextCursor": null })
 }
 
-fn fetch_page_blocking(app: &AppHandle, kind: &str, cursor: Option<String>) -> Result<Value, String> {
+// 後端給的 queryId 只收英數、底線、連字號，不合格就當沒給，用內建值
+fn checked_query_id(value: Option<String>) -> Option<String> {
+  let id = value?;
+  if id.is_empty() || id.len() > 64 {
+    return None;
+  }
+  if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+    return None;
+  }
+  Some(id)
+}
+
+fn fetch_page_blocking(
+  app: &AppHandle,
+  kind: &str,
+  cursor: Option<String>,
+  bookmarks_query_id: Option<String>,
+  likes_query_id: Option<String>,
+) -> Result<Value, String> {
   let _guard = FETCH_LOCK.lock().unwrap();
 
   let cookies = x_cookies(app)?;
@@ -47,6 +65,8 @@ fn fetch_page_blocking(app: &AppHandle, kind: &str, cursor: Option<String>) -> R
     "cursor": cursor,
     "ct0": ct0,
     "userId": session.x_user_id,
+    "bookmarksQueryId": checked_query_id(bookmarks_query_id),
+    "likesQueryId": checked_query_id(likes_query_id),
   });
   // 參數用 JSON 組，不會被當成程式碼
   window.eval(FETCH_SCRIPT).map_err(|e| e.to_string())?;
@@ -71,14 +91,23 @@ fn fetch_page_blocking(app: &AppHandle, kind: &str, cursor: Option<String>) -> R
 }
 
 // 抓一頁 X 書籤或喜歡，回傳格式跟擴充套件一樣
+// queryId 由網頁從後端 x-config 拿來，沒有就用 x_fetch.js 的內建值
 // 要等頁面載入與輪詢，放到背景執行緒做
 #[tauri::command]
-pub async fn x_fetch_page(app: AppHandle, kind: String, cursor: Option<String>) -> Result<Value, String> {
+pub async fn x_fetch_page(
+  app: AppHandle,
+  kind: String,
+  cursor: Option<String>,
+  bookmarks_query_id: Option<String>,
+  likes_query_id: Option<String>,
+) -> Result<Value, String> {
   let mut checked_kind = "bookmarks".to_string();
   if kind == "likes" {
     checked_kind = "likes".to_string();
   }
-  tauri::async_runtime::spawn_blocking(move || fetch_page_blocking(&app, &checked_kind, cursor))
-    .await
-    .map_err(|e| e.to_string())?
+  tauri::async_runtime::spawn_blocking(move || {
+    fetch_page_blocking(&app, &checked_kind, cursor, bookmarks_query_id, likes_query_id)
+  })
+  .await
+  .map_err(|e| e.to_string())?
 }
