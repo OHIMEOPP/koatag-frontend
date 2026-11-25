@@ -1,83 +1,15 @@
-use serde::Serialize;
-use std::path::PathBuf;
+use super::session::{hidden_window, session_from, x_cookies, x_data_dir};
+use super::{LOGIN_LABEL, POPUP_PREFIX};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::thread;
 use std::time::Duration;
-use tauri::webview::{Cookie, NewWindowFeatures, NewWindowResponse};
-use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry};
+use tauri::webview::{NewWindowFeatures, NewWindowResponse};
+use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindowBuilder, Wry};
 
-// X 書籤在 APP 裡不靠擴充套件，改用 APP 自己的 x.com 登入狀態
-// X 的視窗用專用的瀏覽器資料夾，跟 KOATAG 的登入完全分開
-const LOGIN_LABEL: &str = "x-login";
 const LOGIN_URL: &str = "https://x.com/login";
-const POPUP_PREFIX: &str = "x-popup-";
-const HIDDEN_LABEL: &str = "x-hidden";
 
 // 彈出視窗編號，同時開好幾個 label 才不會撞
 static POPUP_COUNT: AtomicU32 = AtomicU32::new(0);
-
-// 回給網頁的格式跟擴充套件的 session 一樣
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct XSession {
-  ok: bool,
-  logged_in: bool,
-  x_user_id: Option<String>,
-}
-
-fn x_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
-  let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-  Ok(dir.join("x-webview"))
-}
-
-// 隱藏的 X 視窗，讀 cookie、登出、之後抓書籤都用它
-// 沒開過就開一個，不顯示
-fn hidden_window(app: &AppHandle) -> Result<WebviewWindow, String> {
-  if let Some(window) = app.get_webview_window(HIDDEN_LABEL) {
-    return Ok(window);
-  }
-  let url = Url::parse("about:blank").map_err(|e| e.to_string())?;
-  WebviewWindowBuilder::new(app, HIDDEN_LABEL, WebviewUrl::External(url))
-    .data_directory(x_data_dir(app)?)
-    .visible(false)
-    .build()
-    .map_err(|e| e.to_string())
-}
-
-// Windows 上讀 cookie 不能在同步指令裡，會卡死
-fn x_cookies(app: &AppHandle) -> Result<Vec<Cookie<'static>>, String> {
-  let window = hidden_window(app)?;
-  let url = Url::parse("https://x.com").map_err(|e| e.to_string())?;
-  window.cookies_for_url(url).map_err(|e| e.to_string())
-}
-
-// auth_token 只有登入後才有，twid 的值是 u%3D 加上 X 帳號 id
-fn session_from(cookies: &Vec<Cookie<'static>>) -> XSession {
-  let mut has_token = false;
-  let mut user_id = None;
-  for cookie in cookies {
-    if cookie.name() == "auth_token" && !cookie.value().is_empty() {
-      has_token = true;
-    }
-    if cookie.name() == "twid" {
-      let value = cookie.value().replace("u%3D", "").replace("u=", "");
-      if !value.is_empty() {
-        user_id = Some(value);
-      }
-    }
-  }
-  XSession {
-    ok: true,
-    logged_in: has_token,
-    x_user_id: user_id,
-  }
-}
-
-#[tauri::command]
-pub async fn x_session(app: AppHandle) -> Result<XSession, String> {
-  let cookies = x_cookies(&app)?;
-  Ok(session_from(&cookies))
-}
 
 // 開 X 官方登入頁，帳密只在 X 的頁面輸入
 // 已經開著就拉到前面

@@ -30,7 +30,7 @@ const MESSAGES: Record<string, string> = {
   x_blocked: 'X 拒絕了請求',
   x_error: '暫時無法連線 X，稍後再試',
   extension_error: '擴充套件沒有回應，請重新整理頁面',
-  desktop_fetch_pending: 'APP 版的書籤抓取還在做，目前只確認得到登入狀態',
+  desktop_error: 'APP 抓取 X 失敗，稍後再試',
 };
 
 const Bookmarks: React.FC = () => {
@@ -218,7 +218,11 @@ const Bookmarks: React.FC = () => {
       return;
     }
     if (!res) {
-      showMessage(MESSAGES.extension_error, true);
+      if (desktop) {
+        showMessage(MESSAGES.desktop_error, true);
+      } else {
+        showMessage(MESSAGES.extension_error, true);
+      }
       return;
     }
     if (!res.ok) {

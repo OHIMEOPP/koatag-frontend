@@ -74,10 +74,14 @@ export const openXLoginWindow = () => invoke('x_login');
 export const logoutX = () => invoke('x_logout');
 
 // 抓一頁 X 書籤或喜歡，cursor 空的是第一頁
-// 桌面版抓取還沒接上，先直接回失敗，不去等擴充套件逾時
+// 桌面版由 APP 隱藏的 x.com 視窗抓，第一次要先擷取 queryId 會比較久
 export const fetchXPage = async (kind: XKind, cursor: string | null): Promise<ExtPage | null> => {
-  if (isDesktop()) {
-    return { ok: false, status: 'desktop_fetch_pending', kind: kind, items: [], nextCursor: null };
+  if (!isDesktop()) {
+    return askExt<ExtPage>('fetchPage', { kind: kind, cursor: cursor }, 30000);
   }
-  return askExt<ExtPage>('fetchPage', { kind: kind, cursor: cursor }, 30000);
+  try {
+    return await invoke<ExtPage>('x_fetch_page', { kind: kind, cursor: cursor });
+  } catch (e) {
+    return null;
+  }
 };

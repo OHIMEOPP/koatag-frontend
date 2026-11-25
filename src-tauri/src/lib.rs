@@ -29,9 +29,10 @@ pub fn run() {
       board_window::close_board_window,
       import::take_board_imports,
       import::count_board_imports,
-      x_bookmarks::x_session,
-      x_bookmarks::x_login,
-      x_bookmarks::x_logout
+      x_bookmarks::session::x_session,
+      x_bookmarks::login::x_login,
+      x_bookmarks::login::x_logout,
+      x_bookmarks::fetch::x_fetch_page
     ])
     .on_window_event(|window, event| {
       match event {
