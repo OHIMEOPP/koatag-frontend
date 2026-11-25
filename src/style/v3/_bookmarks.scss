@@ -50,6 +50,31 @@
   margin-top: 12px;
 }
 
+// APP 裡沒登入 X 時，取代說明文字的登入按鈕
+.bm-login {
+  padding: 24px 0;
+  text-align: center;
+
+  .btn {
+    width: 50%;
+  }
+}
+
+// 白底黑字配 X 標誌，深色模式也維持白底
+.bm-login-btn {
+  justify-content: center;
+  gap: 10px;
+  background: #ffffff;
+  color: #0f1419;
+  border: 1px solid #cfd9de;
+  font-weight: 700;
+
+  &:hover {
+    background: #f2f4f5;
+    color: #0f1419;
+  }
+}
+
 .bm-dialog-version {
   display: flex;
   flex-wrap: wrap;

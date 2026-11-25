@@ -2,6 +2,7 @@
 mod board_window;
 mod image;
 mod import;
+mod x_bookmarks;
 
 use std::sync::Mutex;
 use tauri::{Manager, WindowEvent};
@@ -27,13 +28,20 @@ pub fn run() {
       board_window::open_board_window,
       board_window::close_board_window,
       import::take_board_imports,
-      import::count_board_imports
+      import::count_board_imports,
+      x_bookmarks::x_session,
+      x_bookmarks::x_login,
+      x_bookmarks::x_logout
     ])
     .on_window_event(|window, event| {
       match event {
+        // 只記主視窗跟黑板，X 登入視窗不收匯入
         WindowEvent::Focused(true) => {
-          let state = window.state::<import::LastFocused>();
-          *state.0.lock().unwrap() = window.label().to_string();
+          let label = window.label();
+          if label == "main" || label.starts_with("board-") {
+            let state = window.state::<import::LastFocused>();
+            *state.0.lock().unwrap() = label.to_string();
+          }
         }
         // 關主視窗就結束整個 APP，其他黑板視窗留在清單裡下次還原
         WindowEvent::CloseRequested { .. } => {

@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from 'components';
 import { PostCard } from 'components/bookmarks/PostCard';
 import { ExtensionDialog } from 'components/bookmarks/ExtensionDialog';
-import { pingExt, getXSession, fetchXPage, XItem, XKind } from 'services/bookmarkExt';
+import { listen } from '@tauri-apps/api/event';
+import { pingExt, getXSession, fetchXPage, openXLoginWindow, logoutX, XItem, XKind } from 'services/bookmarkExt';
 import {
   getExtensionVersion, downloadExtension, isOlderVersion, saveBookmark, getSavedItemIds, getSavedPage, bookmarkToItem,
   deleteBookmark, bookmarkToGallery, postToGallery,
 } from 'services/bookmark.service';
 import { $message } from 'utils';
+import { isDesktop } from 'utils/desktop';
 
 // X 書籤即時頁
 type ExtState = 'checking' | 'missing' | 'ready';
@@ -28,9 +30,12 @@ const MESSAGES: Record<string, string> = {
   x_blocked: 'X 拒絕了請求',
   x_error: '暫時無法連線 X，稍後再試',
   extension_error: '擴充套件沒有回應，請重新整理頁面',
+  desktop_fetch_pending: 'APP 版的書籤抓取還在做，目前只確認得到登入狀態',
 };
 
 const Bookmarks: React.FC = () => {
+  // APP 裡沒有擴充套件，X 登入由 APP 自己管
+  const desktop = isDesktop();
   const [kind, setKind] = useState<View>('bookmarks');
   const [items, setItems] = useState<XItem[]>([]);
   const [message, setMessage] = useState('');
@@ -59,13 +64,17 @@ const Bookmarks: React.FC = () => {
     setExtState('checking');
     setXState('checking');
 
-    const pong = await pingExt();
-    if (!pong) {
-      setExtState('missing');
-      return;
+    if (desktop) {
+      setExtState('ready');
+    } else {
+      const pong = await pingExt();
+      if (!pong) {
+        setExtState('missing');
+        return;
+      }
+      setExtState('ready');
+      setExtVersion(pong.version);
     }
-    setExtState('ready');
-    setExtVersion(pong.version);
 
     const session = await getXSession();
     if (!session || !session.loggedIn) {
@@ -78,10 +87,26 @@ const Bookmarks: React.FC = () => {
 
   useEffect(() => {
     detect();
+    if (desktop) {
+      return;
+    }
     // 拿不到最新版本就不提示更新，不影響其他功能
     getExtensionVersion()
       .then((version) => setLatestVersion(version))
       .catch(() => setLatestVersion(''));
+  }, []);
+
+  // 桌面版登入視窗關掉或登出後重新偵測
+  useEffect(() => {
+    if (!desktop) {
+      return;
+    }
+    const unlisten = listen('x-session-changed', () => {
+      detect();
+    });
+    return () => {
+      unlisten.then((off) => off());
+    };
   }, []);
 
   const showMessage = (text: string, bad: boolean) => {
@@ -317,7 +342,19 @@ const Bookmarks: React.FC = () => {
   };
 
   const openXLogin = () => {
+    if (desktop) {
+      openXLoginWindow().catch(() => $message('開不了 X 登入視窗', 'error'));
+      return;
+    }
     window.open('https://x.com/login', '_blank', 'noopener');
+  };
+
+  const onLogoutX = async () => {
+    try {
+      await logoutX();
+    } catch (e) {
+      $message('登出 X 失敗', 'error');
+    }
   };
 
   const onDownload = async () => {
@@ -378,25 +415,30 @@ const Bookmarks: React.FC = () => {
           <p className="page-sub">即時瀏覽 X 的書籤與喜歡，按收藏才存進 KOATAG；圖片可以點選後直接存進圖庫</p>
         </div>
         <div className="bm-status">
-          <span className="bm-status-item">
-            <span className={`bm-dot ${extDot}`} />
-            {extText}
-          </span>
+          {!desktop && (
+            <span className="bm-status-item">
+              <span className={`bm-dot ${extDot}`} />
+              {extText}
+            </span>
+          )}
           {extState === 'ready' && (
             <span className="bm-status-item" title={xUserId ? 'X 帳號 id ' + xUserId : undefined}>
               <span className={`bm-dot ${xDot}`} />
               {xText}
             </span>
           )}
-          {xState === 'loggedOut' && (
+          {xState === 'loggedOut' && !desktop && (
             <button className="btn btn-sm btn-primary" onClick={openXLogin}>登入 X</button>
+          )}
+          {desktop && xState === 'loggedIn' && (
+            <button className="btn btn-sm btn-ghost" onClick={onLogoutX}>登出 X</button>
           )}
           {extState === 'missing' && (
             <button className="btn btn-sm btn-primary" onClick={onDownload} disabled={downloading}>
               <Icon.download size={13} /> {downloading ? '下載中…' : '下載擴充套件'}
             </button>
           )}
-          {extState === 'ready' && (
+          {!desktop && extState === 'ready' && (
             <button className={`btn btn-sm ${outdated ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShowExtDialog(true)}>
               <Icon.download size={13} /> 擴充套件安裝
             </button>
@@ -448,9 +490,17 @@ const Bookmarks: React.FC = () => {
           </div>
         )}
 
-        {kind !== 'saved' && xState === 'loggedOut' && (
+        {kind !== 'saved' && xState === 'loggedOut' && !desktop && (
           <div className="bm-notice">
             請先在這個瀏覽器登入 X。按右上角「登入 X」會開新分頁到 X 官方登入頁，帳密只在 X 輸入。登入後回到這一頁按「重新偵測」。
+          </div>
+        )}
+
+        {kind !== 'saved' && xState === 'loggedOut' && desktop && (
+          <div className="bm-login">
+            <button className="btn btn-lg bm-login-btn" onClick={openXLogin}>
+              <Icon.xLogo size={18} /> 登入 X
+            </button>
           </div>
         )}
 
