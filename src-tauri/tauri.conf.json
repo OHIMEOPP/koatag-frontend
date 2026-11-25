@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "KOATAG",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "identifier": "com.koatag.desktop",
   "build": {
     "frontendDist": "../build",
@@ -31,11 +31,21 @@
       "desktop": {
         "schemes": ["koatag"]
       }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYwQzQyNjU0QzNFMDlDNDgKUldSSW5PRERWQ2JFWU95WXAva1hpZmFodmo0NWVlbDRBZFJoeW1kOURrS2svWDEwWkZ2R3Vpdk8K",
+      "endpoints": [
+        "https://objectstorage.ap-tokyo-1.oraclecloud.com/p/pknv_KjVgp42emaOZLhM5a3tjskZduS2wl6cncX_CiZqFV7OYMrDDvHqmom7I3qQ/n/nr27tf8xagsn/b/koatag-desktop/o/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

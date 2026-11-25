@@ -1,6 +1,6 @@
 [package]
 name = "koatag"
-version = "0.1.0"
+version = "0.0.1"
 description = "KOATAG 桌面版"
 authors = ["koatag"]
 license = ""
@@ -27,3 +27,5 @@ tauri-plugin-fs = "2"
 reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }
 tauri-plugin-deep-link = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"

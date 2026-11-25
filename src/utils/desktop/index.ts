@@ -14,7 +14,9 @@ export const importToDesktopApp = (imageId: number) => {
   };
   window.addEventListener('blur', onBlur);
 
-  window.location.href = `koatag://import?image=${imageId}`;
+  // 開發環境設成 koatag-dev，才會叫起開發版 APP
+  const scheme = process.env.REACT_APP_DESKTOP_SCHEME || 'koatag';
+  window.location.href = `${scheme}://import?image=${imageId}`;
 
   setTimeout(() => {
     window.removeEventListener('blur', onBlur);

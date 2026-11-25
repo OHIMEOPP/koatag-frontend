@@ -58,8 +58,12 @@ struct LastFocused(Mutex<String>);
 struct PendingImports(Mutex<Vec<(String, u64)>>);
 
 // koatag://import?image=1843 取出 image_id，格式不對回 None
+// 開發版用 koatag-dev://，兩種都認
 fn image_id_from_url(url: &Url) -> Option<u64> {
-  if url.scheme() != "koatag" || url.host_str() != Some("import") {
+  if url.scheme() != "koatag" && url.scheme() != "koatag-dev" {
+    return None;
+  }
+  if url.host_str() != Some("import") {
     return None;
   }
   for (key, value) in url.query_pairs() {
@@ -159,10 +163,11 @@ fn is_board_label(label: &str) -> bool {
   label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
-// 開一個只有黑板的視窗
+// 開一個只有黑板的視窗，標題跟著產品名稱，開發版是 KOATAG Dev
 fn build_board_window(app: &AppHandle, label: &str) -> Result<(), String> {
+  let title = format!("{} 黑板", app.package_info().name);
   WebviewWindowBuilder::new(app, label, WebviewUrl::App("board-window".into()))
-    .title("KOATAG 黑板")
+    .title(title)
     .inner_size(1100.0, 750.0)
     .min_inner_size(640.0, 480.0)
     // 拖放交給網頁處理，跟主視窗一樣
@@ -234,6 +239,10 @@ pub fn run() {
     .plugin(tauri_plugin_deep_link::init())
     // 讀寫檔案，範圍由 capabilities 限制在 APP 資料夾
     .plugin(tauri_plugin_fs::init())
+    // 自動更新，檢查網址與公鑰寫在 tauri.conf.json
+    .plugin(tauri_plugin_updater::Builder::new().build())
+    // 更新裝好後重啟 APP
+    .plugin(tauri_plugin_process::init())
     .manage(LastFocused(Mutex::new("main".into())))
     .manage(PendingImports(Mutex::new(Vec::new())))
     // 註冊自己寫的指令，網頁用 invoke('指令名') 呼叫

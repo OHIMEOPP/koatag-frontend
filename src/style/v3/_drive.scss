@@ -891,6 +891,8 @@
   font-size: 13px;
   color: var(--color-text-secondary);
   line-height: 1.5;
+  // 訊息裡的換行照樣顯示，例如更新內容
+  white-space: pre-line;
 }
 
 // ── v3 share UI ─────────────────────────

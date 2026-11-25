@@ -15,6 +15,7 @@ import './style/v3/index.scss';
 
 
 import { AppShell, MetaHead } from 'components';
+import { UpdateChecker } from 'components/UpdateChecker';
 import { RequireKeys } from 'components/drive';
 import { getFilePath } from 'utils';
 import { fetchIcon } from 'services/image.service';
@@ -118,6 +119,7 @@ const Main = () => {
                 </LayOut>
             </AppShell>
             <Tooltip style={{ zIndex: 999 }} id="tooltip" />
+            <UpdateChecker />
         </>
     );
 }
