@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { QuotaIndicator } from './drive';
 import { isAdmin, logout } from 'services/auth.service';
-import { isDesktop } from 'utils/desktop';
+import { isDesktop, downloadDesktopApp } from 'utils/desktop';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -83,6 +83,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
     await logout();
   };
 
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    await downloadDesktopApp();
+  };
+
   return (
     <aside className="side">
       <div className="side-brand">
@@ -122,6 +127,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
                 <Icon.user className="nav-icon" />
                 <span className="nav-label">帳號管理</span>
               </Link>
+            )}
+            {sec.section === '帳號' && !desktop && (
+              <a href="#" onClick={handleDownload} className="nav-item">
+                <Icon.download className="nav-icon" />
+                <span className="nav-label">下載桌面版</span>
+              </a>
             )}
             {sec.section === '帳號' && (
               <a href="#" onClick={handleLogout} className="nav-item">
