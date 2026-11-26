@@ -35,7 +35,7 @@ pub fn run() {
       x_bookmarks::login::x_login,
       x_bookmarks::login::x_logout,
       x_bookmarks::fetch::x_fetch_page,
-      x_bookmarks::fetch::open_x_form
+      x_bookmarks::fetch::open_external_url
     ])
     .on_window_event(|window, event| {
       match event {

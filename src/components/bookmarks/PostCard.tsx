@@ -199,9 +199,9 @@ export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, onUnsav
     onSave(item);
   };
 
-  const openXForm = async (X_URL: string) => {
+  const openExternalUrl = async (X_URL: string) => {
     try {
-      await invoke('open_x_form', { url: X_URL });
+      await invoke('open_external_url', { url: X_URL });
     } catch {
       $message('無法開啟 X 貼文，請稍後再試', 'error');
     }
@@ -258,7 +258,7 @@ export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, onUnsav
         <div className="bm-post-foot">
           {item.url ? (
             isDesktop() ? (
-              <button className="btn btn-sm btn-outline" onClick={() => { if (item.url) openXForm(item.url); }}>
+              <button className="btn btn-sm btn-outline" onClick={() => { if (item.url) openExternalUrl(item.url); }}>
                 在 X 上查看
               </button>
             ) : (

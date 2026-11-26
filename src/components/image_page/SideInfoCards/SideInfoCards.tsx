@@ -1,11 +1,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Data, Icon } from 'components';
+import { isDesktop } from 'utils/desktop';
+import { invoke } from '@tauri-apps/api/core';
+import { $message } from 'utils';
 
 interface SideInfoCardsProps {
     imageData: Data;
     naturalDims: { w: number; h: number } | null;
 }
+
+// 桌面版 webview 開不了外部連結 交給系統瀏覽器
+const openExternalUrl = async (url: string) => {
+    try {
+        await invoke('open_external_url', { url: url });
+    } catch {
+        $message('無法開啟圖源連結，請稍後再試', 'error');
+    }
+};
 
 // 「檔案資訊」+「標籤統計」兩張 read-only card, info mode 顯示
 const SideInfoCards: React.FC<SideInfoCardsProps> = ({ imageData, naturalDims }) => (
@@ -50,7 +62,18 @@ const SideInfoCards: React.FC<SideInfoCardsProps> = ({ imageData, naturalDims })
                 <div className="info-row">
                     <span className="k">圖源</span>
                     <span className="v">
-                        <a href={imageData.source} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary-light)', textDecoration: 'none' }}>
+                        <a
+                            href={imageData.source}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: 'var(--color-primary-light)', textDecoration: 'none' }}
+                            onClick={(e) => {
+                                if (isDesktop() && imageData.source) {
+                                    e.preventDefault();
+                                    openExternalUrl(imageData.source);
+                                }
+                            }}
+                        >
                             {imageData.source.length > 28 ? imageData.source.slice(0, 28) + '…' : imageData.source} ↗
                         </a>
                     </span>

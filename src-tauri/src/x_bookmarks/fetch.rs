@@ -113,15 +113,13 @@ pub async fn x_fetch_page(
 }
 
 #[tauri::command]
-pub fn open_x_form(url: tauri::Url) -> Result<(), String> {
-  let host = url.host_str().unwrap_or("");
-  if url.scheme() != "https"
-    || !(host == "x.com" || host == "twitter.com" || host.ends_with(".x.com"))
-    || url.port().is_some()
+pub fn open_external_url(url: tauri::Url) -> Result<(), String> {
+  // 只放網頁連結 其他協定交給 ShellExecute 會直接執行本機程式
+  if (url.scheme() != "https" && url.scheme() != "http")
     || !url.username().is_empty()
     || url.password().is_some()
   {
-    return Err("Invalid X URL".into());
+    return Err("Invalid URL".into());
   }
     #[cfg(windows)]
   {
