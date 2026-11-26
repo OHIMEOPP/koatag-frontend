@@ -37,7 +37,7 @@
 .board-btn {
   padding: 4px 12px;
   font-size: 13px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   background: transparent;
   border: 1px solid var(--color-border-strong);
   border-radius: 999px;
@@ -46,6 +46,7 @@
   &:hover {
     color: var(--color-text-primary);
     border-color: var(--color-primary);
+    background: rgba(255,255,255,0.08);
   }
 }
 
@@ -68,7 +69,7 @@
 .board-hint {
   margin-left: auto;
   font-size: 12px;
-  color: var(--color-text-quaternary);
+  color: var(--color-primary);
 }
 
 .board-btn-primary {

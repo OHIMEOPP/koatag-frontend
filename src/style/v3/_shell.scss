@@ -118,6 +118,8 @@
 // Collapse states
 .app.collapsed {
   .brand-text, .brand-text-2, .nav-label, .nav-badge, .side-section, .side-foot-text { display: none; }
+  .side-nav { padding: 15px; }
+  .nav-icon { width: 22px; height: 22px; }
 
   // 只剩圖示時置中 標誌旁的空文字框會吃掉 gap 所以歸零
   .nav-item, .user-card { justify-content: center; }
@@ -218,7 +220,7 @@
   gap: 24px; flex-wrap: wrap;
 
   .page-title { margin: 0; }
-  .page-sub   { color: var(--color-text-tertiary); margin-top: 6px; font-size: 14px; }
+  .page-sub   { color: var(--color-primary); margin-top: 6px; font-size: 14px; }
 }
 
 // Footer

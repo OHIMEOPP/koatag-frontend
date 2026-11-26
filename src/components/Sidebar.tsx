@@ -57,6 +57,7 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
     items: [
       { to: '/main/front_page', label: '個人資料', icon: 'user',     placeholder: true },
       { to: '/main/front_page', label: '設定',     icon: 'settings', placeholder: true },
+      { to: '/main/front_page', label: '回報',     icon: 'feedback', placeholder: true },
     ],
   },
 ];
@@ -90,13 +91,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
 
   return (
     <aside className="side">
-      <div className="side-brand">
+      <Link className="side-brand" to="/main/front_page">
         <div className="brand-mark">K</div>
         <div>
           <div className="brand-text">KOATAG</div>
           <div className="brand-text-2">v3 · CINEMATIC</div>
         </div>
-      </div>
+      </Link>
       <nav className="side-nav">
         {sections.map((sec) => (
           <div key={sec.section}>

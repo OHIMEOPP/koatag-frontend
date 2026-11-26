@@ -35,6 +35,21 @@
 }
 .hero-edit { position: absolute; top: 14px; right: 14px; z-index: 2; }
 
+// 封面按鈕墊暗底 淺色封面上也看得清楚
+.profile-hero .btn-ghost {
+  background: rgba(11,13,18,0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--color-text-primary);
+  border-color: rgba(255,255,255,0.18);
+
+  &:hover:not(:disabled) {
+    background: var(--color-text-primary);
+    color: var(--color-bg-primary);
+    border-color: var(--color-text-primary);
+  }
+}
+
 .profile-info {
   display: flex; align-items: flex-end; gap: 20px;
   padding: 0 28px;

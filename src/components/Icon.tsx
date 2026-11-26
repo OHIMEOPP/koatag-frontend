@@ -148,6 +148,12 @@ export const Icon = {
       <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0" />
     </svg>
   ),
+  feedback: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H8l-5 4V6a2 2 0 0 1 2-2z" />
+      <path d="M7.5 9h9M7.5 13h6" />
+    </svg>
+  ),
   tag: ({ size = 18, className }: IP) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M20 12l-8 8-9-9V3h8z" /><circle cx="7" cy="7" r="1.5" />
