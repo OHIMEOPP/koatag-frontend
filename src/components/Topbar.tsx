@@ -14,6 +14,7 @@ const PATH_LABELS: Record<string, string> = {
   '/main/image_area':  '圖庫',
   '/main/image_page':  '圖片詳情',
   '/main/history':     '瀏覽紀錄',
+  '/main/feedback':    '回報',
 };
 
 export const Topbar: React.FC<TopbarProps> = ({ onCollapse }) => {

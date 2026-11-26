@@ -57,7 +57,7 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
     items: [
       { to: '/main/front_page', label: '個人資料', icon: 'user',     placeholder: true },
       { to: '/main/front_page', label: '設定',     icon: 'settings', placeholder: true },
-      { to: '/main/front_page', label: '回報',     icon: 'feedback', placeholder: true },
+      { to: '/main/feedback',   label: '回報',     icon: 'feedback' },
     ],
   },
 ];

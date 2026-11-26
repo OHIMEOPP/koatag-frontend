@@ -1,5 +1,6 @@
 // 各功能分檔，這裡只負責組裝外掛、狀態、指令與視窗事件
 mod board_window;
+mod feedback;
 mod image;
 mod import;
 mod x_bookmarks;
@@ -24,6 +25,7 @@ pub fn run() {
     .manage(import::PendingImports(Mutex::new(Vec::new())))
     // 註冊自己寫的指令，網頁用 invoke('指令名') 呼叫
     .invoke_handler(tauri::generate_handler![
+      feedback::open_feedback_form,
       image::fetch_image,
       board_window::open_board_window,
       board_window::close_board_window,
@@ -32,7 +34,8 @@ pub fn run() {
       x_bookmarks::session::x_session,
       x_bookmarks::login::x_login,
       x_bookmarks::login::x_logout,
-      x_bookmarks::fetch::x_fetch_page
+      x_bookmarks::fetch::x_fetch_page,
+      x_bookmarks::fetch::open_x_form
     ])
     .on_window_event(|window, event| {
       match event {

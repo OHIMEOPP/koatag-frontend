@@ -111,3 +111,43 @@ pub async fn x_fetch_page(
   .await
   .map_err(|e| e.to_string())?
 }
+
+#[tauri::command]
+pub fn open_x_form(url: tauri::Url) -> Result<(), String> {
+  let host = url.host_str().unwrap_or("");
+  if url.scheme() != "https"
+    || !(host == "x.com" || host == "twitter.com" || host.ends_with(".x.com"))
+    || url.port().is_some()
+    || !url.username().is_empty()
+    || url.password().is_some()
+  {
+    return Err("Invalid X URL".into());
+  }
+    #[cfg(windows)]
+  {
+    use windows::{
+      Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL},
+      core::{HSTRING, PCWSTR, w},
+    };
+
+    let url = HSTRING::from(url.as_str());
+    // Windows opens HTTPS links with the user's registered browser.
+    let result = unsafe {
+      ShellExecuteW(
+        None,
+        w!("open"),
+        &url,
+        PCWSTR::null(),
+        PCWSTR::null(),
+        SW_SHOWNORMAL,
+      )
+    };
+    if result.0 as isize <= 32 {
+      return Err(format!("ShellExecuteW failed ({})", result.0 as isize));
+    }
+    Ok(())
+  }
+
+  #[cfg(not(windows))]
+  Err("Opening the form from the desktop app is only supported on Windows".into())
+}

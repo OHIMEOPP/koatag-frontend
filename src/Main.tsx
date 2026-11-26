@@ -6,7 +6,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { isDesktop } from 'utils/desktop';
 
 import LayOut from './LayOut';
-import { Image_area, Image_page, Upload_area, Front_page, History, Bookmarks, Board, AdminUsers, NotFound } from 'pages'
+import { Image_area, Image_page, Upload_area, Front_page, History, Bookmarks, Board, Feedback, AdminUsers, NotFound } from 'pages'
 
 import './style/style.scss'
 import './style/message/message.scss'
@@ -96,6 +96,7 @@ const Main = () => {
                         <Route path="history"     element={<History />} />
                         <Route path="bookmarks"   element={<Bookmarks />} />
                         <Route path="board"       element={<Board />} />
+                        <Route path="feedback"    element={<Feedback />} />
                         <Route path="drive/*"     element={
                           <Suspense fallback={<div className="drive-loading">載入中…</div>}>
                             {/* R2 #4 cutover — force-re-login gate at the Drive

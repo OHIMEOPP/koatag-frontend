@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { isDesktop } from 'utils/desktop';
+import { invoke } from '@tauri-apps/api/core';
 import { Icon } from 'components/Icon';
 import { XItem } from 'services/bookmarkExt';
 import { GalleryResult, aiAnotherTags } from 'services/bookmark.service';
@@ -197,6 +199,14 @@ export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, onUnsav
     onSave(item);
   };
 
+  const openXForm = async (X_URL: string) => {
+    try {
+      await invoke('open_x_form', { url: X_URL });
+    } catch {
+      $message('無法開啟 X 貼文，請稍後再試', 'error');
+    }
+  };
+
   let saveLabel = '收藏';
   if (saved) {
     saveLabel = '已收藏';
@@ -247,7 +257,15 @@ export const PostCard: React.FC<Props> = ({ item, saved, saving, onSave, onUnsav
 
         <div className="bm-post-foot">
           {item.url ? (
-            <a href={item.url} target="_blank" rel="noopener noreferrer">在 X 上查看</a>
+            isDesktop() ? (
+              <button className="btn btn-sm btn-outline" onClick={() => { if (item.url) openXForm(item.url); }}>
+                在 X 上查看
+              </button>
+            ) : (
+              <a href={item.url} target="_blank" rel="noopener noreferrer">
+                在 X 上查看
+              </a>
+            )
           ) : (
             <span />
           )}
