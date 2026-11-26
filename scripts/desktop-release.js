@@ -1,5 +1,6 @@
 // 桌面版發版：改版本號、commit、push、打 tag、push tag，tag 推上去後 GitHub Actions 會打包
 // 用法：npm run desktop:release 0.0.2 "這版改了什麼"
+// 條列：npm run desktop:release 0.0.2 "第一點" "第二點"，每個參數一條
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
@@ -24,12 +25,30 @@ const gitShow = (args) => {
 };
 
 const version = process.argv[2];
-const notes = process.argv[3];
+
+// 多個參數各算一條 前面加 - 用換行接起來 只有一個就照原樣
+const items = [];
+for (const arg of process.argv.slice(3)) {
+  if (arg.trim()) {
+    items.push(arg.trim());
+  }
+}
+let notes = '';
+if (items.length === 1) {
+  notes = items[0];
+}
+if (items.length > 1) {
+  const lines = [];
+  for (const item of items) {
+    lines.push('- ' + item);
+  }
+  notes = lines.join('\n');
+}
 
 if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
   fail('版本號格式要像 0.0.2，用法：npm run desktop:release 0.0.2 "這版改了什麼"');
 }
-if (!notes || !notes.trim()) {
+if (!notes) {
   fail('要寫這版改了什麼，會顯示在 APP 的更新提示裡');
 }
 
