@@ -117,6 +117,8 @@ D.6 video poster frame 純 backend `thumb_path` 寫入，前端透明消費（wi
 
 ## Active backlog（next round 候選）
 
+- **圖庫使用規範（2026-11-26 定稿，暫不公告）**：全文與公告前要完成的功能在 `GALLERY_POLICY_DRAFT.md`（圖庫刪除＋30 天垃圾桶、管理員下架、刪帳號、通報 Email）。user 裁示功能之後再做。
+
 ⚪ 段全清完，🟡 / 🔴 / 🟣 段全列入 E2EE Round 2 9-step（仲裁見 wiki output `koatag-e2ee-alignment-2026-05-17.md` §3.5）。等 user Discord DM 後 Round 2 dispatch。
 
 ## 三方 status snapshot
