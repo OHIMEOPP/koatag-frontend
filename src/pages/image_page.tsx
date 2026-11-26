@@ -170,17 +170,15 @@ const Image_page = () => {
                             編輯標籤
                         </button>
                     </div>
-                    {!isDesktop() && (
-                        <Btn
-                            variant="ghost"
-                            size="sm"
-                            icon={<Icon.image size={12} />}
-                            onClick={() => importToDesktopApp(Number(img_id))}
-                            title="送到 KOATAG 桌面版的黑板"
-                        >
-                            匯入到 APP
-                        </Btn>
-                    )}
+                    <Btn
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon.image size={12} />}
+                        onClick={() => importToDesktopApp(Number(img_id))}
+                        title="送到 KOATAG 桌面版的黑板"
+                    >
+                        匯入到 APP
+                    </Btn>
                     <Btn variant="ghost" size="sm" icon={<Icon.download size={12} />} onClick={handleDownload} disabled={!imageData}>
                         下載
                     </Btn>
