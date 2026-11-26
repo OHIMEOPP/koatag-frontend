@@ -90,6 +90,26 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
     return () => document.body.classList.remove('board-focus');
   }, [focus]);
 
+  // 視窗固定在最上層，各視窗各自設定，離開黑板頁就取消
+  const [pinned, setPinned] = useState(false);
+
+  useEffect(() => {
+    if (!isDesktop()) {
+      return;
+    }
+    getCurrentWindow().setAlwaysOnTop(pinned).catch((e) => {
+      console.error('[board] 設定最上層失敗', e);
+    });
+  }, [pinned]);
+
+  useEffect(() => {
+    return () => {
+      if (isDesktop()) {
+        getCurrentWindow().setAlwaysOnTop(false).catch(() => {});
+      }
+    };
+  }, []);
+
   // 獨立黑板視窗按關閉先確認，主視窗關閉由 Rust 結束整個 APP
   useEffect(() => {
     if (!isDesktop() || label === 'main') {
@@ -827,6 +847,16 @@ const Board: React.FC<BoardProps> = ({ standalone = false }) => {
         {!standalone && (
           <button type="button" className="board-btn" onClick={() => setFocus(!focus)}>
             {focus ? '離開專注模式' : '專注模式'}
+          </button>
+        )}
+        {isDesktop() && (
+          <button
+            type="button"
+            className={`board-btn ${pinned ? 'board-btn-primary' : ''}`}
+            onClick={() => setPinned(!pinned)}
+            title="視窗固定在其他程式上面"
+          >
+            {pinned ? '取消釘選' : '釘選最上層'}
           </button>
         )}
         <span className="board-hint">可從瀏覽器或電腦拖圖進來；點圖片選取，拖角落縮放、拖上方圓點旋轉，Delete 從黑板移除</span>
