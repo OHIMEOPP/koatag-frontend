@@ -22,6 +22,7 @@ export const QuotaIndicator: React.FC = () => {
       <div className="drive-quota drive-quota-loading">
         <div className="drive-quota-label">Drive 容量</div>
         <div className="drive-quota-text">{loading ? "載入中…" : "未知"}</div>
+        <div className="drive-quota-mini">--</div>
       </div>
     );
   }
@@ -32,6 +33,8 @@ export const QuotaIndicator: React.FC = () => {
   return (
     <div className={`drive-quota drive-quota-${t}`} title={`${formatBytes(quota.used_bytes)} / ${formatBytes(quota.quota_bytes)}`}>
       <div className="drive-quota-label">Drive 容量</div>
+      {/* 側欄收合時只顯示百分比 */}
+      <div className="drive-quota-mini">{pct}%</div>
       <div className="drive-quota-bar">
         <div className="drive-quota-fill" style={{ width: `${pct}%` }} />
       </div>

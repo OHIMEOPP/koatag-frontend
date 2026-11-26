@@ -39,7 +39,7 @@ const NAV: Array<{ section: string; items: NavItem[] }> = [
     section: '雲端硬碟',
     items: [
       { to: '/main/drive',           label: 'Drive',     icon: 'cloud' },
-      { to: '/main/drive/shared/in', label: '共享給我',  icon: 'heart' },
+      { to: '/main/drive/shared/in', label: '共享給我',  icon: 'inbox' },
       { to: '/main/drive/shared/out',label: '我的分享',  icon: 'link' },
       { to: '/main/drive/trash',     label: '垃圾桶',    icon: 'trash' },
     ],
@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
                 to="/main/admin/users"
                 className={`nav-item ${location.pathname === '/main/admin/users' ? 'active' : ''}`}
               >
-                <Icon.user className="nav-icon" />
+                <Icon.userManage className="nav-icon" />
                 <span className="nav-label">帳號管理</span>
               </Link>
             )}

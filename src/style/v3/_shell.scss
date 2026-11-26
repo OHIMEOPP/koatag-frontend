@@ -117,7 +117,16 @@
 
 // Collapse states
 .app.collapsed {
-  .brand-text, .brand-text-2, .nav-label, .side-section, .side-foot-text { display: none; }
+  .brand-text, .brand-text-2, .nav-label, .nav-badge, .side-section, .side-foot-text { display: none; }
+
+  // 只剩圖示時置中 標誌旁的空文字框會吃掉 gap 所以歸零
+  .nav-item, .user-card { justify-content: center; }
+  .side-brand { justify-content: center; gap: 0; }
+
+  // Drive 容量只留百分比和進度條
+  .drive-quota { padding: 6px; }
+  .drive-quota-label, .drive-quota-text { display: none; }
+  .drive-quota-mini { display: block; }
 }
 
 // Topbar

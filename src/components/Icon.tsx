@@ -39,9 +39,36 @@ export const Icon = {
       <path d="M6 3h12v18l-6-4-6 4z" />
     </svg>
   ),
+  // 共享給我 收件匣
+  inbox: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </svg>
+  ),
+  // 帳號管理
+  userManage: ({ size = 18, className }: IP) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="9" cy="7" r="4" />
+      <path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />
+      <circle cx="19" cy="14" r="2" />
+      <path d="M19 10.5v1.5" />
+      <path d="M19 16v1.5" />
+      <path d="M16 12.2l1.3.8" />
+      <path d="M20.7 15l1.3.8" />
+      <path d="M22 12.2l-1.3.8" />
+      <path d="M17.3 15l-1.3.8" />
+    </svg>
+  ),
+
+  // 個人資料
   user: ({ size = 18, className }: IP) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="2.5" />
+      <path d="M5 17v-.5a2.5 2.5 0 0 1 2.5-2.5h3a2.5 2.5 0 0 1 2.5 2.5v.5" />
+      <line x1="15" y1="9" x2="19" y2="9" />
+      <line x1="15" y1="13" x2="19" y2="13" />
     </svg>
   ),
   history: ({ size = 18, className }: IP) => (

@@ -425,6 +425,23 @@
   margin-left: 4px;
 }
 
+// 平常藏著 側欄收合時才顯示
+.drive-quota-mini {
+  display: none;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.drive-quota-warn .drive-quota-mini {
+  color: var(--color-warning, #f59e0b);
+}
+
+.drive-quota-full .drive-quota-mini {
+  color: var(--color-danger, #ef4444);
+}
+
 .drive-quota-loading .drive-quota-text {
   color: var(--color-text-quaternary);
   font-style: italic;
